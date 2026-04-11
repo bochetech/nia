@@ -16,8 +16,8 @@ DC  := docker compose
 DCF := -f docker-compose.yml
 
 # ── Python ───────────────────────────────────────────────────
-PYTHON := python3
-PIP    := pip3
+PYTHON := $(shell [ -f .venv/bin/python ] && echo .venv/bin/python || echo python3)
+PIP    := $(shell [ -f .venv/bin/pip ] && echo .venv/bin/pip || echo pip3)
 
 # ── Node ─────────────────────────────────────────────────────
 NPM := npm

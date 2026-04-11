@@ -45,6 +45,7 @@ async def create_tenant(
         slug=data.id,
         plan=data.plan.value,
         status="provisioning",
+        schema_name=schema,
         db_schema=schema,
         qdrant_collection=qdrant_collection,
         contact_email=str(data.contact_email),

@@ -12,7 +12,7 @@ from typing import AsyncIterator
 
 import httpx
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import PointStruct
+from qdrant_client.models import Distance, PointStruct, VectorParams
 
 from app.settings import RAGSettings
 from shared.utils.logging import get_logger
@@ -111,9 +111,32 @@ def chunk_text(
     return chunks
 
 
-# ─────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────
+# Qdrant collection management
+# ──────────────────────────────────────────────────────────────────
+
+EMBEDDING_DIM = 768  # nomic-embed-text-v1.5 default dimension
+
+
+async def ensure_collection(
+    collection_name: str,
+    qdrant_client: AsyncQdrantClient,
+    vector_size: int = EMBEDDING_DIM,
+) -> None:
+    """Creates the Qdrant collection if it doesn't exist yet."""
+    existing = await qdrant_client.get_collections()
+    names = [c.name for c in existing.collections]
+    if collection_name not in names:
+        logger.info("creating_qdrant_collection", collection=collection_name, vector_size=vector_size)
+        await qdrant_client.create_collection(
+            collection_name=collection_name,
+            vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
+        )
+
+
+# ──────────────────────────────────────────────────────────────────
 # Ingestion pipeline
-# ─────────────────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────
 
 async def ingest_document(
     *,
@@ -182,6 +205,10 @@ async def ingest_document(
         )
         for c, emb in zip(chunks, embeddings)
     ]
+
+    # Ensure collection exists (auto-create with correct vector size)
+    vector_size = len(embeddings[0]) if embeddings else EMBEDDING_DIM
+    await ensure_collection(collection_name, qdrant_client, vector_size=vector_size)
 
     await qdrant_client.upsert(collection_name=collection_name, points=points)
     logger.info("ingestion_done", doc_id=doc_id, points_upserted=len(points))

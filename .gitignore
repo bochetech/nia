@@ -51,3 +51,4 @@ data/local/
 # Logs
 *.log
 logs/
+*.bak

@@ -3,7 +3,6 @@ Checkout Service — FastAPI entry point.
 Gestiona intents de reserva y sesiones de pago con Stripe.
 Puerto: 8006
 """
-from __future__ import annotations
 
 import time
 import uuid
@@ -249,8 +248,8 @@ async def stripe_webhook(request: Request):
 @app.on_event("startup")
 async def on_startup():
     logger.info("checkout_starting")
-    await init_db(str(settings.postgres_dsn))
-    await init_redis(settings.redis_url)
+    init_db(str(settings.postgres_dsn))
+    init_redis(settings.redis_url)
 
 
 @app.on_event("shutdown")

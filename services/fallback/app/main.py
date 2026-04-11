@@ -2,7 +2,6 @@
 Fallback Service — respuestas de emergencia cuando los servicios están caídos.
 Puerto: 8009
 """
-from __future__ import annotations
 
 import random
 from fastapi import FastAPI
@@ -50,7 +49,7 @@ async def get_fallback_message(tenant_id: str | None = None) -> dict:
 
 @app.on_event("startup")
 async def on_startup():
-    await init_redis(settings.redis_url)
+    init_redis(settings.redis_url)
 
 
 @app.on_event("shutdown")

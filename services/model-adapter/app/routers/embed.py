@@ -1,5 +1,4 @@
 """Router de embeddings — /embed."""
-from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException, status
 

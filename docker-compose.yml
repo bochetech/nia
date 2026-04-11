@@ -46,11 +46,6 @@ services:
       - "6334:6334"
     volumes:
       - qdrant_data:/qdrant/storage
-    healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:6333/health || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
   traefik:
     image: traefik:v3.0
@@ -79,12 +74,13 @@ services:
 
   migrations:
     build:
-      context: ./services/tenant-manager
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: ./services/orchestrator/Dockerfile.dev
     container_name: nia_migrations
-    command: alembic upgrade head
+    command: bash -c "cd /app/infra/db/migrations && PYTHONPATH=/app python -m alembic -c alembic.ini upgrade head"
     environment:
       - POSTGRES_DSN=postgresql+asyncpg://nia_user:nia_secret@postgres:5432/nia_dev
+      - DATABASE_URL=postgresql+asyncpg://nia_user:nia_secret@postgres:5432/nia_dev
       - ENV=development
     env_file:
       - .env
@@ -99,8 +95,8 @@ services:
 
   model-adapter:
     build:
-      context: ./services/model-adapter
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: ./services/model-adapter/Dockerfile.dev
     container_name: nia_model_adapter
     restart: unless-stopped
     ports:
@@ -124,8 +120,8 @@ services:
 
   tenant-manager:
     build:
-      context: ./services/tenant-manager
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: ./services/tenant-manager/Dockerfile.dev
     container_name: nia_tenant_manager
     restart: unless-stopped
     ports:
@@ -154,8 +150,8 @@ services:
 
   rag-service:
     build:
-      context: ./services/rag-service
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: ./services/rag-service/Dockerfile.dev
     container_name: nia_rag
     restart: unless-stopped
     ports:
@@ -169,7 +165,7 @@ services:
       - "host.docker.internal:host-gateway"
     depends_on:
       qdrant:
-        condition: service_healthy
+        condition: service_started
       redis:
         condition: service_healthy
       model-adapter:
@@ -186,8 +182,8 @@ services:
 
   recommender:
     build:
-      context: ./services/recommender
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: ./services/recommender/Dockerfile.dev
     container_name: nia_recommender
     restart: unless-stopped
     ports:
@@ -216,8 +212,8 @@ services:
 
   orchestrator:
     build:
-      context: ./services/orchestrator
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: ./services/orchestrator/Dockerfile.dev
     container_name: nia_orchestrator
     restart: unless-stopped
     ports:
@@ -248,8 +244,8 @@ services:
 
   checkout:
     build:
-      context: ./services/checkout
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: ./services/checkout/Dockerfile.dev
     container_name: nia_checkout
     restart: unless-stopped
     ports:
@@ -276,8 +272,8 @@ services:
 
   handoff:
     build:
-      context: ./services/handoff
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: ./services/handoff/Dockerfile.dev
     container_name: nia_handoff
     restart: unless-stopped
     ports:
@@ -304,8 +300,8 @@ services:
 
   transcript:
     build:
-      context: ./services/transcript
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: ./services/transcript/Dockerfile.dev
     container_name: nia_transcript
     restart: unless-stopped
     ports:
@@ -332,8 +328,8 @@ services:
 
   fallback:
     build:
-      context: ./services/fallback
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: ./services/fallback/Dockerfile.dev
     container_name: nia_fallback
     restart: unless-stopped
     ports:

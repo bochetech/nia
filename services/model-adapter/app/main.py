@@ -2,7 +2,6 @@
 Model Adapter — FastAPI application entry point.
 Puerto: 8005
 """
-from __future__ import annotations
 
 import sys
 import time

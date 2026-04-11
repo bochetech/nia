@@ -2,7 +2,6 @@
 RAG Service — FastAPI entry point.
 Puerto: 8002
 """
-from __future__ import annotations
 
 import time
 import uuid
@@ -236,7 +235,7 @@ async def delete_document(doc_id: str, tenant_id: str, collection_name: str):
 @app.on_event("startup")
 async def on_startup():
     logger.info("rag_service_starting")
-    await init_redis(settings.redis_url)
+    init_redis(settings.redis_url)
     _ = get_qdrant()
     logger.info("rag_service_ready", port=settings.port)
 

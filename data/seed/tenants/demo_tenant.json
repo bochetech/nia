@@ -1,13 +1,23 @@
 {
-  "id": "demo-turismo",
+  "id": "demo_turismo",
   "name": "Demo Turismo SA",
-  "plan": "pro",
-  "api_key": "nia_demo_key_insecure_only_for_local_dev",
-  "branding": {
+  "contact_email": "demo@turismo.com",
+  "plan": "professional",
+  "ui_config": {
     "primary_color": "#0f766e",
     "logo_url": null,
     "welcome_message": "¡Hola! Soy NIA, tu asistente de viajes. ¿A dónde quieres escaparte?",
     "placeholder": "Ej: Quiero un tour de 3 días en la costa…"
   },
-  "qdrant_collection": "demo_turismo_docs"
+  "rag_config": {
+    "confidence_threshold": 0.6,
+    "max_tokens_response": 600,
+    "fallback_message": "No tengo información precisa sobre eso. ¿Te gustaría hablar con un asesor?",
+    "top_k_retrieval": 8
+  },
+  "ai_config": {
+    "primary_provider": "lmstudio",
+    "primary_model": "llama-3.2-3b-instruct",
+    "temperature": 0.3
+  }
 }

@@ -6,6 +6,9 @@ class RAGSettings(BaseServiceSettings):
     service_name: str = "rag-service"
     port: int = 8002
 
+    # Qdrant
+    qdrant_url: str = "http://localhost:6333"
+
     # Chunking
     chunk_size_tokens: int = 400
     chunk_overlap_tokens: int = 50

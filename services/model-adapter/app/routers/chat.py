@@ -1,5 +1,4 @@
 """Router de chat — /chat/completions y /chat/stream."""
-from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse

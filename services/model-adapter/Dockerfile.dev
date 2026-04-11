@@ -8,14 +8,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiar shared library primero (para cache de capas)
-COPY ../../shared /app/shared
+COPY shared /app/shared
 
 # Instalar dependencias Python
-COPY requirements.txt .
+COPY services/model-adapter/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir -e /app/shared 2>/dev/null || true
 
-COPY . .
+COPY services/model-adapter/ .
 
 EXPOSE 8005
 

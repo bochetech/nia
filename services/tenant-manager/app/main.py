@@ -2,7 +2,6 @@
 Tenant Manager — FastAPI entry point.
 Puerto: 8003
 """
-from __future__ import annotations
 
 import time
 
@@ -58,8 +57,8 @@ app.include_router(router, prefix="/api")
 @app.on_event("startup")
 async def on_startup():
     logger.info("tenant_manager_starting", env=settings.env)
-    await init_db(str(settings.postgres_dsn))
-    await init_redis(settings.redis_url)
+    init_db(str(settings.postgres_dsn))
+    init_redis(settings.redis_url)
     logger.info("tenant_manager_ready", port=settings.port)
 
 

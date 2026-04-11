@@ -6,13 +6,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-COPY ../../shared /app/shared
+COPY shared /app/shared
 
-COPY requirements.txt .
+COPY services/rag-service/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install --no-cache-dir -e /app/shared 2>/dev/null || true
 
-COPY . .
+COPY services/rag-service/ .
 
 EXPOSE 8002
 

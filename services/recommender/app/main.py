@@ -2,7 +2,6 @@
 Recommender Service — FastAPI entry point.
 Puerto: 8004
 """
-from __future__ import annotations
 
 import time
 import uuid
@@ -66,8 +65,8 @@ async def recommend(body: RecommendRequest) -> APIResponse[RecommendationResult]
 @app.on_event("startup")
 async def on_startup():
     logger.info("recommender_starting")
-    await init_db(str(settings.postgres_dsn))
-    await init_redis(settings.redis_url)
+    init_db(str(settings.postgres_dsn))
+    init_redis(settings.redis_url)
     logger.info("recommender_ready", port=settings.port)
 
 

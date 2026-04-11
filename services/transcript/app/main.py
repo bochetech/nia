@@ -8,7 +8,6 @@ Endpoints:
   POST /v1/transcripts/{tenant}/{session}/email — envía transcripción por email
   POST /v1/leads                               — persiste un lead en DB
 """
-from __future__ import annotations
 
 import time
 import uuid
@@ -369,8 +368,8 @@ async def _send_email(*, to_email: str, subject: str, html_body: str) -> None:
 @app.on_event("startup")
 async def on_startup():
     logger.info("transcript_starting")
-    await init_db(str(settings.postgres_dsn))
-    await init_redis(settings.redis_url)
+    init_db(str(settings.postgres_dsn))
+    init_redis(settings.redis_url)
 
 
 @app.on_event("shutdown")

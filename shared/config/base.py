@@ -3,6 +3,7 @@ Configuración base compartida por todos los servicios.
 Cada servicio hereda de BaseSettings y añade sus propias variables.
 """
 from enum import Enum
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,9 +38,12 @@ class BaseServiceSettings(BaseSettings):
 
     # ── Redis ─────────────────────────────────────────────────────────────────
     redis_url: str = "redis://localhost:6379"
+    
+    # ── Qdrant ────────────────────────────────────────────────────────────────
+    qdrant_url: str = "http://localhost:6333"
 
     # ── JWT ───────────────────────────────────────────────────────────────────
-    jwt_secret: str = "dev-jwt-secret-change-in-prod"
+    jwt_secret: SecretStr = SecretStr("dev-jwt-secret-change-in-prod")
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 240  # 4 horas para widget tokens
 

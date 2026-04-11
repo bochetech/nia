@@ -2,7 +2,6 @@
 Handoff Service — gestiona transferencia bot → agente humano vía Teams.
 Puerto: 8007
 """
-from __future__ import annotations
 
 import json
 import time
@@ -225,7 +224,7 @@ async def resolve_case(case_id: str, session_id: str) -> dict:
 @app.on_event("startup")
 async def on_startup():
     logger.info("handoff_starting")
-    await init_redis(settings.redis_url)
+    init_redis(settings.redis_url)
 
 
 @app.on_event("shutdown")

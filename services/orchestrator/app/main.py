@@ -2,8 +2,6 @@
 Orchestrator — FastAPI entry point.
 Puerto: 8001 — Servicio central del sistema.
 """
-from __future__ import annotations
-
 import time
 import uuid
 
@@ -261,7 +259,7 @@ async def get_session(session_id: str, ctx: TenantCtx) -> APIResponse[dict]:
 @app.on_event("startup")
 async def on_startup():
     logger.info("orchestrator_starting")
-    await init_redis(settings.redis_url)
+    init_redis(settings.redis_url)
     logger.info("orchestrator_ready", port=settings.port)
 
 

@@ -1,0 +1,1828 @@
+{
+  "info": {
+    "name": "NIA Platform — 2026-04-11",
+    "description": "Auto-generada desde OpenAPI specs en ejecución. Incluye FlowTransition en FSMConfig.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "jwt_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tenant_id",
+      "value": "demo_turismo",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Orchestrator",
+      "item": [
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8001/health/ready",
+              "host": [
+                "localhost:8001"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Send a message in a conversation session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8001/v1/chat",
+              "host": [
+                "localhost:8001"
+              ],
+              "path": [
+                "v1",
+                "chat"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"string\",\n  \"stream\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Send a message with SSE streaming response",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8001/v1/chat/stream",
+              "host": [
+                "localhost:8001"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "stream"
+              ]
+            },
+            "description": "Streaming via Server-Sent Events.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"string\",\n  \"stream\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Submit lead capture form",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8001/v1/sessions/:session_id/lead",
+              "host": [
+                "localhost:8001"
+              ],
+              "path": [
+                "v1",
+                "sessions",
+                ":session_id",
+                "lead"
+              ],
+              "variable": [
+                {
+                  "key": "session_id",
+                  "value": "<session_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"data\": {},\n  \"gdpr_consent\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get current session state",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8001/v1/sessions/:session_id",
+              "host": [
+                "localhost:8001"
+              ],
+              "path": [
+                "v1",
+                "sessions",
+                ":session_id"
+              ],
+              "variable": [
+                {
+                  "key": "session_id",
+                  "value": "<session_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8001/health",
+              "host": [
+                "localhost:8001"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "RAG Service",
+      "item": [
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8002/health/ready",
+              "host": [
+                "localhost:8002"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Query the RAG knowledge base",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8002/v1/rag/query",
+              "host": [
+                "localhost:8002"
+              ],
+              "path": [
+                "v1",
+                "rag",
+                "query"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"string\",\n  \"tenant_id\": \"string\",\n  \"collection_name\": \"string\",\n  \"tenant_name\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest a document into the knowledge base",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8002/v1/rag/ingest",
+              "host": [
+                "localhost:8002"
+              ],
+              "path": [
+                "v1",
+                "rag",
+                "ingest"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest a JSON knowledge base (array of activity/knowledge objects)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8002/v1/rag/ingest-json",
+              "host": [
+                "localhost:8002"
+              ],
+              "path": [
+                "v1",
+                "rag",
+                "ingest-json"
+              ]
+            },
+            "description": "Acepta un JSON cuya raíz es una lista de objetos. Cada objeto se convierte\nen un chunk de texto incluyendo todos sus campos key-value.\n\nEjemplo de estructura soportada (demo_knowledge.json):\n  [{\"id\": \"1\", \"name\": \"Tour del Valle\", \"description\": \"...\", ...}, ...]"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete all chunks for a document",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8002/v1/rag/documents/:doc_id",
+              "host": [
+                "localhost:8002"
+              ],
+              "path": [
+                "v1",
+                "rag",
+                "documents",
+                ":doc_id"
+              ],
+              "variable": [
+                {
+                  "key": "doc_id",
+                  "value": "<doc_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8002/health",
+              "host": [
+                "localhost:8002"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tenant Manager",
+      "item": [
+        {
+          "name": "Create a new tenant (super_admin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"string\",\n  \"name\": \"string\",\n  \"contact_email\": \"user@example.com\",\n  \"plan\": null,\n  \"ui_config\": {\n    \"primary_color\": \"string\",\n    \"secondary_color\": \"string\",\n    \"logo_url\": \"string\",\n    \"font_family\": \"string\",\n    \"welcome_message\": \"string\",\n    \"chat_title\": \"string\",\n    \"avatar_url\": \"string\",\n    \"position\": \"string\"\n  },\n  \"lead_config\": {\n    \"enabled\": true,\n    \"fields\": [\n      {\n        \"name\": \"string\",\n        \"label\": \"string\",\n        \"type\": \"string\",\n        \"required\": true,\n        \"validation\": null,\n        \"options\": null\n      }\n    ],\n    \"gdpr_consent_text\": \"string\",\n    \"submit_label\": \"string\"\n  },\n  \"limits_config\": {\n    \"max_tokens_per_conversation\": 1,\n    \"max_conversations_per_month\": 1,\n    \"max_llm_cost_usd_per_month\": 0.5,\n    \"max_rag_docs\": 1,\n    \"handoff_enabled\": true,\n    \"response_timeout_minutes\": 1\n  },\n  \"rag_config\": {\n    \"confidence_threshold\": 0.5,\n    \"max_tokens_response\": 1,\n    \"fallback_message\": \"string\",\n    \"top_k_retrieval\": 1,\n    \"top_k_rerank\": 1\n  },\n  \"teams_config\": {\n    \"enabled\": true,\n    \"webhook_url\": \"string\",\n    \"channel_id\": \"string\",\n    \"auto_handoff_keywords\": [\n      \"string\"\n    ],\n    \"escalation_timeout_minutes\": 1,\n    \"adaptive_card_template\": \"string\",\n    \"mention_users\": [\n      \"string\"\n    ]\n  },\n  \"email_config\": {\n    \"enabled\": true,\n    \"smtp_host\": \"string\",\n    \"smtp_port\": 1,\n    \"smtp_user\": \"string\",\n    \"smtp_password\": \"string\",\n    \"smtp_from\": \"string\",\n    \"smtp_from_name\": \"string\",\n    \"use_tls\": true,\n    \"timeout_seconds\": 1,\n    \"template_path\": \"string\"\n  },\n  \"ai_config\": {\n    \"primary_provider\": \"string\",\n    \"primary_model\": \"string\",\n    \"fallback_provider\": \"string\",\n    \"fallback_model\": \"string\",\n    \"temperature\": 0.5,\n    \"max_tokens\": 1,\n    \"top_p\": 0.5,\n    \"system_prompt_override\": \"string\",\n    \"enable_caching\": true,\n    \"cache_ttl_seconds\": 1,\n    \"cost_optimization\": true\n  },\n  \"fsm_config\": {\n    \"states_enabled\": [\n      \"string\"\n    ],\n    \"max_conversation_turns\": 1,\n    \"session_timeout_minutes\": 1,\n    \"nps_enabled\": true,\n    \"post_chat_delay_seconds\": 1,\n    \"handoff_triggers\": [\n      \"string\"\n    ],\n    \"auto_close_after_minutes\": 1,\n    \"transitions\": [\n      {\n        \"intent\": \"string\",\n        \"from_states\": [\n          null\n        ],\n        \"to_state\": \"string\",\n        \"action\": \"string\",\n        \"static_message\": null,\n        \"enabled\": true\n      }\n    ]\n  },\n  \"payment_config\": {\n    \"enabled\": true,\n    \"stripe_public_key\": \"string\",\n    \"stripe_secret_key\": \"string\",\n    \"currency_default\": \"string\",\n    \"payment_methods\": [\n      \"string\"\n    ],\n    \"checkout_session_expires_minutes\": 1,\n    \"success_url_template\": \"string\",\n    \"cancel_url_template\": \"string\",\n    \"webhook_secret\": \"string\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List tenants (super_admin only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get tenant by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/:tenant_id",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Update tenant configuration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/:tenant_id",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"string\",\n  \"contact_email\": \"user@example.com\",\n  \"plan\": \"starter\",\n  \"ui_config\": {\n    \"primary_color\": \"string\",\n    \"secondary_color\": \"string\",\n    \"logo_url\": \"string\",\n    \"font_family\": \"string\",\n    \"welcome_message\": \"string\",\n    \"chat_title\": \"string\",\n    \"avatar_url\": \"string\",\n    \"position\": \"string\"\n  },\n  \"lead_config\": {\n    \"enabled\": true,\n    \"fields\": [\n      {\n        \"name\": null,\n        \"label\": null,\n        \"type\": null,\n        \"required\": null,\n        \"validation\": null,\n        \"options\": null\n      }\n    ],\n    \"gdpr_consent_text\": \"string\",\n    \"submit_label\": \"string\"\n  },\n  \"limits_config\": {\n    \"max_tokens_per_conversation\": 1,\n    \"max_conversations_per_month\": 1,\n    \"max_llm_cost_usd_per_month\": 0.5,\n    \"max_rag_docs\": 1,\n    \"handoff_enabled\": true,\n    \"response_timeout_minutes\": 1\n  },\n  \"rag_config\": {\n    \"confidence_threshold\": 0.5,\n    \"max_tokens_response\": 1,\n    \"fallback_message\": \"string\",\n    \"top_k_retrieval\": 1,\n    \"top_k_rerank\": 1\n  },\n  \"teams_config\": {\n    \"enabled\": true,\n    \"webhook_url\": \"string\",\n    \"channel_id\": \"string\",\n    \"auto_handoff_keywords\": [\n      \"string\"\n    ],\n    \"escalation_timeout_minutes\": 1,\n    \"adaptive_card_template\": \"string\",\n    \"mention_users\": [\n      \"string\"\n    ]\n  },\n  \"email_config\": {\n    \"enabled\": true,\n    \"smtp_host\": \"string\",\n    \"smtp_port\": 1,\n    \"smtp_user\": \"string\",\n    \"smtp_password\": \"string\",\n    \"smtp_from\": \"string\",\n    \"smtp_from_name\": \"string\",\n    \"use_tls\": true,\n    \"timeout_seconds\": 1,\n    \"template_path\": \"string\"\n  },\n  \"ai_config\": {\n    \"primary_provider\": \"string\",\n    \"primary_model\": \"string\",\n    \"fallback_provider\": \"string\",\n    \"fallback_model\": \"string\",\n    \"temperature\": 0.5,\n    \"max_tokens\": 1,\n    \"top_p\": 0.5,\n    \"system_prompt_override\": \"string\",\n    \"enable_caching\": true,\n    \"cache_ttl_seconds\": 1,\n    \"cost_optimization\": true\n  },\n  \"fsm_config\": {\n    \"states_enabled\": [\n      \"string\"\n    ],\n    \"max_conversation_turns\": 1,\n    \"session_timeout_minutes\": 1,\n    \"nps_enabled\": true,\n    \"post_chat_delay_seconds\": 1,\n    \"handoff_triggers\": [\n      \"string\"\n    ],\n    \"auto_close_after_minutes\": 1,\n    \"transitions\": [\n      {\n        \"intent\": null,\n        \"from_states\": null,\n        \"to_state\": null,\n        \"action\": null,\n        \"static_message\": null,\n        \"enabled\": null\n      }\n    ]\n  },\n  \"payment_config\": {\n    \"enabled\": true,\n    \"stripe_public_key\": \"string\",\n    \"stripe_secret_key\": \"string\",\n    \"currency_default\": \"string\",\n    \"payment_methods\": [\n      \"string\"\n    ],\n    \"checkout_session_expires_minutes\": 1,\n    \"success_url_template\": \"string\",\n    \"cancel_url_template\": \"string\",\n    \"webhook_secret\": \"string\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Suspend tenant (super_admin only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/:tenant_id/suspend",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "suspend"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Create API key for tenant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/:tenant_id/api-keys",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "api-keys"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List API keys for tenant",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/:tenant_id/api-keys",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "api-keys"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Issue widget JWT for a new session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/:tenant_id/widget-token",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "widget-token"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Emite un JWT para iniciar una sesión de widget.\nLlamado por el widget JS con el API key del tenant en el header.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"page_url\": \"string\",\n  \"user_agent\": \"string\",\n  \"ttl_minutes\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get cached tenant configuration (internal use)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/:tenant_id/config",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "config"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Endpoint interno — otros servicios lo consultan para obtener config."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Teams integration configuration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/:tenant_id/teams-config",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "teams-config"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Actualizar configuración específica de Microsoft Teams.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true,\n  \"webhook_url\": \"string\",\n  \"channel_id\": \"string\",\n  \"auto_handoff_keywords\": [\n    \"string\"\n  ],\n  \"escalation_timeout_minutes\": 1,\n  \"adaptive_card_template\": \"string\",\n  \"mention_users\": [\n    \"string\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update email/SMTP configuration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/:tenant_id/email-config",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "email-config"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Actualizar configuración SMTP para envío de emails.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true,\n  \"smtp_host\": \"string\",\n  \"smtp_port\": 1,\n  \"smtp_user\": \"string\",\n  \"smtp_password\": \"string\",\n  \"smtp_from\": \"string\",\n  \"smtp_from_name\": \"string\",\n  \"use_tls\": true,\n  \"timeout_seconds\": 1,\n  \"template_path\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update AI model configuration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/:tenant_id/ai-config",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "ai-config"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Actualizar configuración de modelos de IA y prompts.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"primary_provider\": \"string\",\n  \"primary_model\": \"string\",\n  \"fallback_provider\": \"string\",\n  \"fallback_model\": \"string\",\n  \"temperature\": 0.5,\n  \"max_tokens\": 1,\n  \"top_p\": 0.5,\n  \"system_prompt_override\": \"string\",\n  \"enable_caching\": true,\n  \"cache_ttl_seconds\": 1,\n  \"cost_optimization\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update conversation state machine configuration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/:tenant_id/fsm-config",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "fsm-config"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Actualizar configuración avanzada de la máquina de estados.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"states_enabled\": [\n    \"string\"\n  ],\n  \"max_conversation_turns\": 1,\n  \"session_timeout_minutes\": 1,\n  \"nps_enabled\": true,\n  \"post_chat_delay_seconds\": 1,\n  \"handoff_triggers\": [\n    \"string\"\n  ],\n  \"auto_close_after_minutes\": 1,\n  \"transitions\": [\n    {\n      \"intent\": \"string\",\n      \"from_states\": [\n        \"string\"\n      ],\n      \"to_state\": \"string\",\n      \"action\": \"string\",\n      \"static_message\": \"string\",\n      \"enabled\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update payment/checkout configuration",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/:tenant_id/payment-config",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "payment-config"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Actualizar configuración de checkout y pagos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true,\n  \"stripe_public_key\": \"string\",\n  \"stripe_secret_key\": \"string\",\n  \"currency_default\": \"string\",\n  \"payment_methods\": [\n    \"string\"\n  ],\n  \"checkout_session_expires_minutes\": 1,\n  \"success_url_template\": \"string\",\n  \"cancel_url_template\": \"string\",\n  \"webhook_secret\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8003/health",
+              "host": [
+                "localhost:8003"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Recommender",
+      "item": [
+        {
+          "name": "Get product recommendations based on user intent entities",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8004/v1/recommendations",
+              "host": [
+                "localhost:8004"
+              ],
+              "path": [
+                "v1",
+                "recommendations"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"string\",\n  \"tenant_schema\": \"string\",\n  \"entities\": {\n    \"activity_type\": \"string\",\n    \"date\": null,\n    \"pax_count\": 1,\n    \"language_preference\": \"string\",\n    \"budget_max\": 0.5,\n    \"physical_level\": \"string\",\n    \"duration_preference_hours\": 1,\n    \"time_of_day\": \"string\"\n  },\n  \"top_k\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8004/health",
+              "host": [
+                "localhost:8004"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Model Adapter",
+      "item": [
+        {
+          "name": "Chat completion (non-streaming)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8005/v1/chat/completions",
+              "host": [
+                "localhost:8005"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "completions"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [\n    {\n      \"role\": \"string\",\n      \"content\": \"string\"\n    }\n  ],\n  \"temperature\": 0.5,\n  \"max_tokens\": 1,\n  \"stream\": true,\n  \"tenant_id\": \"string\",\n  \"session_id\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Chat completion (streaming SSE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8005/v1/chat/stream",
+              "host": [
+                "localhost:8005"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "stream"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [\n    {\n      \"role\": \"string\",\n      \"content\": \"string\"\n    }\n  ],\n  \"temperature\": 0.5,\n  \"max_tokens\": 1,\n  \"stream\": true,\n  \"tenant_id\": \"string\",\n  \"session_id\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Generate text embeddings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8005/v1/embed",
+              "host": [
+                "localhost:8005"
+              ],
+              "path": [
+                "v1",
+                "embed"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"texts\": [\n    \"string\"\n  ],\n  \"tenant_id\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8005/health",
+              "host": [
+                "localhost:8005"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Checkout",
+      "item": [
+        {
+          "name": "Create Booking Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8006/v1/checkout/booking-intents",
+              "host": [
+                "localhost:8006"
+              ],
+              "path": [
+                "v1",
+                "checkout",
+                "booking-intents"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"string\",\n  \"session_id\": \"string\",\n  \"product_id\": \"string\",\n  \"selected_date\": \"string\",\n  \"selected_time\": \"string\",\n  \"pax_count\": 1,\n  \"contact\": {\n    \"name\": \"string\",\n    \"email\": \"user@example.com\",\n    \"phone\": \"string\",\n    \"special_requests\": \"string\"\n  },\n  \"total_amount\": 0.5,\n  \"currency\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Checkout Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8006/v1/checkout/sessions",
+              "host": [
+                "localhost:8006"
+              ],
+              "path": [
+                "v1",
+                "checkout",
+                "sessions"
+              ]
+            },
+            "description": "Crea una sesión de Stripe Checkout (o mock en dev).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_intent_id\": \"string\",\n  \"tenant_id\": \"string\",\n  \"session_id\": \"string\",\n  \"success_url\": \"string\",\n  \"cancel_url\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stripe Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8006/v1/checkout/webhook",
+              "host": [
+                "localhost:8006"
+              ],
+              "path": [
+                "v1",
+                "checkout",
+                "webhook"
+              ]
+            },
+            "description": "Recibe webhooks de Stripe."
+          },
+          "response": []
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8006/health",
+              "host": [
+                "localhost:8006"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Handoff",
+      "item": [
+        {
+          "name": "Create Handoff Case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8007/v1/handoff/cases",
+              "host": [
+                "localhost:8007"
+              ],
+              "path": [
+                "v1",
+                "handoff",
+                "cases"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"string\",\n  \"session_id\": \"string\",\n  \"trigger_type\": \"string\",\n  \"trigger_reason\": \"string\",\n  \"context_summary\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Handoff Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8007/v1/handoff/cases/:case_id",
+              "host": [
+                "localhost:8007"
+              ],
+              "path": [
+                "v1",
+                "handoff",
+                "cases",
+                ":case_id"
+              ],
+              "variable": [
+                {
+                  "key": "case_id",
+                  "value": "<case_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Resolve Case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8007/v1/handoff/cases/:case_id/resolve",
+              "host": [
+                "localhost:8007"
+              ],
+              "path": [
+                "v1",
+                "handoff",
+                "cases",
+                ":case_id",
+                "resolve"
+              ],
+              "variable": [
+                {
+                  "key": "case_id",
+                  "value": "<case_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "El agente resuelve el caso → reactivar bot."
+          },
+          "response": []
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8007/health",
+              "host": [
+                "localhost:8007"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Transcript",
+      "item": [
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8008/health/ready",
+              "host": [
+                "localhost:8008"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Save Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8008/v1/transcripts/messages",
+              "host": [
+                "localhost:8008"
+              ],
+              "path": [
+                "v1",
+                "transcripts",
+                "messages"
+              ]
+            },
+            "description": "Persiste un mensaje en la tabla de mensajes del tenant.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"string\",\n  \"session_id\": \"string\",\n  \"role\": \"string\",\n  \"content\": \"string\",\n  \"tokens\": 1,\n  \"intent\": \"string\",\n  \"confidence\": 0.5,\n  \"rag_sources\": [\n    null\n  ],\n  \"metadata\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transcript",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8008/v1/transcripts/:tenant_id/:session_id",
+              "host": [
+                "localhost:8008"
+              ],
+              "path": [
+                "v1",
+                "transcripts",
+                ":tenant_id",
+                ":session_id"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                },
+                {
+                  "key": "session_id",
+                  "value": "<session_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Obtiene el historial completo de una sesión."
+          },
+          "response": []
+        },
+        {
+          "name": "Export Transcript Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8008/v1/transcripts/:tenant_id/:session_id/email",
+              "host": [
+                "localhost:8008"
+              ],
+              "path": [
+                "v1",
+                "transcripts",
+                ":tenant_id",
+                ":session_id",
+                "email"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "<tenant_id>",
+                  "description": ""
+                },
+                {
+                  "key": "session_id",
+                  "value": "<session_id>",
+                  "description": ""
+                }
+              ]
+            },
+            "description": "Genera HTML con la transcripción y lo envía por email.\nSin SMTP configurado, devuelve el HTML en la respuesta (dev mode).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_email\": \"user@example.com\",\n  \"subject\": \"string\",\n  \"tenant_name\": \"string\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8008/v1/leads",
+              "host": [
+                "localhost:8008"
+              ],
+              "path": [
+                "v1",
+                "leads"
+              ]
+            },
+            "description": "Persiste un lead capturado en el formulario pre-chat.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"string\",\n  \"session_id\": \"string\",\n  \"name\": \"string\",\n  \"email\": \"user@example.com\",\n  \"phone\": \"string\",\n  \"intent_data\": {},\n  \"gdpr_consent\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8008/health",
+              "host": [
+                "localhost:8008"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Fallback",
+      "item": [
+        {
+          "name": "Get Fallback Message",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8009/v1/fallback/message",
+              "host": [
+                "localhost:8009"
+              ],
+              "path": [
+                "v1",
+                "fallback",
+                "message"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8009/health",
+              "host": [
+                "localhost:8009"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "model-adapter: start",
+			"type": "shell",
+			"command": "source .venv/bin/activate && MODEL_PROVIDER=lmstudio PYTHONPATH=services/model-adapter:. uvicorn app.main:app --app-dir services/model-adapter --port 8005",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "demo: NIA widget server",
+			"type": "shell",
+			"command": "source .venv/bin/activate && python demo_server.py",
+			"isBackground": true,
+			"problemMatcher": []
+		}
+	]
+}

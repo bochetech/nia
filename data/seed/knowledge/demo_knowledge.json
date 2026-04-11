@@ -1,0 +1,1363 @@
+{
+  "tenant": "concha-y-toro",
+  "activities": [
+    {
+      "id": "1070535",
+      "title": "Visita Guiada Premium",
+      "excerpt": "Conoce un poco más de Visita Guiada Centro del Vino Concha y Toro",
+      "description": "Descripción Conoce el nuevo Centro del Vino Concha y Toro, un lugar donde la tradición e innovación se unen para ofrecer una experiencia enoturística única, inmersiva y llena de historia, cultura, arte y los mejores vinos de la marca. Durante tu visita podrás: - Recorrer el parque centenario y admirar desde el exterior la arquitectura de la emblemática Casa Don Melchor, que evoca los orígenes de la viña. - Descubrir la Experiencia Mueso Sensorial Casillero del Diablo donde aprenderás más sobre el vino chileno y las características que hacen a nuestro país idóneo para la producción de este, con diferentes puntos interactivos y una sala que revela los secretos más recónditos de esta emblemática marca, para posteriormente explorar la Bodega Subterránea Casillero del Diablo, donde la leyenda c",
+      "included": "4 wine tastings Professional guide Alcoholic Beverages",
+      "excluded": "Lunch Hotel pickup and drop-off",
+      "know_before": "WHEELCHAIR_ACCESSIBLE",
+      "duration_h": 2,
+      "duration_m": 0,
+      "duration_label": "2h",
+      "categories": [
+        "Museos y exposiciones",
+        "Pase turístico",
+        "Naturaleza"
+      ],
+      "photos": [
+        "https://bokun.s3.amazonaws.com/18fe6d78-5fbb-4421-94a2-bb48738c405d.jpg",
+        "https://bokun.s3.amazonaws.com/b0fdbeae-f538-4ee0-aaa7-943d53fce8b9.jpg"
+      ],
+      "horarios": [
+        "09:10",
+        "09:40",
+        "10:10",
+        "10:50",
+        "12:00",
+        "13:40",
+        "14:00",
+        "14:40",
+        "15:10",
+        "15:50",
+        "15:55",
+        "17:00",
+        "21:00"
+      ],
+      "pricing_categories": [
+        "Adult"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1883",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Degustación Elixir Casillero del Diablo",
+          "desc": "Elixir Casillero del Diablo, es un exclusivo vino elaborado por Marcelo Papa, que solo podrá ser degustado y adquirido en el nuevo Centro del Vino de Concha y Toro. Este vino licoroso, elaborado princ"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        },
+        {
+          "name": "Uber",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1070907",
+      "title": "Visita Guiada Premium + Tasting The New Wines",
+      "excerpt": "Conoce un poco más de Experiencia The New Wines Concha y Toro",
+      "description": "Descripción Descubre las sutilezas de las recientemente lanzadas líneas de vinos: Concha y Toro The Wine y Concha y Toro The Master. Este tour comienza con el Nuevo Recorrido \"Visita Guiada Premium Centro del Vino Concha y Toro\", un circuito inmersivo y sensorial que conecta con la esencia de la viña a través de su historia, arquitectura, paisajes, arte y vinos, y en donde conocerás todos los nuevos espacios de este fascinante lugar. Tras finalizar este primer recorrido, tendrás una degustación de cinco vinos extraordinarios: el Cabernet Sauvignon ultra premium de origen Pirque y Puente Alto Concha y Toro The Master, junto con la línea de vinos super premium más reciente de la viña, Concha y Toro The Wine. ¿Qué Incluye? • Nuevo Recorrido Concha y Toro • Visita Parque Concha y Toro y exteri",
+      "included": "• Nuevo Recorrido Concha y Toro • Visita Parque Concha y Toro y exteriores de Casa Don Melchor • Experiencia Museo Sensorial Casillero del Diablo • Bodega Subterránea Casillero del Diablo • Bodega de Guarda El Alto • Mirador Concha y Toro • 1 Copa de regalo • 4 copas de vinos Premium • 5 copas vinos: Concha y Toro The Wine y The Master • 25 personas máximo • 165 minutos * La sala de cata es un espacio cerrado, por lo que no se permite el ingreso de menores de 18 años.",
+      "excluded": "Almuerzo Transporte",
+      "know_before": "WHEELCHAIR_ACCESSIBLE",
+      "duration_h": 2,
+      "duration_m": 45,
+      "duration_label": "2h 45min",
+      "categories": [
+        "Lujo y ocasiones especiales",
+        "Tour a pie",
+        "Museos y exposiciones"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/cb25cfea-5197-46fa-b1be-fcddd7c9f1c1.jpeg",
+        "http://bokun.s3.amazonaws.com/abdff3cf-ff6b-40d2-9a29-03d1bd2a09d1.jpeg"
+      ],
+      "horarios": [
+        "12:55",
+        "14:30",
+        "21:00"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1883",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        },
+        {
+          "name": "165 min",
+          "desc": ""
+        },
+        {
+          "name": "Museo",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1070909",
+      "title": "Visita Guiada Premium + Tasting y Maridaje Terrunyo",
+      "excerpt": "Conoce un poco más de Experiencia Terrunyo Food & Wine",
+      "description": "Descubre la elegancia y exclusividad de cada vino de la línea ultra premium Terrunyo. Una sofisticada experiencia donde vino y gastronomía se encuentran en perfecta armonía. La Experiencia Terrunyo comienza con el Nuevo Recorrido Centro del Vino Concha y Toro, un circuito inmersivo y sensorial que conecta con la esencia de la viña a través de su historia, arquitectura, paisajes, arte y vinos, y en el que conocerás todos los nuevos espacios de este fascinante lugar. Tras finalizar este primer recorrido, la experiencia continúa en las salas privadas del Restaurant Bodega 1883, donde experimentarás una exclusiva degustación de los tres vinos ultra premium de Terrunyo: Carmenere, Cabernet Sauvignon y Sauvignon Blanc, cuidadosamente maridados con preparaciones diseñadas para resaltar la identid",
+      "included": "Nuevo Recorrido Concha y Toro Visita Parque Concha y Toro y exteriores de Casa Don Melchor Experiencia Sensorial Casillero del Diablo Bodega Subterránea Casillero del Diablo Bodega de Guarda El Alto Mirador Concha y Toro 1 Copa de regalo 4 copas de vinos Premium 3 copas vinos Terrunyo Maridaje de 3 platos degustación premium Menu Terrunyo: 1. Ceviche nortino pescado del día, mariscos chilenos, palta, cebolla morada, cilantro, pepino y aderezo de vegetales 60gr. - Terrunyo Sauvignon Blanc 2. Risotto de setas lascas de queso de oveja patagónica 60gr - Terrunyo Carmenere 3. Plateada en su jugo, corte de res mechado, puré de papas, queso mantecoso al merquen, verdura baby glaseada 60gr - Terrunyo Cabernet Sauvignon. (*) 3 salas flexibles para 8 pax c/u * La sala de cata es un espacio cerrado, por lo que no se permite el ingreso de menores de 18 años",
+      "excluded": "",
+      "know_before": "WHEELCHAIR_ACCESSIBLE",
+      "duration_h": 2,
+      "duration_m": 45,
+      "duration_label": "2h 45min",
+      "categories": [
+        "Lujo y ocasiones especiales",
+        "Tour a pie",
+        "Museos y exposiciones"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/cbb84b6c-50ba-4e6f-88d0-8acb7717a3b3.jpeg",
+        "http://bokun.s3.amazonaws.com/d6ccdc41-c79d-4f7a-9887-20f6b5d1fe39.jpeg"
+      ],
+      "horarios": [
+        "11:50",
+        "12:50"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1883",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Experiencia Trivento",
+          "desc": "Luego de tu visita sumérgete en la esencia de Viña Trivento, la prestigiosa filial de Viña Concha y Toro en Mendoza, Argentina, a través de una exclusiva degustación que celebra la riqueza y profundid"
+        },
+        {
+          "name": "Degustación Elixir Casillero del Diablo",
+          "desc": "Elixir Casillero del Diablo, es un exclusivo vino elaborado por Marcelo Papa, que solo podrá ser degustado y adquirido en el nuevo Centro del Vino de Concha y Toro. Este vino licoroso, elaborado princ"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1070968",
+      "title": "Visita Guiada Premium + Tasting Cellar Collection",
+      "excerpt": "Lo mejor de la enología chilena lo podrás descubrir en la Experiencia Cellar Collection, un recorrido exclusivo para los verdaderos amantes del vino.",
+      "description": "Descripción Lo mejor de la enología chilena lo podrás descubrir en la Experiencia Cellar Collection, un recorrido exclusivo para los verdaderos amantes del vino. La experiencia comienza con el Nuevo Recorrido \"Visita Guiada Premium Centro del Vino Concha y Toro\", un circuito inmersivo y sensorial que conecta con la esencia de la viña a través de su historia, arquitectura, paisajes, arte y vinos, y en el que conocerás todos los nuevos espacios de este fascinante lugar. Tras finalizar este primer recorrido, en una moderna sala de degustación ubicada en medio de la tradicional Bodega de Guarda del Alto, disfrutarás de una cata de vinos ultra premium e íconos de nuestra viña: Amelia –en sus variedades Chardonnay y Pinot Noir-, Marques de Casa Concha Heritage, Carmín de Peumo y Don Melchor. Cad",
+      "included": "Nuevo Recorrido Concha y Toro Visita Parque Concha y Toro y exteriores de Casa Don Melchor Experiencia Sensorial Casillero del Diablo Bodega Subterránea Casillero del Diablo Bodega de Guarda El Alto Mirador Concha y Toro 1 Copa de regalo 4 copas de vinos Premium 3 copas de vinos ultra premium y 2 vinos íconos 1 tabla de quesos premium 25 personas máximo 165 minutos * La sala de cata es un espacio cerrado, por lo que no se permite el ingreso de menores de 18 años.",
+      "excluded": "",
+      "know_before": "LIMITED_MOBILITY_ACCESSIBLE",
+      "duration_h": 2,
+      "duration_m": 45,
+      "duration_label": "2h 45min",
+      "categories": [
+        "Lujo y ocasiones especiales",
+        "Museos y exposiciones",
+        "Naturaleza"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/62b8f79d-2753-4283-9de0-0a145a037448.jpeg",
+        "http://bokun.s3.amazonaws.com/8def43cf-b3f8-4165-900e-ff6935064242.jpeg"
+      ],
+      "horarios": [
+        "10:00",
+        "13:10",
+        "14:50",
+        "21:00"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1889",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Experiencia Trivento",
+          "desc": "Luego de tu visita sumérgete en la esencia de Viña Trivento, la prestigiosa filial de Viña Concha y Toro en Mendoza, Argentina, a través de una exclusiva degustación que celebra la riqueza y profundid"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro ",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        },
+        {
+          "name": "165 min.",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1124227",
+      "title": "Experiencia Nocturna Casillero del Diablo + Cena",
+      "excerpt": "Cuando cae la noche en el Parque Concha y Toro, el misterio despierta y la legendaria historia de Casillero del Diablo cobra vida.",
+      "description": "Descripción Cuando cae la noche en el Parque Concha y Toro, el misterio despierta y la legendaria historia de Casillero del Diablo cobra vida. En esta experiencia única, el enigmático Don Isidro te conducirá por un recorrido nocturno lleno de historia, vino y leyenda, bajo el cielo estrellado de Pirque. Todo comienza con una copa de espumante y una caminata entre los jardines y alrededores de la histórica y emblemática Casa Don Melchor. Al adentrarse en el recorrido, una exclusiva degustación de cuatro vinos Casillero del Diablo activa los sentidos, preparando el camino hacia el momento más esperado: la Bodega Subterránea, donde el secreto mejor guardado del diablo será revelado. El recorrido finaliza con una elegante cena de tres tiempos en el Restaurant Bodega 1883, maridada con vinos Re",
+      "included": "• 1 copa de espumante Casillero del Diablo • Recorrido Nocturno Casillero del Diablo • Visita Parque Concha y Toro y exteriores de Casa Don Melchor • Bodega Subterránea Casillero del Diablo • Restaurant Bodega 1883 • 1 Copa de regalo • 3 copas de vinos Casillero del Diablo (25 ml c/u) + copa espumante • 25 personas máximo • 180 minutos • Menú de tres tiempos",
+      "excluded": "Transporte",
+      "know_before": "WHEELCHAIR_ACCESSIBLE,PUBLIC_TRANSPORTATION_NEARBY",
+      "duration_h": 3,
+      "duration_m": 0,
+      "duration_label": "3h",
+      "categories": [
+        "Gastronomía",
+        "Tour cultural",
+        "Tour a pie"
+      ],
+      "photos": [
+        "https://bokun.s3.amazonaws.com/c411f02d-f5da-49ce-befe-55f8c2a95bcd.jpg",
+        "https://bokun.s3.amazonaws.com/b12b0b5f-a152-4957-8367-9d35d02f8581.jpg"
+      ],
+      "horarios": [
+        "18:30",
+        "19:00",
+        "19:50",
+        "20:20",
+        "20:50",
+        "21:40"
+      ],
+      "pricing_categories": [
+        "Adult"
+      ],
+      "extras": [
+        {
+          "name": "180 min.",
+          "desc": ""
+        },
+        {
+          "name": "Tasting 4 copas",
+          "desc": ""
+        },
+        {
+          "name": "Parque",
+          "desc": ""
+        },
+        {
+          "name": "Cata 2 copas",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1124228",
+      "title": "Visita Guiada Premium + Tasting Marqués de Casa Concha",
+      "excerpt": "Conoce un poco más de Experiencia Marques de Casa Concha",
+      "description": "Descripción Vive una exclusiva experiencia que celebra la tradición, elegancia e indiscutida calidad de Marques de Casa Concha, en un privilegiado entorno natural. Este tour comienza con el Nuevo Recorrido \"Visita Guiada Premium Centro del Vino Concha y Toro\", un circuito inmersivo y sensorial que conecta con la esencia de la viña a través de su historia, arquitectura, paisajes, arte y vinos, y en el que conocerás todos los nuevos espacios de este fascinante lugar. Tras finalizar este primer recorrido, catarás seis vinos de nuestra marca super premium Marques de Casa Concha, cuatro de sus etiquetas clásicas y sus dos nuevas ediciones Blue y Gold, maridadas con una fina selección de quesos que realzan los matices y complejidades de cada variedad. Una experiencia enoturística diseñada para q",
+      "included": "Alcoholic Beverages",
+      "excluded": "Lunch Private transportation",
+      "know_before": "WHEELCHAIR_ACCESSIBLE,PUBLIC_TRANSPORTATION_NEARBY",
+      "duration_h": 2,
+      "duration_m": 45,
+      "duration_label": "2h 45min",
+      "categories": [
+        "SIGHTSEEING_ATTRACTION",
+        "Tour a pie",
+        "Pase turístico"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/a70f8162-569b-433a-975f-1e6625feb67b.jpeg",
+        "https://bokun.s3.amazonaws.com/15fae6e6-959f-45a7-ab73-0d70f0e4a667.jpg"
+      ],
+      "horarios": [
+        "09:30",
+        "09:50",
+        "10:20",
+        "10:40",
+        "13:50",
+        "14:10",
+        "15:00",
+        "15:20",
+        "15:30",
+        "16:00",
+        "21:00"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1883",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Experiencia Trivento",
+          "desc": "Luego de tu visita sumérgete en la esencia de Viña Trivento, la prestigiosa filial de Viña Concha y Toro en Mendoza, Argentina, a través de una exclusiva degustación que celebra la riqueza y profundid"
+        },
+        {
+          "name": "Degustación Elixir Casillero del Diablo",
+          "desc": "Elixir Casillero del Diablo, es un exclusivo vino elaborado por Marcelo Papa, que solo podrá ser degustado y adquirido en el nuevo Centro del Vino de Concha y Toro. Este vino licoroso, elaborado princ"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1124229",
+      "title": "Visita Guiada Standard",
+      "excerpt": "Conoce un poco más de Visita Guiada Centro del Vino",
+      "description": "Descripción Conoce el nuevo Centro del Vino Concha y Toro, un lugar donde la tradición e innovación se unen para ofrecer una experiencia enoturística única, inmersiva y llena de historia, cultura, arte y los mejores vinos de la marca. Durante tu visita podrás: - Recorrer el parque centenario y admira desde el exterior la arquitectura de la emblemática Casa Don Melchor, que evoca los orígenes de la viña. - Visitar la Bodega de Guarda del Alto, dedicada a los vinos de alta gama de la viña, y descubrir los grandes hitos de la historia de Concha y Toro a través de una exclusiva galería. - Disfrutar de una vista privilegiada del viñedo de Pirque desde el Mirador Concha y Toro, y recorrer el Jardín de Variedades, con las principales cepas del mundo vitivinícola. - Conocer Plaza Concha y Toro, el",
+      "included": "Alcoholic Beverages",
+      "excluded": "Private transportation",
+      "know_before": "WHEELCHAIR_ACCESSIBLE,STROLLER_OR_PRAM_ACCESSIBLE,PUBLIC_TRANSPORTATION_NEARBY",
+      "duration_h": 1,
+      "duration_m": 10,
+      "duration_label": "1h 10min",
+      "categories": [
+        "Pase turístico"
+      ],
+      "photos": [
+        "https://bokun.s3.amazonaws.com/8e027db2-d378-4a83-9e62-46aeda5bed77.jpg",
+        "http://bokun.s3.amazonaws.com/e465b70c-d659-4fba-b69d-e48074e95aec.jpeg"
+      ],
+      "horarios": [
+        "08:40",
+        "08:50",
+        "09:05",
+        "09:20",
+        "10:30",
+        "11:00",
+        "12:45",
+        "14:20",
+        "15:05",
+        "16:20",
+        "16:30",
+        "16:40",
+        "16:50",
+        "21:15"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1883",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        },
+        {
+          "name": "70 min.",
+          "desc": ""
+        },
+        {
+          "name": "Tasting 4 copas",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1132193",
+      "title": "Experiencia Nocturna Casillero del Diablo + Maridaje La Gran Barra",
+      "excerpt": "Cuando cae la noche en el Parque Concha y Toro, el misterio despierta y la legendaria historia de Casillero del Diablo cobra vida.",
+      "description": "Descripción Cuando cae la noche en el Parque Concha y Toro, el misterio despierta y la legendaria historia de Casillero del Diablo cobra vida. En esta experiencia única, el enigmático Don Isidro te conducirá por un recorrido nocturno lleno de historia, vino y leyenda, bajo el cielo estrellado de Pirque. Todo comienza con una copa de espumante y una caminata entre los jardines y alrededores de la histórica y emblemática Casa Don Melchor. Al adentrarse en el recorrido, una exclusiva degustación de cuatro vinos Casillero del Diablo activa los sentidos, preparando el camino hacia el momento más esperado: la Bodega Subterránea, donde el secreto mejor guardado del diablo será revelado. Finaliza tu recorrido con una experiencia única en la Gran Barra 1883 con un maridaje de 4 platos y 4 vinos pre",
+      "included": "• 1 copa de espumante Casillero del Diablo • Recorrido Nocturno Casillero del Diablo • Visita Parque Concha y Toro y exteriores de Casa Don Melchor • Bodega Subterránea Casillero del Diablo • Restaurant Bodega 1883 • 1 Copa de regalo • 3 copas de vinos Casillero del Diablo (25 ml c/u) + copa espumante • 25 personas máximo • 180 minutos • Menú de tres tiempos",
+      "excluded": "Transporte",
+      "know_before": "WHEELCHAIR_ACCESSIBLE,STROLLER_OR_PRAM_ACCESSIBLE,ANIMALS_OR_PETS_ALLOWED,PUBLIC_TRANSPORTATION_NEARBY",
+      "duration_h": 3,
+      "duration_m": 0,
+      "duration_label": "3h",
+      "categories": [
+        "Gastronomía",
+        "Tour cultural",
+        "Tour a pie"
+      ],
+      "photos": [
+        "https://bokun.s3.amazonaws.com/c411f02d-f5da-49ce-befe-55f8c2a95bcd.jpg",
+        "https://bokun.s3.amazonaws.com/b12b0b5f-a152-4957-8367-9d35d02f8581.jpg"
+      ],
+      "horarios": [
+        "18:00",
+        "18:30",
+        "19:00",
+        "19:50",
+        "20:20",
+        "20:50"
+      ],
+      "pricing_categories": [
+        "Adult"
+      ],
+      "extras": [
+        {
+          "name": "120 min",
+          "desc": ""
+        },
+        {
+          "name": "Tasting 4 copas",
+          "desc": ""
+        },
+        {
+          "name": "Parque",
+          "desc": ""
+        },
+        {
+          "name": "Casillero del Diablo",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1132195",
+      "title": "Visita Guiada Premium + Maridaje La Gran Barra",
+      "excerpt": "Conoce un poco más de Visita Guiada Premium Centro del Vino + Experiencia La Gran Barra",
+      "description": "Descripción Conoce el nuevo Centro del Vino Concha y Toro, un lugar donde la tradición e innovación se unen para ofrecer una experiencia enoturística única, inmersiva y llena de historia, cultura, arte y los mejores vinos de la marca. Finaliza tu recorrido con una experiencia gastronómica de 4 maridajes en nuestra Gran Barra 1993 Durante tu visita podrás: - Recorrer el parque centenario y admirar desde el exterior la arquitectura de la emblemática Casa Don Melchor, que evoca los orígenes de la viña. - Descubrir la Experiencia Museo Sensorial Casillero del Diablo donde aprenderás más sobre el vino chileno y las características que hacen a nuestro país idóneo para la producción de este, con diferentes puntos interactivos y una sala que revela los secretos más recónditos de esta emblemática m",
+      "included": "4 wine tastings Professional guide Alcoholic Beverages",
+      "excluded": "Lunch Hotel pickup and drop-off",
+      "know_before": "PUBLIC_TRANSPORTATION_NEARBY,INFANTS_MUST_SIT_ON_LAPS,INFANT_SEATS_AVAILABLE",
+      "duration_h": 3,
+      "duration_m": 0,
+      "duration_label": "3h",
+      "categories": [
+        "Museos y exposiciones",
+        "Pase turístico",
+        "Naturaleza"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/c054f0a3-ec3d-4f42-a50c-6dfd716947c5.jpeg",
+        "http://bokun.s3.amazonaws.com/de06e8dc-ffd9-4493-9398-79e8dd5bf140.jpeg"
+      ],
+      "horarios": [
+        "13:00"
+      ],
+      "pricing_categories": [
+        "Adult"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1883",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Experiencia Trivento",
+          "desc": "Luego de tu visita sumérgete en la esencia de Viña Trivento, la prestigiosa filial de Viña Concha y Toro en Mendoza, Argentina, a través de una exclusiva degustación que celebra la riqueza y profundid"
+        },
+        {
+          "name": "Degustación Elixir Casillero del Diablo",
+          "desc": "Elixir Casillero del Diablo, es un exclusivo vino elaborado por Marcelo Papa, que solo podrá ser degustado y adquirido en el nuevo Centro del Vino de Concha y Toro. Este vino licoroso, elaborado princ"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1132199",
+      "title": "Visita Guiada Standard + Tasting Marqués de Casa Concha",
+      "excerpt": "Recorre la legendaria bodega Casillero del Diablo y disfruta una cata premium de 10 vinos Concha y Toro junto a una selección de quesos, con vistas al Valle del Maipo.",
+      "description": "Descripción ¡Degusta 10 grandes ejemplares de nuestros vinos! En este tour conocerás la reconocida bodega de Casillero del Diablo, donde comenzó la leyenda del vino, y los maravillosos jardines de fines del siglo XIX de la antigua residencia de verano de la familia Concha y Toro. Además, podrás pasear por nuestro bellísimo jardín de variedades con 24 uvas viníferas, y disfrutar de la imponente vista panorámica del Valle del Maipo y su viñedo. Durante este recorrido degustaras 4 vinos Premium más una copa de regalo. Una vez terminado el tour, disfruta de una cata guiada por uno de nuestros sommeliers de seis variedades de la línea Marques de Casa Concha - la innovadora marca de Concha y Toro caracterizada por su diversidad de variedades y orígenes - acompañada por una fina selección de ques",
+      "included": "Alcoholic Beverages",
+      "excluded": "Private transportation",
+      "know_before": "WHEELCHAIR_ACCESSIBLE,PUBLIC_TRANSPORTATION_NEARBY",
+      "duration_h": 1,
+      "duration_m": 40,
+      "duration_label": "1h 40min",
+      "categories": [
+        "Pase turístico"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/1e8bc94a-a615-49f9-942c-3faa96e52252.jpeg",
+        "http://bokun.s3.amazonaws.com/e0c3ce51-348c-4fad-ac50-e8cfaa1410f2.jpeg"
+      ],
+      "horarios": [
+        "09:00",
+        "15:35",
+        "15:40",
+        "21:00"
+      ],
+      "pricing_categories": [
+        "Adult"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1883",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        },
+        {
+          "name": " 100 min.",
+          "desc": ""
+        },
+        {
+          "name": "Tasting 4 copas",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1133938",
+      "title": "Visita Guiada Premium + Almuerzo Bodega 1883",
+      "excerpt": "Recorre la legendaria bodega Casillero del Diablo y disfruta una cata premium de 10 vinos Concha y Toro junto a una selección de quesos, con vistas al Valle del Maipo.",
+      "description": "Descripción Conoce el nuevo Centro del Vino Concha y Toro, un lugar donde la tradición e innovación se unen para ofrecer una experiencia enoturística única, inmersiva y llena de historia, cultura, arte, los mejores vinos de la marca y complementa con un almuerzo de 3 tiempos en nuestro restaurant Bodega 1883 Durante tu visita podrás: - Recorrer el parque centenario y admirar desde el exterior la arquitectura de la emblemática Casa Don Melchor, que evoca los orígenes de la viña. - Descubrir la Experiencia Sensorial Casillero del Diablo donde aprenderás más sobre el vino chileno y las características que hacen a nuestro país idóneo para la producción de este, con diferentes puntos interactivos y una sala que revela los secretos más recónditos de esta emblemática marca, para posteriormente ex",
+      "included": "Alcoholic Beverages",
+      "excluded": "Private transportation",
+      "know_before": "WHEELCHAIR_ACCESSIBLE,STROLLER_OR_PRAM_ACCESSIBLE,PUBLIC_TRANSPORTATION_NEARBY",
+      "duration_h": 1,
+      "duration_m": 40,
+      "duration_label": "1h 40min",
+      "categories": [
+        "Pase turístico"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/3be15561-2143-4640-a912-e5c3903e5b8f.jpeg",
+        "http://bokun.s3.amazonaws.com/f2d694e5-c11a-438a-9a1e-f403e43c0b8c.jpeg"
+      ],
+      "horarios": [
+        "11:10",
+        "12:30"
+      ],
+      "pricing_categories": [
+        "Adult"
+      ],
+      "extras": [
+        {
+          "name": "Experiencia Trivento",
+          "desc": "Luego de tu visita sumérgete en la esencia de Viña Trivento, la prestigiosa filial de Viña Concha y Toro en Mendoza, Argentina, a través de una exclusiva degustación que celebra la riqueza y profundid"
+        },
+        {
+          "name": "Degustación The Icon",
+          "desc": "The Icon, el nuevo vino ícono de Concha y Toro elaborado por Enrique Tirado, es una joya vinícola disponible exclusivamente para degustar y adquirir en el Centro del Vino. Es nuestro tributo al tiempo"
+        },
+        {
+          "name": "Degustación Elixir Casillero del Diablo",
+          "desc": "Elixir Casillero del Diablo, es un exclusivo vino elaborado por Marcelo Papa, que solo podrá ser degustado y adquirido en el nuevo Centro del Vino de Concha y Toro. Este vino licoroso, elaborado princ"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 17
+    },
+    {
+      "id": "1133939",
+      "title": "Visita Guiada Premium + Maridaje Icono La Gran Barra 1883",
+      "excerpt": "Recorre la legendaria bodega Casillero del Diablo y disfruta una cata premium de 10 vinos Concha y Toro junto a una selección de quesos, con vistas al Valle del Maipo.",
+      "description": "Descripción Conoce el nuevo Centro del Vino Concha y Toro, un lugar donde la tradición e innovación se unen para ofrecer una experiencia enoturística única, inmersiva y llena de historia, cultura, arte y los mejores vinos de la marca. Finaliza tu recorrido con una experiencia icónica en la Gran Barra 1883 degustando 2 de los vinos exclusivos del Centro del Vino Concha y Toro: Elixir y The Icon, perfectamente maridados por nuestros chefs. Durante tu visita podrás: Recorrer el parque centenario y admirar desde el exterior la arquitectura de la emblemática Casa Don Melchor, que evoca los orígenes de la viña. Descubrir la Experiencia Museo Sensorial Casillero del Diablo donde aprenderás más sobre el vino chileno y las características que hacen a nuestro país idóneo para la producción de este, ",
+      "included": "Alcoholic Beverages",
+      "excluded": "Private transportation",
+      "know_before": "WHEELCHAIR_ACCESSIBLE,STROLLER_OR_PRAM_ACCESSIBLE,PUBLIC_TRANSPORTATION_NEARBY",
+      "duration_h": 1,
+      "duration_m": 40,
+      "duration_label": "1h 40min",
+      "categories": [
+        "Pase turístico"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/1e8bc94a-a615-49f9-942c-3faa96e52252.jpeg",
+        "http://bokun.s3.amazonaws.com/e0c3ce51-348c-4fad-ac50-e8cfaa1410f2.jpeg"
+      ],
+      "horarios": [
+        "13:20"
+      ],
+      "pricing_categories": [
+        "Adult"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1883",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Experiencia Trivento",
+          "desc": "Luego de tu visita sumérgete en la esencia de Viña Trivento, la prestigiosa filial de Viña Concha y Toro en Mendoza, Argentina, a través de una exclusiva degustación que celebra la riqueza y profundid"
+        },
+        {
+          "name": "Degustación Elixir Casillero del Diablo",
+          "desc": "Elixir Casillero del Diablo, es un exclusivo vino elaborado por Marcelo Papa, que solo podrá ser degustado y adquirido en el nuevo Centro del Vino de Concha y Toro. Este vino licoroso, elaborado princ"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 17
+    },
+    {
+      "id": "1146351",
+      "title": "Experience The New Wines Shell and Bull",
+      "excerpt": "",
+      "description": "Discover the subtleties of the recently launched wine lines: Concha y Toro The Wine and Concha y Toro The Master. This tour begins with the New Tour \"Premium Guided Tour Concha y Toro Wine Center\", an immersive and sensory circuit that connects with the essence of the vineyard through its history, architecture, landscapes, art and wines, and where you will know all the new spaces of this fascinating place. After completing this first tour, you will have a tasting of five extraordinary wines: the ultra premium Cabernet Sauvignon of origin Pirque and Puente Alto Concha and Toro The Master, along with the most recent line of super premium wines of the vineyard, Concha and Toro The Wine.",
+      "included": "Alcoholic Beverages",
+      "excluded": "Lunch",
+      "know_before": "WHEELCHAIR_ACCESSIBLE,STROLLER_OR_PRAM_ACCESSIBLE,ANIMALS_OR_PETS_ALLOWED,PUBLIC_TRANSPORTATION_NEARBY,INFANTS_MUST_SIT_ON_LAPS",
+      "duration_h": 2,
+      "duration_m": 45,
+      "duration_label": "2h 45min",
+      "categories": [
+        "Gastronomía"
+      ],
+      "photos": [
+        "https://bokun.s3.amazonaws.com/71a6b3f6-ff5a-46e6-a3a4-7fd3f8461619.jpg",
+        "https://bokun.s3.amazonaws.com/b6f7e77c-7172-4167-a98c-8d5d5793c70e.jpg"
+      ],
+      "horarios": [
+        "12:55",
+        "14:30"
+      ],
+      "pricing_categories": [
+        "Adult"
+      ],
+      "extras": [],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 18
+    },
+    {
+      "id": "1153835",
+      "title": "Experiencia Gastronómica Valentine’s Day",
+      "excerpt": "Experiencia Gastronómica Valentine’s Day P/P",
+      "description": "Descripción Este Día de los Enamorados, celebra con una experiencia gastronómica especialmente creada para compartir. En nuestro restaurante Bodega 1883, la cocina de origen se fusiona con productos cuidadosamente seleccionados para dar vida a esta propuesta donde la gastronomía y el vino se encuentran en perfecta armonía. Déjate seducir por un menú de 3 tiempos, pensado para transformar cada plato y cada copa en una experiencia sensorial incomparable. Cada tiempo ha sido cuidadosamente diseñado para disfrutar y celebrar juntos. * SOLO COMIDA, NO INCLUYE VISITA GUIADA. ** COSTO POR PERSONA. Detalle del Menú: • Aperitivo de la casa a elección por persona: Espumante o Pisco sour, acompañado de un appetizer de bienvenida. • ENTRADA (a elección, una por persona): 1. Ostras frescas con emulsión",
+      "included": "",
+      "excluded": "",
+      "know_before": "",
+      "duration_h": 2,
+      "duration_m": 0,
+      "duration_label": "2h",
+      "categories": [
+        "Pase turístico"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/d214f3b9-096d-4c1a-a41f-20eeff41c99a.jpeg",
+        "http://bokun.s3.amazonaws.com/6de7c08b-5bbb-48b6-a49d-b537f1c14d96.jpeg"
+      ],
+      "horarios": [
+        "11:00",
+        "12:00",
+        "13:00",
+        "14:00",
+        "15:00",
+        "16:00",
+        "17:00",
+        "18:00",
+        "19:00",
+        "20:00",
+        "21:00"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Gastronomia",
+          "desc": ""
+        },
+        {
+          "name": "Uber",
+          "desc": ""
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1159714",
+      "title": "Visita Guiada Casa Don Melchor y Parque Histórico + Tasting Amelia",
+      "excerpt": "Te invitamos a descubrir la historia de una de las familias más influyentes del vino chileno, cuyo legado ha marcado generaciones. En esta experiencia privada, recorrerás la Casa Don Melchor y su parque centenario, ambos declarados Monumento Histórico Nac",
+      "description": "Descripción Te invitamos a descubrir la historia de una de las familias más influyentes del vino chileno, cuyo legado ha marcado generaciones. En esta experiencia privada, recorrerás la Casa Don Melchor y su parque centenario, ambos declarados Monumento Histórico Nacional en 1971, en un tour íntimo y lleno de detalles. El foco está en el Parque Concha y Toro, diseñado por Guillaume Renner; un verdadero jardín botánico donde conviven árboles centenarios, especies nativas y rincones cargados de historia. Aquí, la naturaleza y la arquitectura dialogan en armonía: caminarás por senderos diseñados con visión paisajística y descubrirás una riqueza botánica única, de más de 10.000 especies diferentes. Luego, la visita continúa en la Casa Don Melchor, una residencia de 1875 diseñada por el arquite",
+      "included": "· Recorrido guiado por Casa Don Melchor y Parque Concha y Toro · Degustación: Espumante + 2 copas de vinos Amelia · Tabla de quesos premium . 10 personas máximo . 120 minutos",
+      "excluded": "",
+      "know_before": "",
+      "duration_h": 2,
+      "duration_m": 0,
+      "duration_label": "2h",
+      "categories": [
+        "Lujo y ocasiones especiales"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/e89bd7e2-ead2-4968-9273-fcdc49e363ba.jpeg",
+        "http://bokun.s3.amazonaws.com/1cc0ae8e-14b9-4521-9e7c-baafc0de4a75.jpeg"
+      ],
+      "horarios": [
+        "16:10"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "120 min",
+          "desc": ""
+        },
+        {
+          "name": "Tasting 5 copas",
+          "desc": ""
+        },
+        {
+          "name": "Parque",
+          "desc": ""
+        },
+        {
+          "name": "Cata 2 copas",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1161457",
+      "title": "Experiencia Vendimia Concha y Toro 2026",
+      "excerpt": "Conoce un poco más de Visita Guiada Centro del Vino Concha y Toro",
+      "description": "Descripción Vive la Experiencia Vendimia Concha y Toro 2026 en nuestro Centro del Vino, una invitación a sumergirse en la tradición de la vendimia y a participar de la cosecha de uvas Cabernet Sauvignon de nuestro centenario viñedo Pirque Viejo. Un recorrido que conecta con el origen, el paisaje y el oficio, celebrando el encuentro entre historia, tradición y el espíritu vivo de la vendimia. Finaliza esta experiencia con un almuerzo fresco tipo campestre en el entorno natural del Parque Concha y Toro, que podrás maridar con 4 copas de vino ultra premium. ¿Qué Incluye? Visita Guiada Premium Experiencia Museo Sensorial “El Origen de una leyenda”. Bodega subterránea Casillero del Diablo. Bodega de Guarda El Alto. Recorrido por el Jardín de variedades y Parque Concha y Toro. Vendimia en centen",
+      "included": "Visita Guiada Premium Experiencia Museo Sensorial “El Origen de una leyenda”. Bodega subterránea Casillero del Diablo. Bodega de Guarda El Alto. Recorrido por el Jardín de variedades y Parque Concha y Toro. Vendimia en centenario viñedo Pirque viejo Cosecha Cabernet Sauvignon Kit vendimia Concha y Toro (delantal y sombrero) Almuerzo en el bosque del Parque Concha y Toro Degustación 4 copas Terrunyo Copa de regalo",
+      "excluded": "Hotel pickup and drop-off",
+      "know_before": "WHEELCHAIR_ACCESSIBLE",
+      "duration_h": 3,
+      "duration_m": 0,
+      "duration_label": "3h",
+      "categories": [
+        "Museos y exposiciones",
+        "Pase turístico",
+        "Naturaleza"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/e615b547-7b6e-44f5-aebd-c4038af722ed.jpeg",
+        "http://bokun.s3.amazonaws.com/fd34ebcd-0154-40dc-9dd6-b6b2bb94d048.jpeg"
+      ],
+      "horarios": [
+        "12:00"
+      ],
+      "pricing_categories": [
+        "Adult"
+      ],
+      "extras": [
+        {
+          "name": "Degustación Elixir Casillero del Diablo",
+          "desc": "Elixir Casillero del Diablo, es un exclusivo vino elaborado por Marcelo Papa, que solo podrá ser degustado y adquirido en el nuevo Centro del Vino de Concha y Toro. Este vino licoroso, elaborado princ"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        },
+        {
+          "name": "Uber",
+          "desc": ""
+        },
+        {
+          "name": "Turistik",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1169027",
+      "title": "Visita Guiada Premium Privada",
+      "excerpt": "Conoce un poco más de Visita Guiada Centro del Vino Concha y Toro",
+      "description": "Descripción Conoce el nuevo Centro del Vino Concha y Toro, un lugar donde la tradición e innovación se unen para ofrecer una experiencia enoturística única, inmersiva y llena de historia, cultura, arte y los mejores vinos de la marca. Durante tu visita podrás: - Recorrer el parque centenario y admirar desde el exterior la arquitectura de la emblemática Casa Don Melchor, que evoca los orígenes de la viña. - Descubrir la Experiencia Mueso Sensorial Casillero del Diablo donde aprenderás más sobre el vino chileno y las características que hacen a nuestro país idóneo para la producción de este, con diferentes puntos interactivos y una sala que revela los secretos más recónditos de esta emblemática marca, para posteriormente explorar la Bodega Subterránea Casillero del Diablo, donde la leyenda c",
+      "included": "4 wine tastings Professional guide Alcoholic Beverages",
+      "excluded": "Lunch Hotel pickup and drop-off",
+      "know_before": "WHEELCHAIR_ACCESSIBLE",
+      "duration_h": 2,
+      "duration_m": 0,
+      "duration_label": "2h",
+      "categories": [
+        "Museos y exposiciones",
+        "Pase turístico",
+        "Naturaleza"
+      ],
+      "photos": [
+        "https://bokun.s3.amazonaws.com/18fe6d78-5fbb-4421-94a2-bb48738c405d.jpg",
+        "https://bokun.s3.amazonaws.com/b0fdbeae-f538-4ee0-aaa7-943d53fce8b9.jpg"
+      ],
+      "horarios": [
+        "09:10",
+        "09:40",
+        "10:10",
+        "10:50",
+        "12:00",
+        "13:40",
+        "14:00",
+        "14:40",
+        "15:10",
+        "15:50",
+        "15:55",
+        "17:00",
+        "18:30",
+        "21:00"
+      ],
+      "pricing_categories": [
+        "Adult"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1883",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Degustación Elixir Casillero del Diablo",
+          "desc": "Elixir Casillero del Diablo, es un exclusivo vino elaborado por Marcelo Papa, que solo podrá ser degustado y adquirido en el nuevo Centro del Vino de Concha y Toro. Este vino licoroso, elaborado princ"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        },
+        {
+          "name": "Uber",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1174549",
+      "title": "Tiny Wine Concerts II",
+      "excerpt": "Musica en vivo",
+      "description": "Musica en vivo",
+      "included": "wine&amp;cheese",
+      "excluded": "",
+      "know_before": "PUBLIC_TRANSPORTATION_NEARBY",
+      "duration_h": 3,
+      "duration_m": 0,
+      "duration_label": "3h",
+      "categories": [
+        "SHOWS_AND_MUSICALS"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/018778cd-e235-4cc5-9787-9c04c15671df.jpeg"
+      ],
+      "horarios": [
+        "19:00"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1174612",
+      "title": "Tiny Wine Concerts II + Cena",
+      "excerpt": "Musica en vivo",
+      "description": "Musica en vivo",
+      "included": "wine&amp;cheese",
+      "excluded": "",
+      "know_before": "PUBLIC_TRANSPORTATION_NEARBY",
+      "duration_h": 3,
+      "duration_m": 0,
+      "duration_label": "3h",
+      "categories": [
+        "SHOWS_AND_MUSICALS"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/018778cd-e235-4cc5-9787-9c04c15671df.jpeg"
+      ],
+      "horarios": [
+        "19:00"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1181901",
+      "title": "Bodega 1883 -Almuerzo",
+      "excerpt": "Jugo de uva",
+      "description": "Jugo de uva",
+      "included": "",
+      "excluded": "",
+      "know_before": "",
+      "duration_h": 1,
+      "duration_m": 0,
+      "duration_label": "1h",
+      "categories": [],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/2f211cdf-fb4c-4592-bf98-0c1e1e3cde4c.jpeg"
+      ],
+      "horarios": [
+        "12:30",
+        "12:45",
+        "13:00",
+        "13:15",
+        "13:30",
+        "13:45",
+        "14:00",
+        "14:15",
+        "14:30",
+        "14:45",
+        "15:00",
+        "15:15",
+        "15:30"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Gastronomía",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1181923",
+      "title": "Bodega 1883 - Cena",
+      "excerpt": "Jugo de uva",
+      "description": "Jugo de uva",
+      "included": "",
+      "excluded": "",
+      "know_before": "",
+      "duration_h": 1,
+      "duration_m": 0,
+      "duration_label": "1h",
+      "categories": [],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/2f211cdf-fb4c-4592-bf98-0c1e1e3cde4c.jpeg"
+      ],
+      "horarios": [
+        "12:30",
+        "15:45",
+        "16:00",
+        "16:15",
+        "16:30",
+        "16:45",
+        "17:00",
+        "17:15",
+        "17:30",
+        "17:45",
+        "18:00",
+        "18:15",
+        "18:30",
+        "20:20"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Gastronomía",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1181941",
+      "title": "Bodega 1883 - Maridaje Terrunyo",
+      "excerpt": "Jugo de uva",
+      "description": "Jugo de uva",
+      "included": "",
+      "excluded": "",
+      "know_before": "",
+      "duration_h": 1,
+      "duration_m": 0,
+      "duration_label": "1h",
+      "categories": [],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/2f211cdf-fb4c-4592-bf98-0c1e1e3cde4c.jpeg"
+      ],
+      "horarios": [
+        "12:45",
+        "13:00",
+        "13:15",
+        "13:30",
+        "13:45",
+        "14:00",
+        "14:15",
+        "14:30",
+        "14:45",
+        "15:00",
+        "15:15",
+        "15:30",
+        "15:45",
+        "16:00",
+        "16:15",
+        "16:30",
+        "16:45",
+        "17:00",
+        "17:15",
+        "17:30",
+        "17:45",
+        "18:00",
+        "18:15",
+        "18:30"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Gastronomía",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1182329",
+      "title": "Bodega 1883 - La Gran Barra",
+      "excerpt": "Jugo de uva",
+      "description": "Jugo de uva",
+      "included": "",
+      "excluded": "",
+      "know_before": "",
+      "duration_h": 1,
+      "duration_m": 0,
+      "duration_label": "1h",
+      "categories": [],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/2f211cdf-fb4c-4592-bf98-0c1e1e3cde4c.jpeg"
+      ],
+      "horarios": [
+        "12:45",
+        "13:00",
+        "13:15",
+        "13:30",
+        "13:45",
+        "14:00",
+        "14:15",
+        "14:30",
+        "14:45",
+        "15:00",
+        "15:15",
+        "15:30",
+        "15:45",
+        "16:00",
+        "16:15",
+        "16:30",
+        "16:45",
+        "17:00",
+        "17:15",
+        "17:30",
+        "17:45",
+        "18:00",
+        "18:15",
+        "18:30",
+        "18:45",
+        "19:00",
+        "19:15",
+        "19:30",
+        "19:45",
+        "20:00",
+        "20:15",
+        "20:30",
+        "20:45",
+        "21:00",
+        "21:15",
+        "21:30",
+        "21:45",
+        "22:00",
+        "22:15",
+        "22:30"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Gastronomía",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1183340",
+      "title": "Bodega 1883 -Almuerzo Semana Santa",
+      "excerpt": "Experiencia y Sabores de Semana Santa",
+      "description": "Descubre la nueva propuesta enoturistica de la viña “Centro del Vino Concha y Toro” en un tradicional recorrido donde podrás disfrutar de sus espacios más emblemáticos, y la degustar alguno de sus vinos más representativos. Finaliza con un almuerzo de tres tiempos especial de Semana Santa en nuestro restaurante Bodega 1883. *La actividad de degustación de esta experiencia es exclusiva para mayores de 18 años. Durante tu visita podrás: Recorrer el parque centenario, un espacio que refleja la historia y el legado de Concha y Toro Conocer la Bodega Subterránea Casillero del Diablo, donde la leyenda cobra vida. Visitar la Bodega de Guarda del Alto, dedicada a los vinos de alta gama de la viña. Disfrutar de una vista privilegiada del viñedo de Pirque desde el Mirador Concha y Toro, y recorrer e",
+      "included": "",
+      "excluded": "",
+      "know_before": "",
+      "duration_h": 3,
+      "duration_m": 0,
+      "duration_label": "3h",
+      "categories": [
+        "ARTS_AND_CULTURE",
+        "Gastronomía"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/225919e8-4f3f-4641-acb2-b069d29f28cd.jpeg",
+        "http://bokun.s3.amazonaws.com/288fb33b-240c-4159-8d6b-a84d79637c0a.jpeg"
+      ],
+      "horarios": [
+        "12:45",
+        "13:00",
+        "13:15",
+        "13:30",
+        "13:45",
+        "14:00",
+        "14:15",
+        "14:30",
+        "14:45",
+        "15:00",
+        "15:15",
+        "15:30",
+        "18:00",
+        "18:30",
+        "19:00",
+        "19:30",
+        "20:00"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Gastronomía",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1183341",
+      "title": "Experiencia & Sabores de Semana Santa",
+      "excerpt": "Conoce un poco más de Visita Guiada Centro del Vino",
+      "description": "Descripción Descubre la nueva propuesta enoturistica de la viña “Centro del Vino Concha y Toro” en un tradicional recorrido donde podrás disfrutar de sus espacios más emblemáticos, y la degustar alguno de sus vinos más representativos. Finaliza con un almuerzo de tres tiempos especial de Semana Santa en nuestro restaurante Bodega 1883. *La actividad de degustación de esta experiencia es exclusiva para mayores de 18 años. Durante tu visita podrás: Recorrer el parque centenario, un espacio que refleja la historia y el legado de Concha y Toro Conocer la Bodega Subterránea Casillero del Diablo, donde la leyenda cobra vida. Visitar la Bodega de Guarda del Alto, dedicada a los vinos de alta gama de la viña. Disfrutar de una vista privilegiada del viñedo de Pirque desde el Mirador Concha y Toro, ",
+      "included": "Alcoholic Beverages",
+      "excluded": "Private transportation",
+      "know_before": "WHEELCHAIR_ACCESSIBLE,STROLLER_OR_PRAM_ACCESSIBLE,PUBLIC_TRANSPORTATION_NEARBY",
+      "duration_h": 3,
+      "duration_m": 0,
+      "duration_label": "3h",
+      "categories": [
+        "Pase turístico"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/db5b7bb5-f63d-45be-86ba-3ad0485a1b8f.jpeg",
+        "http://bokun.s3.amazonaws.com/cebfae36-3928-4b8b-9255-dc27cec1822b.jpeg"
+      ],
+      "horarios": [
+        "10:30",
+        "11:00",
+        "12:45",
+        "16:30",
+        "16:40",
+        "16:50"
+      ],
+      "pricing_categories": [
+        "Adult"
+      ],
+      "extras": [
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        },
+        {
+          "name": "150 min.",
+          "desc": ""
+        },
+        {
+          "name": "Tasting 4 copas",
+          "desc": ""
+        },
+        {
+          "name": "Parque",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1188021",
+      "title": "Visita Guiada Premium + Tasting Marqués de Casa Concha Privada",
+      "excerpt": "Conoce un poco más de Experiencia Marques de Casa Concha",
+      "description": "Descripción Vive una exclusiva experiencia que celebra la tradición, elegancia e indiscutida calidad de Marques de Casa Concha, en un privilegiado entorno natural. Este tour comienza con el Nuevo Recorrido \"Visita Guiada Premium Centro del Vino Concha y Toro\", un circuito inmersivo y sensorial que conecta con la esencia de la viña a través de su historia, arquitectura, paisajes, arte y vinos, y en el que conocerás todos los nuevos espacios de este fascinante lugar. Tras finalizar este primer recorrido, catarás seis vinos de nuestra marca super premium Marques de Casa Concha, cuatro de sus etiquetas clásicas y sus dos nuevas ediciones Blue y Gold, maridadas con una fina selección de quesos que realzan los matices y complejidades de cada variedad. Una experiencia enoturística diseñada para q",
+      "included": "Alcoholic Beverages",
+      "excluded": "Lunch Private transportation",
+      "know_before": "WHEELCHAIR_ACCESSIBLE,PUBLIC_TRANSPORTATION_NEARBY",
+      "duration_h": 2,
+      "duration_m": 45,
+      "duration_label": "2h 45min",
+      "categories": [
+        "SIGHTSEEING_ATTRACTION",
+        "Tour a pie",
+        "Pase turístico"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/a70f8162-569b-433a-975f-1e6625feb67b.jpeg",
+        "https://bokun.s3.amazonaws.com/15fae6e6-959f-45a7-ab73-0d70f0e4a667.jpg"
+      ],
+      "horarios": [
+        "09:30",
+        "09:50",
+        "10:20",
+        "10:40",
+        "13:50",
+        "14:10",
+        "15:00",
+        "15:20",
+        "15:30",
+        "16:00",
+        "21:00"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1883",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Experiencia Trivento",
+          "desc": "Luego de tu visita sumérgete en la esencia de Viña Trivento, la prestigiosa filial de Viña Concha y Toro en Mendoza, Argentina, a través de una exclusiva degustación que celebra la riqueza y profundid"
+        },
+        {
+          "name": "Degustación Elixir Casillero del Diablo",
+          "desc": "Elixir Casillero del Diablo, es un exclusivo vino elaborado por Marcelo Papa, que solo podrá ser degustado y adquirido en el nuevo Centro del Vino de Concha y Toro. Este vino licoroso, elaborado princ"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1190267",
+      "title": "Visita Guiada Standard Privada",
+      "excerpt": "Conoce un poco más de Visita Guiada Centro del Vino",
+      "description": "Descripción Conoce el nuevo Centro del Vino Concha y Toro, un lugar donde la tradición e innovación se unen para ofrecer una experiencia enoturística única, inmersiva y llena de historia, cultura, arte y los mejores vinos de la marca. Durante tu visita podrás: - Recorrer el parque centenario y admira desde el exterior la arquitectura de la emblemática Casa Don Melchor, que evoca los orígenes de la viña. - Visitar la Bodega de Guarda del Alto, dedicada a los vinos de alta gama de la viña, y descubrir los grandes hitos de la historia de Concha y Toro a través de una exclusiva galería. - Disfrutar de una vista privilegiada del viñedo de Pirque desde el Mirador Concha y Toro, y recorrer el Jardín de Variedades, con las principales cepas del mundo vitivinícola. - Conocer Plaza Concha y Toro, el",
+      "included": "Alcoholic Beverages",
+      "excluded": "Private transportation",
+      "know_before": "WHEELCHAIR_ACCESSIBLE,STROLLER_OR_PRAM_ACCESSIBLE,PUBLIC_TRANSPORTATION_NEARBY",
+      "duration_h": 1,
+      "duration_m": 10,
+      "duration_label": "1h 10min",
+      "categories": [
+        "Pase turístico"
+      ],
+      "photos": [
+        "https://bokun.s3.amazonaws.com/8e027db2-d378-4a83-9e62-46aeda5bed77.jpg",
+        "http://bokun.s3.amazonaws.com/e465b70c-d659-4fba-b69d-e48074e95aec.jpeg"
+      ],
+      "horarios": [
+        "11:10",
+        "11:15"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1883",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        },
+        {
+          "name": "70 min.",
+          "desc": ""
+        },
+        {
+          "name": "Tasting 4 copas",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    },
+    {
+      "id": "1193988",
+      "title": "Visita Guiada Premium + Tasting Cellar Collection Privada",
+      "excerpt": "Lo mejor de la enología chilena lo podrás descubrir en la Experiencia Cellar Collection, un recorrido exclusivo para los verdaderos amantes del vino.",
+      "description": "Descripción Lo mejor de la enología chilena lo podrás descubrir en la Experiencia Cellar Collection, un recorrido exclusivo para los verdaderos amantes del vino. La experiencia comienza con el Nuevo Recorrido \"Visita Guiada Premium Centro del Vino Concha y Toro\", un circuito inmersivo y sensorial que conecta con la esencia de la viña a través de su historia, arquitectura, paisajes, arte y vinos, y en el que conocerás todos los nuevos espacios de este fascinante lugar. Tras finalizar este primer recorrido, en una moderna sala de degustación ubicada en medio de la tradicional Bodega de Guarda del Alto, disfrutarás de una cata de vinos ultra premium e íconos de nuestra viña: Amelia –en sus variedades Chardonnay y Pinot Noir-, Marques de Casa Concha Heritage, Carmín de Peumo y Don Melchor. Cad",
+      "included": "Nuevo Recorrido Concha y Toro Visita Parque Concha y Toro y exteriores de Casa Don Melchor Experiencia Sensorial Casillero del Diablo Bodega Subterránea Casillero del Diablo Bodega de Guarda El Alto Mirador Concha y Toro 1 Copa de regalo 4 copas de vinos Premium 3 copas de vinos ultra premium y 2 vinos íconos 1 tabla de quesos premium 25 personas máximo 165 minutos * La sala de cata es un espacio cerrado, por lo que no se permite el ingreso de menores de 18 años.",
+      "excluded": "",
+      "know_before": "LIMITED_MOBILITY_ACCESSIBLE",
+      "duration_h": 2,
+      "duration_m": 45,
+      "duration_label": "2h 45min",
+      "categories": [
+        "Lujo y ocasiones especiales",
+        "Museos y exposiciones",
+        "Naturaleza"
+      ],
+      "photos": [
+        "http://bokun.s3.amazonaws.com/62b8f79d-2753-4283-9de0-0a145a037448.jpeg",
+        "http://bokun.s3.amazonaws.com/8def43cf-b3f8-4165-900e-ff6935064242.jpeg"
+      ],
+      "horarios": [
+        "10:00",
+        "12:00",
+        "13:10",
+        "14:50",
+        "21:00"
+      ],
+      "pricing_categories": [
+        "Adults"
+      ],
+      "extras": [
+        {
+          "name": "Menú Almuerzo Bodega 1889",
+          "desc": "En tu visita puedes agregar una experiencia gastronómica inigualable en el renovado restaurante Bodega 1883, donde la esencia de la cocina de origen se fusiona con productos locales cuidadosamente sel"
+        },
+        {
+          "name": "Experiencia Trivento",
+          "desc": "Luego de tu visita sumérgete en la esencia de Viña Trivento, la prestigiosa filial de Viña Concha y Toro en Mendoza, Argentina, a través de una exclusiva degustación que celebra la riqueza y profundid"
+        },
+        {
+          "name": "Kit Explorador Concha y Toro ",
+          "desc": "El Centro del Vino Concha y Toro es un destino pensado para disfrutar en familia, con experiencias diseñadas para que todos, grandes y pequeños, vivan una jornada inolvidable. Para los más pequeños, o"
+        },
+        {
+          "name": "165 min.",
+          "desc": ""
+        }
+      ],
+      "location": "Centro del Vino Concha y Toro, Pirque, Chile",
+      "min_age": 0
+    }
+  ]
+}

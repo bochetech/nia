@@ -1,0 +1,40 @@
+http:
+  middlewares:
+    cors-headers:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - "Authorization"
+          - "Content-Type"
+          - "X-Tenant-ID"
+          - "X-Request-ID"
+        accessControlAllowOriginList:
+          - "http://localhost:3000"
+          - "http://localhost:5173"
+        accessControlMaxAge: 86400
+        addVaryHeader: true
+
+    rate-limit-chat:
+      rateLimit:
+        average: 20
+        burst: 5
+        period: 1m
+
+    rate-limit-api:
+      rateLimit:
+        average: 100
+        burst: 20
+        period: 1m
+
+    secure-headers:
+      headers:
+        frameDeny: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        referrerPolicy: "strict-origin-when-cross-origin"

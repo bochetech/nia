@@ -1,0 +1,413 @@
+services:
+  # ─────────────────────────────────────────────────────────────────
+  # Infrastructure
+  # ─────────────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: nia_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nia_dev
+      POSTGRES_USER: nia_user
+      POSTGRES_PASSWORD: nia_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nia_user -d nia_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: nia_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  qdrant:
+    image: qdrant/qdrant:v1.9.3
+    container_name: nia_qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:6333/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  traefik:
+    image: traefik:v3.0
+    container_name: nia_traefik
+    restart: unless-stopped
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--entrypoints.web.address=:80"
+      - "--accesslog=true"
+      - "--log.level=INFO"
+    ports:
+      - "80:80"
+      - "8080:8080"     # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infra/traefik:/etc/traefik/dynamic:ro
+    depends_on:
+      - orchestrator
+
+  # ─────────────────────────────────────────────────────────────────
+  # Migrations (run once then exit)
+  # ─────────────────────────────────────────────────────────────────
+
+  migrations:
+    build:
+      context: ./services/tenant-manager
+      dockerfile: Dockerfile.dev
+    container_name: nia_migrations
+    command: alembic upgrade head
+    environment:
+      - POSTGRES_DSN=postgresql+asyncpg://nia_user:nia_secret@postgres:5432/nia_dev
+      - ENV=development
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  # ─────────────────────────────────────────────────────────────────
+  # NIA Microservices
+  # ─────────────────────────────────────────────────────────────────
+
+  model-adapter:
+    build:
+      context: ./services/model-adapter
+      dockerfile: Dockerfile.dev
+    container_name: nia_model_adapter
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+    environment:
+      - SERVICE_NAME=model-adapter
+      - PORT=8005
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8005/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.model-adapter.rule=PathPrefix(`/api/model`)"
+      - "traefik.http.services.model-adapter.loadbalancer.server.port=8005"
+
+  tenant-manager:
+    build:
+      context: ./services/tenant-manager
+      dockerfile: Dockerfile.dev
+    container_name: nia_tenant_manager
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+    environment:
+      - SERVICE_NAME=tenant-manager
+      - PORT=8003
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8003/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.tenant-manager.rule=PathPrefix(`/api/tenants`)"
+      - "traefik.http.services.tenant-manager.loadbalancer.server.port=8003"
+
+  rag-service:
+    build:
+      context: ./services/rag-service
+      dockerfile: Dockerfile.dev
+    container_name: nia_rag
+    restart: unless-stopped
+    ports:
+      - "8002:8002"
+    environment:
+      - SERVICE_NAME=rag-service
+      - PORT=8002
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      model-adapter:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8002/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.rag.rule=PathPrefix(`/api/rag`)"
+      - "traefik.http.services.rag.loadbalancer.server.port=8002"
+
+  recommender:
+    build:
+      context: ./services/recommender
+      dockerfile: Dockerfile.dev
+    container_name: nia_recommender
+    restart: unless-stopped
+    ports:
+      - "8004:8004"
+    environment:
+      - SERVICE_NAME=recommender
+      - PORT=8004
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      model-adapter:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8004/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.recommender.rule=PathPrefix(`/api/recommendations`)"
+      - "traefik.http.services.recommender.loadbalancer.server.port=8004"
+
+  orchestrator:
+    build:
+      context: ./services/orchestrator
+      dockerfile: Dockerfile.dev
+    container_name: nia_orchestrator
+    restart: unless-stopped
+    ports:
+      - "8001:8001"
+    environment:
+      - SERVICE_NAME=orchestrator
+      - PORT=8001
+    env_file:
+      - .env
+    depends_on:
+      tenant-manager:
+        condition: service_healthy
+      rag-service:
+        condition: service_healthy
+      recommender:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.orchestrator.rule=PathPrefix(`/api/chat`) || PathPrefix(`/api/sessions`)"
+      - "traefik.http.services.orchestrator.loadbalancer.server.port=8001"
+
+  checkout:
+    build:
+      context: ./services/checkout
+      dockerfile: Dockerfile.dev
+    container_name: nia_checkout
+    restart: unless-stopped
+    ports:
+      - "8006:8006"
+    environment:
+      - SERVICE_NAME=checkout
+      - PORT=8006
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8006/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.checkout.rule=PathPrefix(`/api/checkout`)"
+      - "traefik.http.services.checkout.loadbalancer.server.port=8006"
+
+  handoff:
+    build:
+      context: ./services/handoff
+      dockerfile: Dockerfile.dev
+    container_name: nia_handoff
+    restart: unless-stopped
+    ports:
+      - "8007:8007"
+    environment:
+      - SERVICE_NAME=handoff
+      - PORT=8007
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8007/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.handoff.rule=PathPrefix(`/api/handoff`)"
+      - "traefik.http.services.handoff.loadbalancer.server.port=8007"
+
+  transcript:
+    build:
+      context: ./services/transcript
+      dockerfile: Dockerfile.dev
+    container_name: nia_transcript
+    restart: unless-stopped
+    ports:
+      - "8008:8008"
+    environment:
+      - SERVICE_NAME=transcript
+      - PORT=8008
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8008/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.transcript.rule=PathPrefix(`/api/transcripts`)"
+      - "traefik.http.services.transcript.loadbalancer.server.port=8008"
+
+  fallback:
+    build:
+      context: ./services/fallback
+      dockerfile: Dockerfile.dev
+    container_name: nia_fallback
+    restart: unless-stopped
+    ports:
+      - "8009:8009"
+    environment:
+      - SERVICE_NAME=fallback
+      - PORT=8009
+    env_file:
+      - .env
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8009/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─────────────────────────────────────────────────────────────────
+  # Stubs / Mocks
+  # ─────────────────────────────────────────────────────────────────
+
+  teams-stub:
+    image: node:20-alpine
+    container_name: nia_teams_stub
+    restart: unless-stopped
+    working_dir: /app
+    command: node server.js
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./stubs/teams:/app:ro
+    profiles:
+      - dev
+
+  # ─────────────────────────────────────────────────────────────────
+  # Dev tools (profile: dev)
+  # ─────────────────────────────────────────────────────────────────
+
+  adminer:
+    image: adminer:4
+    container_name: nia_adminer
+    restart: unless-stopped
+    ports:
+      - "8888:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - dev
+
+  # ─────────────────────────────────────────────────────────────────
+  # Widget dev server (profile: dev)
+  # ─────────────────────────────────────────────────────────────────
+
+  widget:
+    image: node:20-alpine
+    container_name: nia_widget
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./packages/widget:/app
+      - widget_node_modules:/app/node_modules
+    environment:
+      - VITE_ORCHESTRATOR_URL=http://localhost:8001
+      - VITE_TENANT_MANAGER_URL=http://localhost:8003
+    profiles:
+      - dev
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:
+  widget_node_modules:

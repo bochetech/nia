@@ -1,0 +1,665 @@
+/* ============================================================
+   NIA Widget — Scoped styles (Shadow DOM)
+   All selectors are prefixed with .nia- to avoid leakage.
+   CSS custom properties are set by the Widget component from
+   tenant branding: --nia-primary (brand color)
+   ============================================================ */
+
+/* ── CSS Custom Properties for Typography ── */
+:host {
+  --nia-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --nia-font-size-sm: 12px;
+  --nia-font-size-base: 14px;
+  --nia-font-size-md: 15px;
+  --nia-font-size-lg: 16px;
+  --nia-line-height-tight: 1.25;
+  --nia-line-height-normal: 1.4;
+  --nia-line-height-relaxed: 1.6;
+  --nia-font-weight-normal: 400;
+  --nia-font-weight-medium: 500;
+  --nia-font-weight-semibold: 600;
+}
+
+/* ── Reset ── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: var(--nia-font-family);
+}
+
+/* ── Position helpers ── */
+.nia-pos-right {
+  right: 20px;
+}
+.nia-pos-left {
+  left: 20px;
+}
+
+/* ── Launcher FAB ── */
+.nia-launcher {
+  position: fixed;
+  bottom: 24px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--nia-primary, #2563eb), color-mix(in srgb, var(--nia-primary, #2563eb) 80%, #000));
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 8px 25px -5px rgba(0, 0, 0, 0.1),
+    0 20px 50px -12px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  pointer-events: all;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+}
+.nia-launcher:hover {
+  transform: scale(1.1) translateY(-2px);
+  box-shadow: 
+    0 12px 30px -5px rgba(0, 0, 0, 0.15),
+    0 25px 65px -12px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+.nia-launcher:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--nia-primary, #2563eb) 40%, transparent);
+  outline-offset: 4px;
+}
+.nia-launcher:active {
+  transform: scale(1.05) translateY(-1px);
+  transition: all 0.1s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+/* ── Unread badge ── */
+.nia-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  line-height: 1;
+  pointer-events: none;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  animation: nia-badge-pulse 2s infinite;
+}
+
+@keyframes nia-badge-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* ── Chat panel ── */
+.nia-panel {
+  position: fixed;
+  bottom: 104px;
+  width: 380px;
+  max-height: 600px;
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 
+    0 32px 64px rgba(0, 0, 0, 0.12),
+    0 16px 32px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  pointer-events: all;
+  animation: nia-slide-up 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  z-index: 10;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-size: 14px;
+  color: #111827;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes nia-slide-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Responsive: full-screen on mobile */
+@media (max-width: 480px) {
+  .nia-panel {
+    width: 100vw;
+    max-height: 100dvh;
+    border-radius: 0;
+    bottom: 0;
+    right: 0 !important;
+    left: 0 !important;
+    animation: nia-slide-up-mobile 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+  }
+  .nia-launcher {
+    bottom: 20px;
+    right: 20px;
+  }
+  .nia-header {
+    padding: 20px 20px 18px;
+  }
+  .nia-body {
+    padding: 20px 16px;
+  }
+  .nia-footer {
+    padding: 16px;
+  }
+  .nia-bubble-wrapper {
+    max-width: 90%;
+  }
+}
+
+@keyframes nia-slide-up-mobile {
+  0% {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .nia-panel {
+    background: #1f2937;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .nia-body {
+    background: linear-gradient(to bottom, #1f2937, #111827);
+    color: #f9fafb;
+  }
+  .nia-bubble-bot .nia-bubble {
+    background: #374151;
+    color: #f9fafb;
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  .nia-input {
+    background: #374151;
+    color: #f9fafb;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+  .nia-input::placeholder {
+    color: #9ca3af;
+  }
+  .nia-footer {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+/* ── Header ── */
+.nia-header {
+  background: linear-gradient(135deg, var(--nia-primary, #2563eb), color-mix(in srgb, var(--nia-primary, #2563eb) 90%, #000));
+  color: #fff;
+  padding: 20px 20px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+.nia-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+  pointer-events: none;
+}
+.nia-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+.nia-logo-text {
+  font-size: 28px;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+.nia-header-title {
+  flex: 1;
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+.nia-close-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+  flex-shrink: 0;
+}
+.nia-close-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.15);
+  transform: scale(1.05);
+}
+.nia-close-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
+}
+
+/* ── Body content ── */
+.nia-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scroll-behavior: smooth;
+  background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+  position: relative;
+}
+.nia-body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(circle at 20% 50%, rgba(37, 99, 235, 0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.02) 0%, transparent 50%);
+  pointer-events: none;
+}
+.nia-body::-webkit-scrollbar {
+  width: 6px;
+}
+.nia-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.nia-body::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+.nia-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.6);
+}
+
+/* ── Bubble wrapper ── */
+.nia-bubble-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  max-width: 85%;
+  margin-bottom: 4px;
+  animation: nia-message-in 0.4s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+.nia-bubble-user {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+.nia-bubble-bot {
+  align-self: flex-start;
+}
+
+@keyframes nia-message-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Avatar ── */
+.nia-avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--nia-primary, #2563eb), color-mix(in srgb, var(--nia-primary, #2563eb) 85%, #000));
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    0 2px 8px color-mix(in srgb, var(--nia-primary, #2563eb) 20%, transparent),
+    0 1px 3px color-mix(in srgb, var(--nia-primary, #2563eb) 30%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+.nia-avatar-text {
+  font-size: 14px;
+  font-family: var(--nia-font-family);
+  font-weight: var(--nia-font-weight-semibold);
+  color: #ffffff;
+  line-height: 1;
+}
+
+/* ── Bubble ── */
+.nia-bubble {
+  padding: 16px 20px;
+  border-radius: 20px;
+  line-height: var(--nia-line-height-relaxed);
+  word-break: break-word;
+  max-width: 100%;
+  position: relative;
+  font-size: var(--nia-font-size-base);
+  font-family: var(--nia-font-family);
+  font-weight: var(--nia-font-weight-normal);
+  transition: all 0.2s ease;
+}
+.nia-bubble-user .nia-bubble {
+  background: linear-gradient(135deg, var(--nia-primary, #2563eb), color-mix(in srgb, var(--nia-primary, #2563eb) 85%, #000));
+  color: #fff;
+  border-bottom-right-radius: 8px;
+  box-shadow: 
+    0 4px 12px color-mix(in srgb, var(--nia-primary, #2563eb) 25%, transparent),
+    0 1px 3px color-mix(in srgb, var(--nia-primary, #2563eb) 40%, transparent);
+}
+.nia-bubble-bot .nia-bubble {
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #e5e7eb;
+  border-bottom-left-radius: 8px;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    0 2px 6px rgba(0, 0, 0, 0.03);
+}
+.nia-bubble:hover {
+  transform: translateY(-1px);
+}
+
+/* ── Timestamp ── */
+.nia-timestamp {
+  font-size: var(--nia-font-size-sm);
+  font-family: var(--nia-font-family);
+  color: #9ca3af;
+  margin-top: 6px;
+  display: block;
+  text-align: right;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  transform: translateY(2px);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.nia-bubble-wrapper:hover .nia-timestamp {
+  opacity: 1;
+}
+
+/* ── Recommendation cards ── */
+.nia-reco-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}
+.nia-reco-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    0 2px 6px rgba(0, 0, 0, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+.nia-reco-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 8px 20px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: #d1d5db;
+}
+.nia-reco-img {
+  width: 100%;
+  height: 85px;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+.nia-reco-card:hover .nia-reco-img {
+  transform: scale(1.05);
+}
+.nia-reco-body {
+  padding: 12px 14px;
+}
+.nia-reco-name {
+  font-weight: 600;
+  font-size: 13.5px;
+  margin-bottom: 4px;
+  color: #1f2937;
+}
+.nia-reco-desc {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+.nia-reco-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nia-reco-price {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--nia-primary, #2563eb);
+}
+.nia-reco-score {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+.nia-reco-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 0;
+  background: linear-gradient(135deg, var(--nia-primary, #2563eb), color-mix(in srgb, var(--nia-primary, #2563eb) 85%, #000));
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--nia-primary, #2563eb) 20%, transparent);
+}
+.nia-reco-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px color-mix(in srgb, var(--nia-primary, #2563eb) 30%, transparent);
+}
+
+/* ── Typing indicator ── */
+.nia-typing {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 18px;
+  min-width: 64px;
+  border-radius: 20px;
+  border-bottom-left-radius: 8px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    0 2px 6px rgba(0, 0, 0, 0.03);
+  animation: nia-typing-pulse 1.5s ease-in-out infinite;
+}
+.nia-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #9ca3af, #6b7280);
+  animation: nia-blink 1.4s infinite ease-in-out;
+  display: inline-block;
+}
+.nia-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.nia-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes nia-blink {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.4;
+  }
+  40% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+@keyframes nia-typing-pulse {
+  0%, 100% {
+    box-shadow: 
+      0 4px 12px rgba(0, 0, 0, 0.05),
+      0 2px 6px rgba(0, 0, 0, 0.03);
+  }
+  50% {
+    box-shadow: 
+      0 6px 16px rgba(0, 0, 0, 0.08),
+      0 3px 8px rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* ── Footer ── */
+.nia-footer {
+  flex-shrink: 0;
+  border-top: 1px solid rgba(229, 231, 235, 0.6);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 16px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Input bar ── */
+.nia-input-bar {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+}
+.nia-input {
+  flex: 1;
+  padding: 14px 18px;
+  border: 2px solid #e5e7eb;
+  border-radius: 18px;
+  font-size: var(--nia-font-size-base);
+  font-family: var(--nia-font-family);
+  font-weight: var(--nia-font-weight-normal);
+  line-height: var(--nia-line-height-normal);
+  resize: none;
+  background: #fff;
+  color: #1f2937;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  min-height: 44px;
+  max-height: 120px;
+  overflow-y: auto;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.nia-input:focus {
+  outline: none;
+  border-color: var(--nia-primary, #2563eb);
+  box-shadow: 
+    0 0 0 3px color-mix(in srgb, var(--nia-primary, #2563eb) 15%, transparent),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+.nia-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f9fafb;
+}
+.nia-input::placeholder {
+  color: #9ca3af;
+}
+.nia-send-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, var(--nia-primary, #2563eb), color-mix(in srgb, var(--nia-primary, #2563eb) 85%, #000));
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+  box-shadow: 
+    0 2px 8px color-mix(in srgb, var(--nia-primary, #2563eb) 25%, transparent),
+    0 1px 3px color-mix(in srgb, var(--nia-primary, #2563eb) 40%, transparent);
+}
+.nia-send-btn:hover:not(:disabled) {
+  transform: scale(1.05) translateY(-2px);
+  box-shadow: 
+    0 4px 12px color-mix(in srgb, var(--nia-primary, #2563eb) 30%, transparent),
+    0 2px 6px color-mix(in srgb, var(--nia-primary, #2563eb) 50%, transparent);
+}
+.nia-send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+.nia-send-btn:focus-visible {
+  outline: 2px solid var(--nia-primary, #2563eb);
+  outline-offset: 3px;
+}
+.nia-send-btn:active:not(:disabled) {
+  transform: scale(1.02) translateY(-1px);
+}
+
+/* ── Branding footer text ── */
+.nia-branding {
+  text-align: center;
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+.nia-branding strong {
+  color: var(--nia-primary, #2563eb);
+  font-weight: 700;
+}

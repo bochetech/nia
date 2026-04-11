@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NIA Widget — Documentación</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --green: #10b981;
+      --surface: #f8fafc;
+      --surface2: #f1f5f9;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --code-bg: #0f172a;
+      --code-text: #e2e8f0;
+      --sidebar-w: 260px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text);
+      background: #fff;
+    }
+
+    /* ── LAYOUT ── */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: var(--sidebar-w);
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 1.5rem 0;
+    }
+    .sidebar-logo {
+      padding: 0 1.5rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1rem;
+    }
+    .sidebar-logo .badge {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .sidebar-logo h2 { font-size: 1.15rem; font-weight: 800; color: var(--text); }
+    .sidebar-logo p  { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+    .sidebar nav { padding: 0 0.75rem; }
+    .nav-group { margin-bottom: 1.25rem; }
+    .nav-group-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      padding: 0 0.75rem;
+      margin-bottom: 0.35rem;
+    }
+    .nav-group a {
+      display: block;
+      padding: 0.3rem 0.75rem;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.875rem;
+      color: var(--muted);
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-group a:hover { background: var(--surface2); color: var(--text); }
+    .nav-group a.active { background: #dbeafe; color: var(--primary-dark); font-weight: 600; }
+
+    /* ── MAIN ── */
+    .main { flex: 1; min-width: 0; }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%);
+      color: #fff;
+      padding: 4rem 3rem 3.5rem;
+    }
+    .hero .tag {
+      display: inline-block;
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 12px;
+      margin-bottom: 1rem;
+      letter-spacing: 0.5px;
+    }
+    .hero h1 { font-size: 2.4rem; font-weight: 800; line-height: 1.2; margin-bottom: 0.75rem; }
+    .hero p  { font-size: 1.05rem; opacity: 0.85; max-width: 600px; margin-bottom: 2rem; }
+    .hero-badges { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .hero-badges span {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 4px 10px;
+    }
+
+    /* ── CONTENT ── */
+    .content { padding: 3rem; max-width: 860px; }
+    .content h2 {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin: 2.5rem 0 0.75rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--text);
+    }
+    .content h2:first-child { margin-top: 0; border-top: none; padding-top: 0; }
+    .content h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin: 1.75rem 0 0.5rem;
+      color: var(--text);
+    }
+    .content p  { color: #334155; margin-bottom: 0.75rem; }
+    .content ul, .content ol { padding-left: 1.5rem; margin-bottom: 0.75rem; color: #334155; }
+    .content li { margin-bottom: 0.25rem; }
+    .content a  { color: var(--primary); text-decoration: none; }
+    .content a:hover { text-decoration: underline; }
+
+    /* ── CODE BLOCKS ── */
+    pre {
+      background: var(--code-bg);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      overflow-x: auto;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.84rem;
+      line-height: 1.65;
+      position: relative;
+    }
+    pre code { color: var(--code-text); font-family: "SF Mono", "Fira Code", monospace; }
+    .copy-btn {
+      position: absolute;
+      top: 0.6rem;
+      right: 0.75rem;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 5px;
+      color: #94a3b8;
+      font-size: 0.72rem;
+      padding: 3px 9px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .copy-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+
+    /* Syntax highlight tokens */
+    .kw  { color: #93c5fd; }   /* keyword */
+    .str { color: #86efac; }   /* string */
+    .cm  { color: #475569; font-style: italic; }  /* comment */
+    .fn  { color: #fbbf24; }   /* function/prop */
+    .tag { color: #f472b6; }   /* html tag */
+    .attr{ color: #67e8f9; }   /* attribute */
+    .val { color: #a5f3fc; }   /* value */
+    .num { color: #c084fc; }   /* number */
+    .type{ color: #fb923c; }   /* type */
+
+    code {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.84em;
+      font-family: "SF Mono", "Fira Code", monospace;
+      color: #be185d;
+    }
+    pre code { background: none; border: none; padding: 0; color: inherit; font-size: inherit; }
+
+    /* ── TABLES ── */
+    .table-wrap { overflow-x: auto; margin: 1rem 0 1.5rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th {
+      background: var(--surface2);
+      text-align: left;
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      padding: 0.6rem 1rem;
+      border-bottom: 2px solid var(--border);
+    }
+    td { padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:hover td { background: var(--surface); }
+    td code { font-size: 0.82em; }
+
+    /* ── CALLOUTS ── */
+    .callout {
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+      display: flex;
+      gap: 0.75rem;
+      font-size: 0.9rem;
+    }
+    .callout-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+    .callout.info  { background: #eff6ff; border-left: 4px solid #3b82f6; }
+    .callout.tip   { background: #f0fdf4; border-left: 4px solid #22c55e; }
+    .callout.warn  { background: #fffbeb; border-left: 4px solid #f59e0b; }
+    .callout.danger{ background: #fef2f2; border-left: 4px solid #ef4444; }
+
+    /* ── PROPS / ENDPOINT CARDS ── */
+    .prop-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 0.75rem;
+      overflow: hidden;
+    }
+    .prop-card-head {
+      background: var(--surface);
+      padding: 0.6rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .prop-name  { font-family: "SF Mono","Fira Code",monospace; font-weight: 700; font-size: 0.9rem; }
+    .prop-type  { font-size: 0.75rem; background: #e0e7ff; color: #3730a3; padding: 1px 7px; border-radius: 4px; }
+    .prop-req   { font-size: 0.75rem; background: #fce7f3; color: #9d174d; padding: 1px 7px; border-radius: 4px; }
+    .prop-opt   { font-size: 0.75rem; background: #f0fdf4; color: #166534; padding: 1px 7px; border-radius: 4px; }
+    .prop-body  { padding: 0.6rem 1rem; font-size: 0.875rem; color: #334155; }
+    .prop-default { color: var(--muted); font-size: 0.82rem; margin-top: 3px; }
+
+    /* ── METHOD BADGES ── */
+    .method {
+      display: inline-block;
+      font-weight: 700;
+      font-size: 0.72rem;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-family: "SF Mono","Fira Code",monospace;
+      letter-spacing: 0.03em;
+    }
+    .method.GET  { background: #dcfce7; color: #166534; }
+    .method.POST { background: #dbeafe; color: #1e40af; }
+
+    /* ── FLOW DIAGRAM ── */
+    .flow {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.85rem;
+      font-family: "SF Mono","Fira Code",monospace;
+      color: #334155;
+      line-height: 2;
+    }
+    .flow .arrow { color: var(--primary); font-weight: 700; }
+    .flow .box {
+      display: inline-block;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px 10px;
+    }
+
+    /* ── SECTION ANCHORS ── */
+    section { scroll-margin-top: 1rem; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .content { padding: 1.5rem; }
+      .hero { padding: 2rem 1.5rem; }
+      .hero h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- ── SIDEBAR ─────────────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h2>NIA Widget <span class="badge">v1.0</span></h2>
+      <p>Chat embebible · Preact · Shadow DOM</p>
+    </div>
+    <nav>
+      <div class="nav-group">
+        <div class="nav-group-title">Introducción</div>
+        <a href="#overview">¿Qué es el widget?</a>
+        <a href="#quickstart">Quickstart</a>
+        <a href="#how-it-works">Cómo funciona</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">Configuración</div>
+        <a href="#config-methods">Métodos de config</a>
+        <a href="#config-ref">Referencia completa</a>
+        <a href="#branding">Branding por tenant</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">API Backend</div>
+        <a href="#api-widget-config">GET widget-config</a>
+        <a href="#api-chat">POST /v1/chat</a>
+        <a href="#api-lead">POST /v1/sessions/:id/lead</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">Internos</div>
+        <a href="#components">Componentes</a>
+        <a href="#hooks">Hook useChat</a>
+        <a href="#session">Sesión</a>
+        <a href="#shadow-dom">Shadow DOM</a>
+      </div>
+      <div class="nav-group">
+        <div class="nav-group-title">Desarrollo</div>
+        <a href="#dev-setup">Setup local</a>
+        <a href="#build">Build</a>
+        <a href="#testing">Testing</a>
+        <a href="#demo-server">Demo server</a>
+      </div>
+    </nav>
+  </aside>
+
+  <!-- ── MAIN ─────────────────────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="tag">@nia/widget · 27 KB gzip: 10 KB</div>
+      <h1>NIA Widget</h1>
+      <p>Chat de IA embebible en cualquier sitio web. Un solo <code style="background:rgba(255,255,255,0.15);border:none;color:#fff">&lt;script&gt;</code> tag. Aislamiento total via Shadow DOM. Theming por tenant.</p>
+      <div class="hero-badges">
+        <span>⚛ Preact 10</span>
+        <span>🎭 Shadow DOM</span>
+        <span>🔒 Sin conflictos CSS</span>
+        <span>📦 IIFE · sin dependencias</span>
+        <span>♿ WCAG 2.1 AA</span>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="overview">
+        <h2>¿Qué es el widget?</h2>
+        <p>
+          El NIA Widget es un chat de IA embebible que los tenants insertan en sus sitios web
+          con un único <code>&lt;script&gt;</code> tag. Se conecta al backend de NIA para
+          procesar mensajes, gestionar el estado de la conversación (FSM) y capturar leads.
+        </p>
+        <p>
+          Está construido con <strong>Preact</strong> (3 KB, API idéntica a React) y aislado
+          completamente del CSS del sitio host mediante <strong>Shadow DOM</strong>.
+          El theming (colores, logo, textos) se configura por tenant desde el backend.
+        </p>
+        <div class="callout tip">
+          <span class="callout-icon">✅</span>
+          <div>El widget no tiene dependencias externas en runtime. El bundle IIFE incluye todo lo necesario (Preact + estilos + lógica).</div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="quickstart">
+        <h2>Quickstart</h2>
+        <p>Dos formas de insertar el widget. Elige la que prefieras:</p>
+
+        <h3>Opción A — <code>window.NIA_CONFIG</code> <span style="background:#dcfce7;color:#166534;font-size:0.72rem;padding:2px 8px;border-radius:4px;font-weight:700;margin-left:4px;">RECOMENDADA</span></h3>
+        <p>Inyecta la configuración antes del script. Funciona en <em>cualquier</em> posición del DOM, incluyendo al final del <code>&lt;body&gt;</code>.</p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm">&lt;!-- 1. Config inline (siempre antes del widget script) --&gt;</span>
+<span class="tag">&lt;script&gt;</span>
+  <span class="fn">window</span>.<span class="fn">NIA_CONFIG</span> = {
+    <span class="attr">tenant</span>:           <span class="str">"mi-empresa"</span>,
+    <span class="attr">apiUrl</span>:           <span class="str">"https://api.nia.io"</span>,
+    <span class="attr">tenantManagerUrl</span>:  <span class="str">"https://api.nia.io"</span>,
+    <span class="attr">position</span>:         <span class="str">"bottom-right"</span>   <span class="cm">// u "bottom-left"</span>
+  };
+<span class="tag">&lt;/script&gt;</span>
+<span class="cm">&lt;!-- 2. Bundle del widget --&gt;</span>
+<span class="tag">&lt;script</span> <span class="attr">src</span>=<span class="str">"https://cdn.nia.io/widget/nia-widget.iife.js"</span><span class="tag">&gt;&lt;/script&gt;</span></code></pre>
+
+        <h3>Opción B — atributos <code>data-*</code></h3>
+        <p>Funciona cuando el script se coloca en el <code>&lt;head&gt;</code> (donde <code>document.currentScript</code> aún es válido).</p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="tag">&lt;head&gt;</span>
+  <span class="tag">&lt;script</span>
+    <span class="attr">src</span>=<span class="str">"https://cdn.nia.io/widget/nia-widget.iife.js"</span>
+    <span class="attr">data-tenant</span>=<span class="str">"mi-empresa"</span>
+    <span class="attr">data-api-url</span>=<span class="str">"https://api.nia.io"</span>
+    <span class="attr">data-tenant-manager-url</span>=<span class="str">"https://api.nia.io"</span>
+    <span class="attr">data-position</span>=<span class="str">"bottom-right"</span>
+  <span class="tag">&gt;&lt;/script&gt;</span>
+<span class="tag">&lt;/head&gt;</span></code></pre>
+
+        <div class="callout warn">
+          <span class="callout-icon">⚠️</span>
+          <div>
+            <strong>Atributos <code>data-*</code> al final del body:</strong> Vite compila el IIFE de forma que <code>document.currentScript</code> es <code>null</code> al 97% del bundle. Usa siempre <code>window.NIA_CONFIG</code> si insertas el script antes del <code>&lt;/body&gt;</code>.
+          </div>
+        </div>
+
+        <h3>Prioridad de configuración</h3>
+        <p>Cuando coexisten ambas formas, el orden de prioridad es:</p>
+        <div class="flow">
+          <span class="box">window.NIA_CONFIG</span>
+          <span class="arrow"> → </span>
+          <span class="box">currentScript.dataset.*</span>
+          <span class="arrow"> → </span>
+          <span class="box">querySelector("script[data-tenant]")</span>
+          <span class="arrow"> → </span>
+          <span class="box">defaults hardcoded</span>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="how-it-works">
+        <h2>Cómo funciona</h2>
+        <div class="flow">
+1. Browser descarga <span class="box">nia-widget.iife.js</span><br>
+   <span class="arrow">↓</span><br>
+2. IIFE lee config desde <span class="box">window.NIA_CONFIG</span> o <span class="box">data-* attrs</span><br>
+   <span class="arrow">↓</span><br>
+3. Crea <span class="box">&lt;div id="nia-widget-host"&gt;</span> con Shadow DOM<br>
+   <span class="arrow">↓</span><br>
+4. <span class="fn">GET</span> <span class="box">{tenantManagerUrl}/tenants/{tenantId}/widget-config</span><br>
+   → aplica primaryColor, logo, textos al widget<br>
+   <span class="arrow">↓</span><br>
+5. Renderiza botón launcher (💬) en esquina configurada<br>
+   <span class="arrow">↓</span><br>
+6. Usuario hace clic → abre panel de chat<br>
+   <span class="arrow">↓</span><br>
+7. Mensaje del usuario → <span class="fn">POST</span> <span class="box">{apiUrl}/v1/chat</span><br>
+   → respuesta del asistente en pantalla
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="config-methods">
+        <h2>Métodos de configuración</h2>
+        <p>El widget soporta dos métodos de configuración. Internamente, el código en <code>embed.tsx</code> los resuelve en este orden:</p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm">// embed.tsx — lógica de resolución de config</span>
+<span class="kw">const</span> cfg = (<span class="fn">window</span> <span class="kw">as any</span>).<span class="fn">NIA_CONFIG</span> ?? {};
+<span class="kw">const</span> script = _scriptEl;  <span class="cm">// currentScript capturado al inicio del IIFE</span>
+
+<span class="kw">const</span> tenantId =
+  cfg.<span class="fn">tenant</span> ??
+  script?.dataset.<span class="fn">tenant</span> ??
+  <span class="str">""</span>;
+
+<span class="kw">const</span> apiUrl =
+  cfg.<span class="fn">apiUrl</span> ??
+  script?.dataset.<span class="fn">apiUrl</span> ??
+  <span class="str">"http://localhost:8001"</span>;
+
+<span class="kw">const</span> tenantManagerUrl =
+  cfg.<span class="fn">tenantManagerUrl</span> ??
+  script?.dataset.<span class="fn">tenantManagerUrl</span> ??
+  <span class="str">"http://localhost:8003"</span>;
+
+<span class="kw">const</span> position =
+  cfg.<span class="fn">position</span> ??
+  script?.dataset.<span class="fn">position</span> ??
+  <span class="str">"bottom-right"</span>;</code></pre>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="config-ref">
+        <h2>Referencia de configuración</h2>
+
+        <div class="prop-card">
+          <div class="prop-card-head">
+            <span class="prop-name">tenant</span>
+            <span class="prop-type">string</span>
+            <span class="prop-req">Requerido</span>
+          </div>
+          <div class="prop-body">
+            ID único del tenant. Se usa para obtener el branding y como contexto en todas las llamadas al backend.
+            <div class="prop-default">Ejemplo: <code>"riviera-maya-tours"</code></div>
+          </div>
+        </div>
+
+        <div class="prop-card">
+          <div class="prop-card-head">
+            <span class="prop-name">apiUrl</span>
+            <span class="prop-type">string (URL)</span>
+            <span class="prop-req">Requerido</span>
+          </div>
+          <div class="prop-body">
+            URL base del orchestrator/API. El widget hace <code>POST {apiUrl}/v1/chat</code> para enviar mensajes.
+            <div class="prop-default">Default: <code>"http://localhost:8001"</code></div>
+          </div>
+        </div>
+
+        <div class="prop-card">
+          <div class="prop-card-head">
+            <span class="prop-name">tenantManagerUrl</span>
+            <span class="prop-type">string (URL)</span>
+            <span class="prop-opt">Opcional</span>
+          </div>
+          <div class="prop-body">
+            URL base del tenant-manager. El widget hace <code>GET {tenantManagerUrl}/tenants/{tenant}/widget-config</code> para obtener el branding. Puede ser el mismo servidor que <code>apiUrl</code>.
+            <div class="prop-default">Default: <code>"http://localhost:8003"</code></div>
+          </div>
+        </div>
+
+        <div class="prop-card">
+          <div class="prop-card-head">
+            <span class="prop-name">position</span>
+            <span class="prop-type">"bottom-right" | "bottom-left"</span>
+            <span class="prop-opt">Opcional</span>
+          </div>
+          <div class="prop-body">
+            Posición del botón launcher y del panel de chat en la pantalla.
+            <div class="prop-default">Default: <code>"bottom-right"</code></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="branding">
+        <h2>Branding por tenant</h2>
+        <p>
+          El widget hace <code>GET /tenants/{tenantId}/widget-config</code> al montar y aplica
+          los valores recibidos como CSS custom properties en el Shadow DOM.
+          Si el endpoint falla, usa los valores por defecto (azul <code>#2563eb</code>).
+        </p>
+
+        <h3>Respuesta esperada</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm">// GET /tenants/{tenant_id}/widget-config</span>
+<span class="cm">// → Objeto PLANO (sin wrapper "data")</span>
+{
+  <span class="str">"primary_color"</span>:   <span class="str">"#10b981"</span>,        <span class="cm">// color del launcher + header</span>
+  <span class="str">"logo_url"</span>:        <span class="kw">null</span>,             <span class="cm">// URL imagen o null → emoji 🤖</span>
+  <span class="str">"welcome_message"</span>: <span class="str">"¡Hola! Soy NIA…"</span>, <span class="cm">// primer mensaje del asistente</span>
+  <span class="str">"placeholder"</span>:     <span class="str">"Escribe aquí…"</span>,  <span class="cm">// placeholder del textarea</span>
+  <span class="str">"widget_token"</span>:    <span class="str">"tok_abc123"</span>      <span class="cm">// Bearer token para /v1/chat</span>
+}</code></pre>
+
+        <div class="callout danger">
+          <span class="callout-icon">🚨</span>
+          <div>
+            <strong>No envolver en <code>{"data": {...}}</code>.</strong> El widget lee <code>g.primary_color</code> directamente. Si devuelves <code>{"data": {"primary_color": ...}}</code>, el branding se ignorará y se usarán los defaults.
+          </div>
+        </div>
+
+        <h3>Cómo se aplica el theming</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm">// Widget.tsx — aplica primaryColor como CSS custom property</span>
+<span class="kw">const</span> style = { <span class="str">"--nia-primary"</span>: branding.primaryColor };
+
+<span class="cm">// En widget.css (Shadow DOM)</span>
+.<span class="fn">nia-launcher</span> {
+  background-color: <span class="fn">var</span>(--nia-primary, #2563eb);
+}
+.<span class="fn">nia-header</span> {
+  background: <span class="fn">var</span>(--nia-primary, #2563eb);
+}</code></pre>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="api-widget-config">
+        <h2>API — GET widget-config</h2>
+        <p><span class="method GET">GET</span> <code>/tenants/{tenant_id}/widget-config</code></p>
+        <p>Llamado automáticamente por el widget al montar. No requiere autenticación.</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr></thead>
+            <tbody>
+              <tr><td><code>primary_color</code></td><td>string</td><td>Color hexadecimal del tema</td></tr>
+              <tr><td><code>logo_url</code></td><td>string | null</td><td>URL del logo del tenant. <code>null</code> → muestra emoji 🤖</td></tr>
+              <tr><td><code>welcome_message</code></td><td>string</td><td>Mensaje inicial que aparece al abrir el chat</td></tr>
+              <tr><td><code>placeholder</code></td><td>string</td><td>Placeholder del campo de texto</td></tr>
+              <tr><td><code>widget_token</code></td><td>string</td><td>Bearer token para autenticar llamadas a <code>/v1/chat</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="api-chat">
+        <h2>API — POST /v1/chat</h2>
+        <p><span class="method POST">POST</span> <code>{apiUrl}/v1/chat</code></p>
+        <p>Endpoint principal al que el widget envía cada mensaje del usuario.</p>
+
+        <h3>Request</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm">// Headers</span>
+Content-Type: application/json
+Authorization: Bearer {widget_token}
+
+<span class="cm">// Body</span>
+{
+  <span class="str">"message"</span>: <span class="str">"¿Qué tours tienen en Tulum?"</span>
+}</code></pre>
+
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
+          <div>El widget NO envía <code>session_id</code> en el body — la sesión se gestiona server-side. El token sirve como identificador de sesión implícito en producción.</div>
+        </div>
+
+        <h3>Response</h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm">// El widget lee response.data (envolver en "data" es obligatorio aquí)</span>
+{
+  <span class="str">"data"</span>: {
+    <span class="str">"session_id"</span>:        <span class="str">"s_abc123"</span>,
+    <span class="str">"response"</span>:          <span class="str">"Tenemos tours en Tulum desde $89…"</span>,
+    <span class="str">"fsm_state"</span>:         <span class="str">"recommendation"</span>,
+    <span class="str">"show_lead_form"</span>:     <span class="kw">false</span>,
+    <span class="str">"recommendations"</span>:   <span class="kw">null</span>,
+    <span class="str">"handoff_triggered"</span>: <span class="kw">false</span>,
+    <span class="str">"checkout_url"</span>:      <span class="kw">null</span>
+  }
+}</code></pre>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr></thead>
+            <tbody>
+              <tr><td><code>response</code></td><td>string</td><td>Texto que se muestra como burbuja del asistente</td></tr>
+              <tr><td><code>fsm_state</code></td><td>string</td><td>Estado del FSM: <code>greeting</code>, <code>chatting</code>, <code>recommendation</code>, <code>checkout</code>, <code>handoff</code></td></tr>
+              <tr><td><code>show_lead_form</code></td><td>boolean</td><td>Si <code>true</code>, el widget muestra el formulario de captura de lead</td></tr>
+              <tr><td><code>recommendations</code></td><td>array | null</td><td>Lista de productos/tours recomendados (ver tipo <code>RecommendationItem</code>)</td></tr>
+              <tr><td><code>handoff_triggered</code></td><td>boolean</td><td>Si <code>true</code>, la conversación fue transferida a un agente humano</td></tr>
+              <tr><td><code>checkout_url</code></td><td>string | null</td><td>URL de checkout a mostrar si hay producto seleccionado</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Tipo <code>RecommendationItem</code></h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="kw">interface</span> <span class="type">RecommendationItem</span> {
+  product_id:          <span class="type">string</span>;
+  name:                <span class="type">string</span>;
+  category:            <span class="type">string</span>;
+  base_price:          <span class="type">number</span>;
+  currency:            <span class="type">string</span>;
+  duration_minutes:    <span class="type">number</span> | <span class="kw">null</span>;
+  availability_status: <span class="type">string</span>;
+  available_slots:     <span class="type">Array</span>&lt;{ time: <span class="type">string</span>; spots_left: <span class="type">number</span> }&gt;;
+  score:               <span class="type">number</span>;
+  rank:                <span class="type">number</span>;
+  image_url:           <span class="type">string</span> | <span class="kw">null</span>;
+}</code></pre>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="api-lead">
+        <h2>API — POST /v1/sessions/:id/lead</h2>
+        <p><span class="method POST">POST</span> <code>{apiUrl}/v1/sessions/{session_id}/lead</code></p>
+        <p>Llamado cuando el usuario completa el formulario de captura de lead (cuando <code>show_lead_form: true</code>).</p>
+
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm">// Body</span>
+{
+  <span class="str">"data"</span>: {
+    <span class="str">"name"</span>:  <span class="str">"Ana García"</span>,
+    <span class="str">"email"</span>: <span class="str">"ana@example.com"</span>,
+    <span class="str">"phone"</span>: <span class="str">"+52 984 123 4567"</span>
+  },
+  <span class="str">"gdpr_consent"</span>: <span class="kw">true</span>
+}
+
+<span class="cm">// Response</span>
+{ <span class="str">"data"</span>: { <span class="str">"ok"</span>: <span class="kw">true</span> } }</code></pre>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="components">
+        <h2>Componentes internos</h2>
+        <p>El widget está compuesto por los siguientes componentes Preact en <code>src/components/</code>:</p>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Componente</th><th>Archivo</th><th>Descripción</th></tr></thead>
+            <tbody>
+              <tr>
+                <td><code>Widget</code></td>
+                <td><code>Widget.tsx</code></td>
+                <td>Raíz. Gestiona estado: <code>open</code>, <code>unread</code>, <code>branding</code>, <code>sessionId</code>. Llama al tenant-manager y al hook <code>useChat</code>.</td>
+              </tr>
+              <tr>
+                <td><code>MessageList</code></td>
+                <td><code>MessageList.tsx</code></td>
+                <td>Renderiza la lista de burbujas de chat. Auto-scroll al último mensaje. Aria live region.</td>
+              </tr>
+              <tr>
+                <td><code>MessageBubble</code></td>
+                <td><code>MessageBubble.tsx</code></td>
+                <td>Burbuja individual. Clases <code>.nia-bubble-user</code> / <code>.nia-bubble-assistant</code> según el rol.</td>
+              </tr>
+              <tr>
+                <td><code>InputBar</code></td>
+                <td><code>InputBar.tsx</code></td>
+                <td>Textarea + botón enviar. Enter sin Shift envía. Deshabilitado durante carga.</td>
+              </tr>
+              <tr>
+                <td><code>TypingIndicator</code></td>
+                <td><code>TypingIndicator.tsx</code></td>
+                <td>Tres puntos animados mientras el asistente genera respuesta. Aria-label "escribiendo".</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3>Props de <code>Widget</code></h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="kw">interface</span> <span class="type">WidgetProps</span> {
+  tenantId:         <span class="type">string</span>;            <span class="cm">// ID del tenant</span>
+  apiUrl:           <span class="type">string</span>;            <span class="cm">// URL del orchestrator</span>
+  tenantManagerUrl: <span class="type">string</span>;            <span class="cm">// URL del tenant-manager</span>
+  position?:        <span class="str">"bottom-right"</span> | <span class="str">"bottom-left"</span>;
+}</code></pre>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="hooks">
+        <h2>Hook <code>useChat</code></h2>
+        <p>El hook principal que gestiona el estado de la conversación. Está en <code>src/hooks/useChat.ts</code>.</p>
+
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="kw">interface</span> <span class="type">UseChatOptions</span> {
+  apiUrl:    <span class="type">string</span>;
+  token:     <span class="type">string</span>;   <span class="cm">// widget_token del tenant</span>
+  sessionId: <span class="type">string</span>;   <span class="cm">// generado por getOrCreateSessionId()</span>
+}
+
+<span class="kw">const</span> {
+  messages,         <span class="cm">// ChatMessage[]  — historial completo</span>
+  loading,          <span class="cm">// boolean        — esperando respuesta</span>
+  fsmState,         <span class="cm">// string         — estado actual del FSM</span>
+  showLeadForm,     <span class="cm">// boolean        — mostrar formulario de lead</span>
+  handoffActive,    <span class="cm">// boolean        — chat transferido a agente</span>
+  checkoutUrl,      <span class="cm">// string | null  — URL de checkout activa</span>
+  error,            <span class="cm">// string | null  — último error</span>
+  send,             <span class="cm">// (text: string) => Promise&lt;void&gt;</span>
+} = <span class="fn">useChat</span>({ apiUrl, token, sessionId });</code></pre>
+
+        <h3>Tipo <code>ChatMessage</code></h3>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="kw">interface</span> <span class="type">ChatMessage</span> {
+  id:               <span class="type">string</span>;
+  role:             <span class="str">"user"</span> | <span class="str">"assistant"</span>;
+  content:          <span class="type">string</span>;
+  timestamp:        <span class="type">number</span>;            <span class="cm">// Date.now()</span>
+  recommendations?: <span class="type">RecommendationItem</span>[];
+  isStreaming?:     <span class="type">boolean</span>;
+}</code></pre>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="session">
+        <h2>Gestión de sesión</h2>
+        <p>
+          El widget genera un <code>session_id</code> único por pestaña del browser y lo almacena en <code>sessionStorage</code>.
+          Se regenera automáticamente en cada nueva pestaña.
+        </p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm">// Widget.tsx</span>
+<span class="kw">function</span> <span class="fn">getOrCreateSessionId</span>(): <span class="type">string</span> {
+  <span class="kw">const</span> key = <span class="str">"nia_session_id"</span>;
+  <span class="kw">let</span> id = sessionStorage.<span class="fn">getItem</span>(key);
+  <span class="kw">if</span> (!id) {
+    id = <span class="str">`s_<span class="fn">${Math.random().toString(36).slice(2)}</span>_<span class="fn">${Date.now()}</span>`</span>;
+    sessionStorage.<span class="fn">setItem</span>(key, id);
+  }
+  <span class="kw">return</span> id;
+}</code></pre>
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
+          <div>El <code>session_id</code> se pasa al hook <code>useChat</code> pero el widget actual no lo incluye en el body del POST <code>/v1/chat</code>. En producción, el backend lo deriva del JWT del <code>widget_token</code>.</div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="shadow-dom">
+        <h2>Shadow DOM &amp; aislamiento</h2>
+        <p>El widget crea un Shadow DOM en modo <code>open</code> para aislar completamente sus estilos:</p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm">// embed.tsx</span>
+<span class="kw">const</span> host = document.<span class="fn">createElement</span>(<span class="str">"div"</span>);
+host.id = <span class="str">"nia-widget-host"</span>;
+host.style.cssText = <span class="str">"position:fixed;z-index:2147483647;pointer-events:none;inset:0;"</span>;
+document.body.<span class="fn">appendChild</span>(host);
+
+<span class="kw">const</span> shadow = host.<span class="fn">attachShadow</span>({ mode: <span class="str">"open"</span> });  <span class="cm">// ← Shadow DOM</span>
+
+<span class="cm">// Los estilos del sitio host NO afectan al widget</span>
+<span class="cm">// Los estilos del widget NO afectan al sitio host</span></code></pre>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Elemento</th><th>Dónde vive</th><th>Descripción</th></tr></thead>
+            <tbody>
+              <tr><td><code>#nia-widget-host</code></td><td>DOM principal</td><td>Div contenedor, <code>position:fixed</code>, cubre toda la pantalla con <code>pointer-events:none</code></td></tr>
+              <tr><td>Shadow Root</td><td>Dentro de <code>#nia-widget-host</code></td><td>Raíz del Shadow DOM, contiene estilos + componentes</td></tr>
+              <tr><td><code>#nia-root</code></td><td>Shadow DOM</td><td>Mount point de Preact</td></tr>
+              <tr><td><code>.nia-launcher</code></td><td>Shadow DOM</td><td>Botón FAB circular, <code>pointer-events:all</code></td></tr>
+              <tr><td><code>.nia-panel</code></td><td>Shadow DOM</td><td>Ventana de chat, sólo visible cuando <code>open=true</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="dev-setup">
+        <h2>Setup local</h2>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm"># Desde la raíz del monorepo</span>
+cd packages/widget
+npm install
+
+<span class="cm"># Dev server (hot-reload en puerto 3000)</span>
+npm run dev
+
+<span class="cm"># Type-check sin build</span>
+npm run typecheck</code></pre>
+
+        <div class="callout tip">
+          <span class="callout-icon">💡</span>
+          <div>En dev con <code>npm run dev</code>, Vite sirve el widget con HMR. Para probar el IIFE compilado (el que va a producción), usa siempre <code>npm run build</code>.</div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="build">
+        <h2>Build</h2>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code>npm run build
+<span class="cm"># → dist/nia-widget.iife.js  (~27 KB · gzip: ~10 KB)</span></code></pre>
+
+        <p>La configuración de Vite está en <code>vite.config.ts</code>:</p>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm">// vite.config.ts</span>
+build: {
+  lib: {
+    entry: <span class="str">"src/embed.tsx"</span>,
+    name:  <span class="str">"NiaWidget"</span>,
+    formats: [<span class="str">"iife"</span>],          <span class="cm">// bundle autoejectable</span>
+    fileName: <span class="str">"nia-widget"</span>,
+  },
+  rollupOptions: {
+    output: { inlineDynamicImports: <span class="kw">true</span> },
+  },
+}</code></pre>
+
+        <div class="callout warn">
+          <span class="callout-icon">⚠️</span>
+          <div>El formato <code>iife</code> de Vite coloca el código del módulo entry (<code>embed.tsx</code>) al final del bundle. Por eso <code>document.currentScript</code> ya es <code>null</code> cuando se ejecuta. Usa siempre <code>window.NIA_CONFIG</code> como mecanismo de configuración preferido.</div>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="testing">
+        <h2>Testing</h2>
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm"># Unit tests (Vitest + @testing-library/preact)</span>
+npm test
+
+<span class="cm"># Watch mode</span>
+npx vitest</code></pre>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Test</th><th>Qué verifica</th></tr></thead>
+            <tbody>
+              <tr><td><code>TypingIndicator</code></td><td>Renderiza 3 puntos animados con aria-label correcto</td></tr>
+              <tr><td><code>MessageBubble</code></td><td>Clases <code>.nia-bubble-user</code> / <code>.nia-bubble-assistant</code></td></tr>
+              <tr><td><code>InputBar</code></td><td>Enter envía, Shift+Enter no envía, botón deshabilitado si vacío</td></tr>
+              <tr><td><code>Widget — renders launcher</code></td><td>Botón "Abrir chat" visible al montar</td></tr>
+              <tr><td><code>Widget — opens panel</code></td><td>Click launcher → aparece <code>role="dialog"</code></td></tr>
+              <tr><td><code>Widget — closes panel</code></td><td>Click cerrar → desaparece el dialog</td></tr>
+              <tr><td><code>Widget — sends message</code></td><td>Mensaje de usuario + respuesta del asistente en pantalla</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ──────────────────────────────────────────────────────────────── -->
+      <section id="demo-server">
+        <h2>Demo server</h2>
+        <p>
+          El proyecto incluye un servidor de demo en la raíz: <code>demo_server.py</code>.
+          Sirve un sitio de turismo falso ("Riviera Maya Tours") con el widget integrado y
+          hace de proxy hacia el <code>model-adapter</code>.
+        </p>
+
+        <pre><button class="copy-btn" onclick="copyCode(this)">Copiar</button><code><span class="cm"># 1. Iniciar model-adapter (LM Studio en puerto 1234)</span>
+MODEL_PROVIDER=lmstudio \
+PYTHONPATH=services/model-adapter:. \
+uvicorn app.main:app --app-dir services/model-adapter --port 8005
+
+<span class="cm"># 2. Iniciar demo server</span>
+python demo_server.py
+
+<span class="cm"># 3. Abrir en browser</span>
+open http://localhost:8080</code></pre>
+
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Endpoint</th><th>Descripción</th></tr></thead>
+            <tbody>
+              <tr><td><span class="method GET">GET</span> <code>/</code></td><td>Sirve <code>demo.html</code> (sitio de turismo)</td></tr>
+              <tr><td><span class="method GET">GET</span> <code>/packages/widget/dist/nia-widget.iife.js</code></td><td>Bundle del widget compilado</td></tr>
+              <tr><td><span class="method GET">GET</span> <code>/tenants/{id}/widget-config</code></td><td>Config de branding hardcodeada para la demo</td></tr>
+              <tr><td><span class="method POST">POST</span> <code>/v1/chat</code></td><td>Proxy a <code>model-adapter:8005</code>, mantiene historial en memoria</td></tr>
+              <tr><td><span class="method POST">POST</span> <code>/v1/sessions/{id}/lead</code></td><td>No-op (imprime en consola)</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="callout info">
+          <span class="callout-icon">ℹ️</span>
+          <div>El demo server usa <code>window.NIA_CONFIG</code> (no <code>data-*</code> attrs) para configurar el widget, lo que garantiza que funcione correctamente con el bundle IIFE de Vite.</div>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </main>
+</div>
+
+<script>
+  // Copy button
+  function copyCode(btn) {
+    const pre = btn.parentElement;
+    const code = pre.querySelector('code');
+    // Strip HTML tags to get plain text
+    const text = code.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓ Copiado';
+      setTimeout(() => btn.textContent = 'Copiar', 2000);
+    });
+  }
+
+  // Active nav link on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-group a');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(a => a.classList.remove('active'));
+        const active = document.querySelector(`.nav-group a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

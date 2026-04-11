@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+
+# Node
+node_modules/
+dist/
+.turbo/
+*.local
+
+# Env files (NEVER commit)
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Docker
+.docker/
+
+# IDEs
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data local (no versionar datos de dev)
+data/local/
+*.db
+*.sqlite
+
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+
+# Logs
+*.log
+logs/

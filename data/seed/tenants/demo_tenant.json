@@ -1,0 +1,13 @@
+{
+  "id": "demo-turismo",
+  "name": "Demo Turismo SA",
+  "plan": "pro",
+  "api_key": "nia_demo_key_insecure_only_for_local_dev",
+  "branding": {
+    "primary_color": "#0f766e",
+    "logo_url": null,
+    "welcome_message": "¡Hola! Soy NIA, tu asistente de viajes. ¿A dónde quieres escaparte?",
+    "placeholder": "Ej: Quiero un tour de 3 días en la costa…"
+  },
+  "qdrant_collection": "demo_turismo_docs"
+}

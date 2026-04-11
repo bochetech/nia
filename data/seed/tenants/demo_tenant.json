@@ -19,5 +19,69 @@
     "primary_provider": "lmstudio",
     "primary_model": "llama-3.2-3b-instruct",
     "temperature": 0.3
+  },
+  "fsm_config": {
+    "nps_enabled": true,
+    "max_conversation_turns": 50,
+    "session_timeout_minutes": 480,
+    "transitions": [
+      {
+        "intent": "human_request",
+        "from_states": [],
+        "to_state": "handoff_active",
+        "action": "handoff",
+        "enabled": true
+      },
+      {
+        "intent": "nps_response",
+        "from_states": ["post_chat"],
+        "to_state": "closed",
+        "action": "nps",
+        "enabled": true
+      },
+      {
+        "intent": "complaint",
+        "from_states": [],
+        "to_state": "__same__",
+        "action": "complaint",
+        "enabled": true
+      },
+      {
+        "intent": "out_of_scope",
+        "from_states": [],
+        "to_state": "__same__",
+        "action": "static_reply",
+        "static_message": "Lo siento, eso está fuera de mis capacidades. Puedo ayudarte con información sobre nuestras actividades turísticas y reservas.",
+        "enabled": true
+      },
+      {
+        "intent": "faq_query",
+        "from_states": [],
+        "to_state": "faq_answer",
+        "action": "faq",
+        "enabled": true
+      },
+      {
+        "intent": "booking_intent",
+        "from_states": [],
+        "to_state": "recommending",
+        "action": "recommend",
+        "enabled": true
+      },
+      {
+        "intent": "product_inquiry",
+        "from_states": [],
+        "to_state": "recommending",
+        "action": "recommend",
+        "enabled": true
+      },
+      {
+        "intent": "unclear",
+        "from_states": [],
+        "to_state": "discovery",
+        "action": "discovery",
+        "enabled": true
+      }
+    ]
   }
 }

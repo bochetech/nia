@@ -9,12 +9,14 @@ from typing import Any
 
 import httpx
 
+from app.flow_defaults import DEFAULT_TRANSITIONS
 from app.intent import detect_intent
 from app.session import get_or_create_session, save_session, transition_state
 from app.settings import OrchestratorSettings
 from shared.models.domain import (
     ConversationFSMState,
     ConversationTurn,
+    FlowTransition,
     IntentEntities,
     IntentType,
     RecommendationResult,
@@ -156,13 +158,74 @@ async def _route_by_intent(
     tenant_config: dict,
     settings: OrchestratorSettings,
 ) -> FSMResult:
-    tenant_id = session.tenant_id
-    rag_config = tenant_config.get("rag_config", {})
+    """
+    Despacha el mensaje al handler correcto según la tabla de transiciones.
+
+    Orden de resolución:
+      1. Si el tenant tiene transiciones en fsm_config.transitions → las usa.
+      2. Si no → usa DEFAULT_TRANSITIONS (flujo original hardcodeado).
+
+    Para cada transición se evalúa:
+      - intent coincide
+      - from_states vacío  O  estado actual está en from_states
+      - enabled == True
+    Se usa la primera transición que coincide.
+    """
+    # ── Cargar tabla de transiciones ──────────────────────────────────────────
+    # Caso especial: si el estado actual es POST_CHAT, cualquier mensaje se
+    # interpreta como respuesta NPS independientemente del intent detectado.
+    if session.fsm_state == ConversationFSMState.POST_CHAT:
+        return await _handle_nps(message=message, session=session)
+
+    raw_transitions: list[dict] = (
+        tenant_config.get("fsm_config", {}).get("transitions") or []
+    )
+    if raw_transitions:
+        transitions = [FlowTransition(**t) for t in raw_transitions]
+        logger.debug(
+            "fsm_using_custom_transitions",
+            tenant_id=session.tenant_id,
+            count=len(transitions),
+        )
+    else:
+        transitions = DEFAULT_TRANSITIONS
+
+    current_state = session.fsm_state.value if isinstance(session.fsm_state, ConversationFSMState) else session.fsm_state
+
+    # ── Buscar la primera transición que aplica ───────────────────────────────
+    matched: FlowTransition | None = None
+    for t in transitions:
+        if not t.enabled:
+            continue
+        if t.intent != intent.value:
+            continue
+        if t.from_states and current_state not in t.from_states:
+            continue
+        matched = t
+        break
+
+    if matched is None:
+        # Ninguna transición coincide → respuesta genérica DISCOVERY
+        logger.warning(
+            "fsm_no_transition_matched",
+            tenant_id=session.tenant_id,
+            intent=intent.value,
+            state=current_state,
+        )
+        return FSMResult(
+            response_text=(
+                "Entiendo. ¿Puedes darme más detalles? Por ejemplo, ¿qué tipo de actividad buscas, "
+                "para cuántas personas y en qué fecha?"
+            ),
+            new_state=ConversationFSMState.DISCOVERY,
+            session=session,
+        )
+
+    # ── Ejecutar acción ───────────────────────────────────────────────────────
     limits_config = tenant_config.get("limits_config", {})
     tenant_name = tenant_config.get("ui_config", {}).get("chat_title", "el centro de turismo")
 
-    # Solicitud explícita de hablar con humano
-    if intent == IntentType.HUMAN_REQUEST:
+    if matched.action == "handoff":
         if limits_config.get("handoff_enabled", True):
             return await _trigger_handoff(
                 session,
@@ -176,21 +239,13 @@ async def _route_by_intent(
             session=session,
         )
 
-    # Respuesta NPS (en estado POST_CHAT)
-    if intent == IntentType.NPS_RESPONSE or session.fsm_state == ConversationFSMState.POST_CHAT:
+    if matched.action == "nps":
         return await _handle_nps(message=message, session=session)
 
-    if intent == IntentType.COMPLAINT:
+    if matched.action == "complaint":
         return await _handle_complaint(session, settings, message)
 
-    if intent == IntentType.OUT_OF_SCOPE:
-        return FSMResult(
-            response_text="Lo siento, eso está fuera de mis capacidades. Puedo ayudarte con información sobre nuestras actividades turísticas y reservas.",
-            new_state=session.fsm_state,
-            session=session,
-        )
-
-    if intent == IntentType.FAQ_QUERY:
+    if matched.action == "faq":
         return await _handle_faq(
             query=message,
             session=session,
@@ -199,7 +254,7 @@ async def _route_by_intent(
             tenant_name=tenant_name,
         )
 
-    if intent in (IntentType.BOOKING_INTENT, IntentType.PRODUCT_INQUIRY):
+    if matched.action == "recommend":
         return await _handle_recommendation_flow(
             message=message,
             entities=entities,
@@ -208,13 +263,38 @@ async def _route_by_intent(
             settings=settings,
         )
 
-    # UNCLEAR — respuesta genérica + continúa en estado actual
+    if matched.action == "static_reply":
+        # Resolver estado final (__same__ = mantener estado actual)
+        if matched.to_state == "__same__":
+            final_state = session.fsm_state
+        else:
+            final_state = ConversationFSMState(matched.to_state)
+        return FSMResult(
+            response_text=matched.static_message or "No tengo información sobre eso.",
+            new_state=final_state,
+            session=session,
+        )
+
+    if matched.action == "discovery":
+        return FSMResult(
+            response_text=(
+                "Entiendo. ¿Puedes darme más detalles? Por ejemplo, ¿qué tipo de actividad buscas, "
+                "para cuántas personas y en qué fecha?"
+            ),
+            new_state=ConversationFSMState.DISCOVERY,
+            session=session,
+        )
+
+    # Acción desconocida → fallback seguro
+    logger.error(
+        "fsm_unknown_action",
+        tenant_id=session.tenant_id,
+        action=matched.action,
+        intent=intent.value,
+    )
     return FSMResult(
-        response_text=(
-            "Entiendo. ¿Puedes darme más detalles? Por ejemplo, ¿qué tipo de actividad buscas, "
-            "para cuántas personas y en qué fecha?"
-        ),
-        new_state=ConversationFSMState.DISCOVERY,
+        response_text="Ha ocurrido un error al procesar tu solicitud. Por favor, intenta de nuevo.",
+        new_state=session.fsm_state,
         session=session,
     )
 

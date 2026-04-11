@@ -367,6 +367,36 @@ class AIConfig(BaseModel):
     cost_optimization: bool = True
 
 
+class FlowTransition(BaseModel):
+    """
+    Define una transición de estado en el FSM.
+
+    Cuando el orquestador detecta `intent` en `from_states` (o en cualquier estado
+    si from_states está vacío), ejecuta `action` y transiciona a `to_state`.
+
+    Acciones disponibles:
+      - "faq"            → consulta al RAG service
+      - "recommend"      → consulta al Recommender service
+      - "handoff"        → escala a asesor humano
+      - "nps"            → captura puntuación NPS
+      - "complaint"      → registra queja y evalúa escalación
+      - "static_reply"   → responde con `static_message` sin llamar a ningún servicio
+      - "discovery"      → pide más detalles al usuario
+    """
+    intent: str = Field(..., description="Valor del IntentType (ej: 'faq_query')")
+    from_states: list[str] = Field(
+        default_factory=list,
+        description="Estados desde los que aplica esta transición. Vacío = cualquier estado.",
+    )
+    to_state: str = Field(..., description="Estado FSM resultante tras ejecutar la acción")
+    action: str = Field(..., description="Acción a ejecutar (faq, recommend, handoff, nps, complaint, static_reply, discovery)")
+    static_message: str | None = Field(
+        default=None,
+        description="Mensaje fijo a devolver cuando action='static_reply'",
+    )
+    enabled: bool = True
+
+
 class FSMConfig(BaseModel):
     """Configuración avanzada de la máquina de estados."""
     states_enabled: list[str] = Field(default_factory=lambda: [
@@ -380,6 +410,13 @@ class FSMConfig(BaseModel):
         "complaint", "unresolved", "explicit_request"
     ])
     auto_close_after_minutes: int = 60
+    transitions: list[FlowTransition] = Field(
+        default_factory=list,
+        description=(
+            "Tabla de transiciones personalizada. "
+            "Si está vacía, el orquestador usa el flujo default hardcodeado."
+        ),
+    )
 
 
 class PaymentConfig(BaseModel):

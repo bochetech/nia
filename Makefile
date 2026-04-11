@@ -23,7 +23,7 @@ PIP    := pip3
 NPM := npm
 
 .PHONY: help dev down logs seed migrate test test-py test-widget \
-        lint lint-py lint-widget build clean shell-db shell-redis
+        demo lint lint-py lint-widget build clean shell-db shell-redis
 
 # ── help ─────────────────────────────────────────────────────
 help:
@@ -33,6 +33,7 @@ help:
 	@echo "  $(CYAN)dev$(RESET)          Start all services with docker compose (dev mode)"
 	@echo "  $(CYAN)down$(RESET)         Stop all services"
 	@echo "  $(CYAN)logs$(RESET)         Tail logs from all services"
+	@echo "  $(CYAN)demo$(RESET)         Start widget demo page at http://localhost:8088"
 	@echo "  $(CYAN)migrate$(RESET)      Run Alembic DB migrations (upgrade head)"
 	@echo "  $(CYAN)seed$(RESET)         Seed demo tenant, products & knowledge base"
 	@echo "  $(CYAN)test$(RESET)         Run all tests (Python + Widget)"
@@ -61,6 +62,13 @@ dev:
 	@echo "  Qdrant UI         : http://localhost:6333/dashboard"
 	@echo ""
 	@echo "  Run 'make seed' to load demo data."
+	@echo "  Run 'make demo' to start the widget demo page (http://localhost:8088)"
+
+# ── demo ─────────────────────────────────────────────────────
+demo:
+	@echo -e "$(GREEN)$(BOLD)▶ Starting NIA widget demo…$(RESET)"
+	@echo "  Open: http://localhost:8088"
+	$(PYTHON) demo_server.py
 
 # ── down ─────────────────────────────────────────────────────
 down:

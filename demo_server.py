@@ -11,7 +11,7 @@ Expone:
 Uso:
   python demo_server.py
 
-Luego abre: http://localhost:8080
+Luego abre: http://localhost:8088
 """
 
 import asyncio
@@ -29,7 +29,7 @@ import uvicorn
 # ── Config ────────────────────────────────────────────────────────────────────
 
 MODEL_ADAPTER_URL = os.getenv("MODEL_ADAPTER_URL", "http://127.0.0.1:8005")
-DEMO_PORT         = int(os.getenv("DEMO_PORT", "8080"))
+DEMO_PORT         = int(os.getenv("DEMO_PORT", "8088"))
 ROOT              = Path(__file__).parent
 
 SYSTEM_PROMPT = """Eres NIA, asistente de enoturismo del Centro del Vino Concha y Toro.

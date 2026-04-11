@@ -1,0 +1,101 @@
+{
+  "name": "NIA Production",
+  "values": [
+    {
+      "key": "base_url",
+      "value": "https://api.nia-tourism.com",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "orchestrator_port",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "rag_port",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "tenant_manager_port",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "recommender_port",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "model_adapter_port",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "checkout_port",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "handoff_port",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "transcript_port",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "fallback_port",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "demo_port",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "tenant_id",
+      "value": "your-production-tenant-id",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "session_id",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "auth_token",
+      "value": "Bearer your-production-jwt-token",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "admin_token",
+      "value": "Bearer your-production-admin-token",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "api_key",
+      "value": "your-production-api-key",
+      "enabled": true,
+      "type": "default"
+    }
+  ]
+}

@@ -1,0 +1,140 @@
+name: Update Postman Collection
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'services/*/app/**'
+      - 'services/*/main.py'
+  pull_request:
+    branches: [main]
+  schedule:
+    # Ejecutar diariamente a las 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to update'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+        - development
+        - staging
+        - production
+
+jobs:
+  update-postman-collection:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        
+    - name: Install dependencies
+      run: |
+        npm install -g newman openapi-to-postman
+        pip install -r requirements.txt
+        
+    - name: Start services for API discovery
+      run: |
+        echo "🚀 Starting services in background..."
+        docker-compose up -d
+        
+        # Esperar a que los servicios estén listos
+        echo "⏳ Waiting for services to be ready..."
+        sleep 30
+        
+        # Verificar que los servicios respondan
+        for port in 8001 8002 8003 8004 8005; do
+          timeout 60 bash -c "until curl -f http://localhost:$port/health > /dev/null 2>&1; do sleep 2; done" || echo "Service on port $port not ready"
+        done
+        
+    - name: Generate Postman collection from OpenAPI
+      run: |
+        chmod +x scripts/generate-postman-collection.sh
+        BASE_URL=http://localhost ./scripts/generate-postman-collection.sh
+        
+    - name: Run collection tests
+      run: |
+        echo "🧪 Testing generated collection..."
+        newman run .postman/NIA-Complete-Collection.json \
+          -e NIA-Environment-Development.json \
+          --reporters cli,json \
+          --reporter-json-export .postman/test-results.json \
+          --bail \
+          --timeout 10000
+          
+    - name: Upload collection as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: postman-collection-${{ github.sha }}
+        path: |
+          .postman/NIA-Complete-Collection.json
+          .postman/test-results.json
+          .postman/test-results.html
+          
+    - name: Update Postman workspace via API
+      if: success() && github.ref == 'refs/heads/main'
+      env:
+        POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+        POSTMAN_WORKSPACE_ID: ${{ secrets.POSTMAN_WORKSPACE_ID }}
+      run: |
+        echo "📤 Updating Postman workspace..."
+        
+        # Crear/actualizar colección en Postman
+        curl -X PUT "https://api.getpostman.com/collections/${{ secrets.POSTMAN_COLLECTION_ID }}" \
+          -H "X-Api-Key: $POSTMAN_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d @.postman/NIA-Complete-Collection.json
+          
+    - name: Create commit with updated collection
+      if: success()
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Solo commitear si hay cambios
+        if ! git diff --quiet .postman/ || ! git diff --cached --quiet .postman/; then
+          git add .postman/
+          git commit -m "🤖 Auto-update Postman collection from OpenAPI specs
+          
+          - Generated from commit ${{ github.sha }}
+          - Updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          - Services: $(ls .postman/collections/ | wc -l) collections merged"
+          
+          git push
+        else
+          echo "📋 No changes in Postman collection"
+        fi
+        
+    - name: Cleanup
+      if: always()
+      run: |
+        docker-compose down
+        
+    - name: Notify team on Slack
+      if: always() && github.ref == 'refs/heads/main'
+      uses: rtCamp/action-slack-notify@v2
+      env:
+        SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        SLACK_MESSAGE: |
+          🔄 Postman Collection Updated
+          
+          📋 **Collection**: NIA Complete Collection
+          🎯 **Status**: ${{ job.status }}
+          🔗 **Commit**: ${{ github.sha }}
+          📅 **Updated**: $(date -u)
+          
+          ${{ job.status == 'success' && '✅ Collection successfully updated and tested!' || '❌ Failed to update collection - check logs' }}

@@ -141,3 +141,56 @@ shell-db:
 
 shell-redis:
 	$(DC) $(DCF) exec redis redis-cli
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 📮 Postman Collection Management
+# ══════════════════════════════════════════════════════════════════════════════
+
+.PHONY: postman-generate postman-test postman-update postman-clean postman-install postman-watch
+
+postman-install: ## 📦 Instalar herramientas de Postman
+	@echo "📦 Instalando herramientas de Postman..."
+	npm install -g newman openapi-to-postman
+
+postman-generate: ## 🔄 Generar colección de Postman desde OpenAPI
+	@echo "🔄 Generando colección de Postman..."
+	@chmod +x scripts/generate-postman-collection.sh
+	@./scripts/generate-postman-collection.sh
+	@echo "✅ Colección generada en .postman/NIA-Complete-Collection.json"
+
+postman-test: postman-generate ## 🧪 Probar colección de Postman
+	@echo "🧪 Probando colección de Postman..."
+	@if [ ! -f .postman/NIA-Complete-Collection.json ]; then \
+		echo "❌ Colección no encontrada. Ejecuta 'make postman-generate' primero"; \
+		exit 1; \
+	fi
+	newman run .postman/NIA-Complete-Collection.json \
+		-e NIA-Environment-Development.json \
+		--reporters cli,html \
+		--reporter-html-export .postman/test-results.html \
+		--timeout 10000 \
+		--bail
+	@echo "📊 Reporte HTML generado en .postman/test-results.html"
+
+postman-update: up postman-generate postman-test ## 🚀 Actualización completa de Postman
+	@echo "🚀 Actualización completa de Postman realizada"
+	@echo "📋 Para importar en Postman:"
+	@echo "   1. Abre Postman"
+	@echo "   2. Import → .postman/NIA-Complete-Collection.json"
+	@echo "   3. Import → NIA-Environment-Development.json"
+
+postman-watch: ## 👀 Vigilar cambios y actualizar Postman automáticamente
+	@echo "👀 Vigilando cambios en los servicios..."
+	@echo "💡 Presiona Ctrl+C para detener"
+	@while true; do \
+		find services/ -name "*.py" -newer .postman/NIA-Complete-Collection.json 2>/dev/null | head -1 | grep -q . && { \
+			echo "🔄 Cambios detectados, regenerando colección..."; \
+			make postman-generate; \
+		}; \
+		sleep 5; \
+	done
+
+postman-clean: ## 🧹 Limpiar archivos de Postman generados
+	@echo "🧹 Limpiando archivos de Postman..."
+	rm -rf .postman/collections .postman/openapi .postman/test-results.*
+	@echo "✅ Archivos de Postman limpiados"

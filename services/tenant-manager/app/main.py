@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from app.auth import router as auth_router
 from app.routers import router
 from app.settings import get_settings
 from shared.db.connection import close_db, init_db
@@ -51,6 +52,7 @@ async def add_request_id(request: Request, call_next):
     return response
 
 
+app.include_router(auth_router)
 app.include_router(router, prefix="/api")
 
 

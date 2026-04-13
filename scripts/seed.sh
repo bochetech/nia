@@ -18,6 +18,7 @@ VENV="${VENV:-$(dirname "$0")/../.venv/bin/python}"
 
 TENANT_FILE="data/seed/tenants/demo_tenant.json"
 KNOWLEDGE_FILE="data/seed/knowledge/demo_knowledge.json"
+PRODUCTS_FILE="data/seed/products/demo_products.json"
 
 BOLD="\033[1m"
 GREEN="\033[0;32m"
@@ -112,6 +113,63 @@ RESP=$(curl -sf -X POST \
 CHUNKS_CREATED=$(echo "$RESP" | jq -r '.data.chunks_created // .chunks_created // 0')
 success "Knowledge base ingested: ${DOC_COUNT} activities -> ${CHUNKS_CREATED} chunks"
 echo "  Collection: ${COLLECTION}"
+
+# ── 4. Seed products into PostgreSQL ─────────────────────────────
+info "Seeding products into PostgreSQL..."
+PRODUCT_COUNT=$(jq 'length' "$PRODUCTS_FILE")
+TENANT_SCHEMA="tenant_${TENANT_ID}"
+
+python3 - << PYEOF
+import json, subprocess, sys
+
+with open("${PRODUCTS_FILE}") as f:
+    products = json.load(f)
+
+sql_parts = []
+for p in products:
+    langs  = json.dumps(p.get("languages", []), ensure_ascii=False).replace("'", "''")
+    images = json.dumps(p.get("images", []),    ensure_ascii=False).replace("'", "''")
+    tags   = json.dumps(p.get("tags", []),      ensure_ascii=False).replace("'", "''")
+    attrs  = json.dumps(p.get("attributes", {}),ensure_ascii=False).replace("'", "''")
+    name        = p["name"].replace("'", "''")
+    slug        = p["slug"].replace("'", "''")
+    description = p.get("description","").replace("'","''")
+    short_desc  = p.get("short_description","").replace("'","''")
+    sql_parts.append(f"""
+INSERT INTO ${TENANT_SCHEMA}.products
+  (id, name, slug, category, description, short_description,
+   base_price, currency, duration_minutes, max_pax, min_pax,
+   languages, images, tags, attributes, is_active)
+VALUES (
+  '{p["id"]}', '{name}', '{slug}', '{p.get("category","")}',
+  '{description}', '{short_desc}',
+  {p["base_price"]}, '{p["currency"]}',
+  {p.get("duration_minutes") or "NULL"},
+  {p.get("max_pax") or "NULL"}, {p.get("min_pax", 1)},
+  '{langs}'::jsonb, '{images}'::jsonb, '{tags}'::jsonb, '{attrs}'::jsonb,
+  {str(p.get("is_active", True)).lower()}
+)
+ON CONFLICT (id) DO UPDATE SET
+  name=EXCLUDED.name, category=EXCLUDED.category,
+  description=EXCLUDED.description, base_price=EXCLUDED.base_price,
+  duration_minutes=EXCLUDED.duration_minutes, max_pax=EXCLUDED.max_pax,
+  languages=EXCLUDED.languages, images=EXCLUDED.images,
+  tags=EXCLUDED.tags, attributes=EXCLUDED.attributes,
+  is_active=EXCLUDED.is_active, updated_at=now();
+""".strip())
+
+full_sql = "\n".join(sql_parts)
+result = subprocess.run(
+    ["docker", "exec", "-i", "nia_postgres", "psql", "-U", "nia_user", "-d", "nia_dev"],
+    input=full_sql.encode(), capture_output=True
+)
+if result.returncode != 0:
+    print("ERROR seeding products:", result.stderr.decode(), file=sys.stderr)
+    sys.exit(1)
+print(f"  {len(products)} products inserted/updated")
+PYEOF
+
+success "Products seeded: ${PRODUCT_COUNT} products into ${TENANT_SCHEMA}"
 
 # ── Done ──────────────────────────────────────────────────────────
 echo ""

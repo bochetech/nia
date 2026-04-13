@@ -122,5 +122,6 @@ export function useChat({ apiUrl, token, sessionId, tenantId, transcriptUrl, cha
     send,
     submitLeadForm,
     sendTranscript,
+    addMessage,
   };
 }

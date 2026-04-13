@@ -34,8 +34,8 @@ const DEFAULT_BRANDING: TenantBranding = {
   primaryColor: "#2563eb",
   logoUrl: null,
   chatTitle: "Asistente NIA",
-  welcomeMessage: "¡Hola! Soy NIA, tu asistente de viajes. ¿En qué te puedo ayudar?",
-  showWelcomeMessage: true,
+  welcomeMessage: "",
+  showWelcomeMessage: false,   // nunca mostrar hasta que llegue la config real
   inputPlaceholder: "Escribe un mensaje…",
   token: "",
   leadConfig: null,
@@ -62,31 +62,8 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
   const launcherRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Fetch branding + widget token from tenant-manager on mount
-  useEffect(() => {
-    fetch(`${tenantManagerUrl}/tenants/${tenantId}/widget-config`)
-      .then((r) => r.json())
-      .then((data) => {
-        setBranding({
-          primaryColor: data.primary_color ?? DEFAULT_BRANDING.primaryColor,
-          logoUrl: data.logo_url ?? null,
-          chatTitle: data.chat_title ?? DEFAULT_BRANDING.chatTitle,
-          welcomeMessage: data.welcome_message ?? DEFAULT_BRANDING.welcomeMessage,
-          showWelcomeMessage: data.show_welcome_message ?? DEFAULT_BRANDING.showWelcomeMessage,
-          inputPlaceholder: data.input_placeholder ?? DEFAULT_BRANDING.inputPlaceholder,
-          token: data.widget_token ?? "",
-          leadConfig: data.lead_config?.enabled ? data.lead_config : null,
-          transcriptUrl: data.transcript_url ?? "",
-          suggestedQuestions: Array.isArray(data.suggested_questions) ? data.suggested_questions : [],
-        });
-      })
-      .catch(() => {
-        // Fall back to defaults — widget still functional with anonymous token
-      });
-  }, [tenantId, tenantManagerUrl]);
-
-  // Si hay lead form activo, el welcome se inyecta DESPUÉS de que el usuario
-  // lo envía (en submitLeadForm). Si no hay lead form, lo ponemos directamente.
+  // Si hay lead form activo, el welcome se inyecta DESPUÉS del submit.
+  // Si no hay lead form, se inyecta al recibir la config del tenant.
   const hasLeadForm = branding.leadConfig !== null && branding.leadConfig?.enabled;
 
   const {
@@ -98,6 +75,7 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
     showLeadForm: hookShowLead,
     leadEmail,
     error: chatError,
+    addMessage,
   } = useChat({
     apiUrl,
     token: branding.token,
@@ -105,17 +83,48 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
     tenantId,
     transcriptUrl: branding.transcriptUrl,
     chatTitle: branding.chatTitle,
-    // Mostrar welcome inmediatamente solo si NO hay lead form activo
-    initialMessage:
-      branding.showWelcomeMessage && !hasLeadForm
-        ? branding.welcomeMessage
-        : undefined,
     // Cuando hay lead form, pasamos el welcome para que se inyecte post-submit
     postLeadMessage:
       branding.showWelcomeMessage && hasLeadForm
         ? branding.welcomeMessage
         : undefined,
   });
+
+  // Fetch branding + widget token from tenant-manager on mount.
+  // Inyectamos el welcome UNA SOLA VEZ aquí (no en useState) para que
+  // use el texto real del tenant, no el DEFAULT_BRANDING.
+  const welcomeInjectedRef = useRef(false);
+  useEffect(() => {
+    fetch(`${tenantManagerUrl}/tenants/${tenantId}/widget-config`)
+      .then((r) => r.json())
+      .then((data) => {
+        const leadEnabled = data.lead_config?.enabled ?? false;
+        const showWelcome = data.show_welcome_message ?? false;
+        const welcomeMsg  = data.welcome_message ?? "";
+
+        setBranding({
+          primaryColor:       data.primary_color       ?? DEFAULT_BRANDING.primaryColor,
+          logoUrl:            data.logo_url            ?? null,
+          chatTitle:          data.chat_title          ?? DEFAULT_BRANDING.chatTitle,
+          welcomeMessage:     welcomeMsg,
+          showWelcomeMessage: showWelcome,
+          inputPlaceholder:   data.input_placeholder   ?? DEFAULT_BRANDING.inputPlaceholder,
+          token:              data.widget_token        ?? "",
+          leadConfig:         leadEnabled ? data.lead_config : null,
+          transcriptUrl:      data.transcript_url      ?? "",
+          suggestedQuestions: Array.isArray(data.suggested_questions) ? data.suggested_questions : [],
+        });
+
+        // Inyectar welcome inmediatamente solo si NO hay lead form activo
+        if (showWelcome && welcomeMsg && !leadEnabled && !welcomeInjectedRef.current) {
+          welcomeInjectedRef.current = true;
+          addMessage("assistant", welcomeMsg);
+        }
+      })
+      .catch(() => {
+        // Sin config: el widget funciona igual, sin mensaje de bienvenida
+      });
+  }, [tenantId, tenantManagerUrl]);  // addMessage es estable (useCallback)
 
   // El formulario de lead se muestra si la config lo tiene habilitado Y no hay lead
   // capturado todavía (leadEmail vacío significa que aún no se ha enviado)

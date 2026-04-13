@@ -28,8 +28,9 @@ import uvicorn
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-MODEL_ADAPTER_URL = os.getenv("MODEL_ADAPTER_URL", "http://127.0.0.1:8005")
-DEMO_PORT         = int(os.getenv("DEMO_PORT", "8088"))
+MODEL_ADAPTER_URL  = os.getenv("MODEL_ADAPTER_URL",  "http://127.0.0.1:8005")
+TENANT_MANAGER_URL = os.getenv("TENANT_MANAGER_URL", "http://127.0.0.1:8003")
+DEMO_PORT          = int(os.getenv("DEMO_PORT", "8088"))
 ROOT              = Path(__file__).parent
 
 SYSTEM_PROMPT = """Eres NIA, asistente de enoturismo del Centro del Vino Concha y Toro.
@@ -132,30 +133,38 @@ async def serve_widget():
     return FileResponse(ROOT / "packages/widget/dist/nia-widget.iife.js",
                         media_type="application/javascript")
 
-# ── Tenant branding (mock) ────────────────────────────────────────────────────
+# ── Tenant branding — proxy al tenant-manager real ───────────────────────────
+
+# Fallback hardcodeado por si el tenant-manager no está disponible
+_FALLBACK_CONFIG = {
+    "primary_color":        "#5c1a1a",
+    "logo_url":             "https://conchaytoro.com/wp-content/themes/conchaytoro_wp/dist/assets/icons/cyt-logo.svg",
+    "welcome_message":      "¡Hola! Soy NIA 🍷 Tu asistente del Centro del Vino Concha y Toro. ¿En qué puedo ayudarte hoy?",
+    "chat_title":           "NIA — Centro del Vino",
+    "show_welcome_message": True,
+    "input_placeholder":    "Pregunta sobre nuestros tours y experiencias…",
+    "widget_token":         "demo-token",
+    "transcript_url":       "http://localhost:8008",
+    "lead_config":          None,
+}
 
 @app.get("/tenants/{tenant_id}/widget-config")
 async def widget_config(tenant_id: str):
-    # El widget lee g.primary_color directamente (sin wrapper "data")
-    return JSONResponse({
-        "primary_color":        "#5c1a1a",
-        "logo_url":             "https://conchaytoro.com/wp-content/themes/conchaytoro_wp/dist/assets/icons/cyt-logo.svg",
-        "welcome_message":      "¡Hola! Soy NIA 🍷 Tu asistente del Centro del Vino Concha y Toro. ¿En qué puedo ayudarte hoy?",
-        "chat_title":           "NIA — Centro del Vino",
-        "show_welcome_message": True,
-        "input_placeholder":    "Pregunta sobre nuestros tours y experiencias…",
-        "widget_token":         "demo-token",
-        "transcript_url":       "http://localhost:8008",
-        "lead_config": {
-            "enabled": True,
-            "submit_label": "Comenzar chat",
-            "gdpr_consent_text": "Acepto el tratamiento de mis datos según la Política de Privacidad.",
-            "fields": [
-                {"name": "full_name", "type": "text",  "label": "Nombre completo",      "required": True,  "options": None, "validation": None},
-                {"name": "email",     "type": "email", "label": "Correo electrónico",    "required": True,  "options": None, "validation": None},
-            ],
-        },
-    })
+    """
+    Proxea al tenant-manager real para reflejar cambios de BD al instante.
+    Si el tenant-manager no responde, usa config hardcodeada de fallback.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=3) as client:
+            resp = await client.get(
+                f"{TENANT_MANAGER_URL}/api/tenants/{tenant_id}/widget-config"
+            )
+            if resp.status_code == 200:
+                return JSONResponse(resp.json())
+    except Exception:
+        pass  # caemos al fallback
+
+    return JSONResponse(_FALLBACK_CONFIG)
 
 # ── Chat proxy → model-adapter ────────────────────────────────────────────────
 

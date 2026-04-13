@@ -40,6 +40,7 @@ class Tenant(Base):
     ai_config: Mapped[dict] = mapped_column(JSON, default=dict)
     fsm_config: Mapped[dict] = mapped_column(JSON, default=dict)
     payment_config: Mapped[dict] = mapped_column(JSON, default=dict)
+    telegram_config: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now, onupdate=_now)
     config_version: Mapped[int] = mapped_column(Integer, default=1)

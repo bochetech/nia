@@ -142,7 +142,7 @@ class TenantResponse(BaseModel):
     ai_config: dict
     fsm_config: dict
     payment_config: dict
-    telegram_config: dict
+    telegram_config: dict = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
 

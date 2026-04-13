@@ -20,6 +20,7 @@ import hmac
 import json
 import time
 import uuid
+from datetime import UTC, datetime
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request, status
@@ -138,6 +139,99 @@ async def _send_telegram_message(bot_token: str, method: str, payload: dict) -> 
             )
 
 
+async def _ensure_lead_captured(tenant_id: str, session_id: str, chat_id: int) -> None:
+    """
+    En el canal Telegram no hay formulario de lead — el propio chat_id actúa
+    como identificador del usuario.  Garantiza que la sesión en Redis tenga
+    lead_captured=True antes de que el orchestrator la procese, para que el
+    FSM no bloquee en pre_chat.
+
+    - Sesión nueva   → la crea en Redis con lead_captured=True desde el inicio.
+    - Sesión existente con lead_captured=False → la corrige + resetea a IDLE.
+    - Sesión ya capturada → no-op.
+    """
+    redis = await get_redis()
+    key = RedisKeys.session(tenant_id, session_id)
+    raw = await redis.get(key)
+
+    now_iso = datetime.now(UTC).isoformat()
+    telegram_meta = {
+        "channel": "telegram",
+        "telegram_chat_id": str(chat_id),
+        "lead_auto_captured_at": now_iso,
+    }
+
+    if not raw:
+        # Sesión nueva — pre-crearla con lead ya capturado
+        session = {
+            "session_id": session_id,
+            "tenant_id": tenant_id,
+            "fsm_state": "idle",
+            "lead_id": f"tg_{chat_id}",
+            "lead_captured": True,
+            "user_profile_id": None,
+            "messages_count": 0,
+            "tokens_used": 0,
+            "estimated_cost_usd": 0.0,
+            "last_intent": None,
+            "last_entities": {},
+            "last_recommendations": [],
+            "recommendation_context_id": None,
+            "booking_intent_id": None,
+            "checkout_session_id": None,
+            "handoff_case_id": None,
+            "previous_fsm_state": None,
+            "page_url": None,
+            "user_agent": None,
+            "conversation_history": [],
+            "nps_score": None,
+            "metadata": telegram_meta,
+            "started_at": now_iso,
+            "last_active_at": now_iso,
+        }
+        await redis.setex(key, 28800, json.dumps(session))  # 8 h TTL
+        logger.info(
+            "telegram_session_precreated",
+            tenant_id=tenant_id,
+            session_id=session_id,
+            chat_id=chat_id,
+        )
+        return
+
+    session = json.loads(raw)
+    if session.get("lead_captured"):
+        return  # ya capturado, nada que hacer
+
+    # Sesión existente sin lead capturado → corregir
+    session["lead_captured"] = True
+    session["lead_id"] = f"tg_{chat_id}"
+    session["fsm_state"] = "idle"                  # resetear para que el FSM
+    session["previous_fsm_state"] = "pre_chat"     # evalúe desde cero
+    session["metadata"] = session.get("metadata", {}) | telegram_meta
+    session["last_active_at"] = now_iso
+
+    # Limpiar el historial contaminado con respuestas del estado pre_chat
+    _discovery_fallback = (
+        "Entiendo. ¿Puedes darme más detalles? Por ejemplo, ¿qué tipo de actividad buscas, "
+        "para cuántas personas y en qué fecha?"
+    )
+    session["conversation_history"] = [
+        turn for turn in session.get("conversation_history", [])
+        if turn.get("content") != _discovery_fallback
+    ]
+
+    ttl = await redis.ttl(key)
+    ttl = ttl if ttl and ttl > 0 else 28800
+    await redis.setex(key, ttl, json.dumps(session))
+
+    logger.info(
+        "telegram_lead_auto_captured",
+        tenant_id=tenant_id,
+        session_id=session_id,
+        chat_id=chat_id,
+    )
+
+
 async def _call_orchestrator(
     token: str,
     message: str,
@@ -245,6 +339,12 @@ async def _process_message(tenant_id: str, chat_id: int, text: str, cfg: dict) -
         session_id=session_id,
         text_len=len(text),
     )
+
+    # Marcar lead como capturado antes de llamar al orchestrator.
+    # En Telegram no hay formulario de lead — el chat_id es suficiente
+    # como identificador del usuario.  Esto desbloquea el FSM del estado
+    # pre_chat y permite que el orchestrator use el flujo RAG completo.
+    await _ensure_lead_captured(tenant_id, session_id, chat_id)
 
     try:
         nia_response = await _call_orchestrator(token, text, session_id)

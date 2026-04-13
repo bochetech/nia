@@ -203,7 +203,10 @@ async def submit_lead(
 ) -> APIResponse[dict]:
     import httpx
 
-    session = await get_or_create_session(ctx.tenant_id, session_id)
+    # Use JWT session_id (ctx.session_id) as the canonical session identity,
+    # matching what /v1/chat uses. The path param is kept for URL compat.
+    canonical_sid = ctx.session_id
+    session = await get_or_create_session(ctx.tenant_id, canonical_sid)
     session.lead_captured = True
     session.metadata = session.metadata or {}
     session.metadata["lead_data"] = body.data
@@ -215,12 +218,12 @@ async def submit_lead(
     async def _persist_lead():
         payload = {
             "tenant_id": ctx.tenant_id,
-            "session_id": session_id,
-            "name": lead_data.get("name", ""),
+            "session_id": canonical_sid,
+            "name": lead_data.get("full_name", "") or lead_data.get("name", ""),
             "email": lead_data.get("email", ""),
             "phone": lead_data.get("phone"),
             "intent_data": {k: v for k, v in lead_data.items()
-                            if k not in ("name", "email", "phone")},
+                            if k not in ("name", "full_name", "email", "phone")},
             "gdpr_consent": body.gdpr_consent,
         }
         try:
@@ -241,7 +244,7 @@ async def submit_lead(
     import asyncio
     asyncio.create_task(_persist_lead())
 
-    return APIResponse(data={"status": "lead_captured", "session_id": session_id})
+    return APIResponse(data={"status": "lead_captured", "session_id": canonical_sid})
 
 
 @app.get(

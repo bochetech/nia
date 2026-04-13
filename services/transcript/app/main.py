@@ -132,10 +132,10 @@ async def save_message(body: SaveMessageRequest) -> dict:
                 text(f"""
                     INSERT INTO {schema}.messages
                         (id, conversation_id, role, content, tokens, intent, confidence,
-                         rag_sources, metadata, created_at)
+                         rag_sources, created_at)
                     VALUES
                         (:id, :conv_id, :role, :content, :tokens, :intent, :confidence,
-                         :rag_sources::jsonb, :metadata::jsonb, NOW())
+                         CAST(:rag_sources AS jsonb), NOW())
                 """),
                 {
                     "id": msg_id,
@@ -146,7 +146,6 @@ async def save_message(body: SaveMessageRequest) -> dict:
                     "intent": body.intent,
                     "confidence": body.confidence,
                     "rag_sources": "[]",
-                    "metadata": "{}",
                 },
             )
             await db.commit()
@@ -236,29 +235,30 @@ async def export_transcript_email(
 async def create_lead(body: LeadCreateRequest) -> dict:
     """Persiste un lead capturado en el formulario pre-chat."""
     import json as _json
+    import uuid as _uuid
 
     schema = f"tenant_{body.tenant_id}"
-    conv_id = _session_to_conv_id(body.session_id)
+    lead_id = str(_uuid.uuid4())
 
     async for db in get_db_session():
         try:
             result = await db.execute(
                 text(f"""
                     INSERT INTO {schema}.leads
-                        (tenant_id, conversation_id, name, email, phone,
-                         intent_data, gdpr_consent, source, created_at)
+                        (id, session_id, full_name, email, phone,
+                         data, gdpr_consent, created_at)
                     VALUES
-                        (:tenant_id, :conv_id, :name, :email, :phone,
-                         :intent_data::jsonb, :gdpr_consent, 'widget', NOW())
+                        (:id, :session_id, :full_name, :email, :phone,
+                         CAST(:data AS jsonb), :gdpr_consent, NOW())
                     RETURNING id
                 """),
                 {
-                    "tenant_id": body.tenant_id,
-                    "conv_id": conv_id,
-                    "name": body.name,
+                    "id": lead_id,
+                    "session_id": body.session_id,
+                    "full_name": body.name,
                     "email": body.email,
                     "phone": body.phone,
-                    "intent_data": _json.dumps(body.intent_data),
+                    "data": _json.dumps(body.intent_data),
                     "gdpr_consent": body.gdpr_consent,
                 },
             )

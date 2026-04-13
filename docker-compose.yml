@@ -396,6 +396,23 @@ services:
       - dev
 
   # ─────────────────────────────────────────────────────────────────
+  # Cloudflare tunnel — expone telegram-gateway en dev (profile: dev)
+  # Uso: docker compose --profile dev up cloudflared
+  # La URL pública aparece en los logs: docker compose logs cloudflared
+  # ─────────────────────────────────────────────────────────────────
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: nia_cloudflared
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://nia_telegram_gateway:8010
+    depends_on:
+      telegram-gateway:
+        condition: service_healthy
+    profiles:
+      - dev
+
+  # ─────────────────────────────────────────────────────────────────
   # Dev tools (profile: dev)
   # ─────────────────────────────────────────────────────────────────
 

@@ -22,6 +22,7 @@ from shared.models.domain import (
     PaymentConfig,
     RAGConfig,
     TeamsConfig,
+    TelegramConfig,
     TenantConfigDTO,
     UIConfig,
 )
@@ -230,6 +231,7 @@ async def _cache_tenant_config(tenant: Tenant) -> None:
         ai_config=AIConfig(**tenant.ai_config) if tenant.ai_config else AIConfig(),
         fsm_config=FSMConfig(**tenant.fsm_config) if tenant.fsm_config else FSMConfig(),
         payment_config=PaymentConfig(**tenant.payment_config) if tenant.payment_config else PaymentConfig(),
+        telegram_config=TelegramConfig(**tenant.telegram_config) if tenant.telegram_config else TelegramConfig(),
     )
     # Incluir jwt_secret para que el middleware pueda verificar tokens
     raw = config.model_dump()

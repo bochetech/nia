@@ -321,7 +321,7 @@ async def get_tenant_config(
     from app.provisioning import _cache_tenant_config
     await _cache_tenant_config(tenant)
 
-    from shared.models.domain import LeadConfig, LimitsConfig, RAGConfig, UIConfig, TeamsConfig, EmailConfig, AIConfig, FSMConfig, PaymentConfig
+    from shared.models.domain import LeadConfig, LimitsConfig, RAGConfig, UIConfig, TeamsConfig, EmailConfig, AIConfig, FSMConfig, PaymentConfig, TelegramConfig
     config = TenantConfigDTO(
         tenant_id=tenant.id,
         version=tenant.config_version,
@@ -334,6 +334,7 @@ async def get_tenant_config(
         ai_config=AIConfig(**tenant.ai_config) if tenant.ai_config else AIConfig(),
         fsm_config=FSMConfig(**tenant.fsm_config) if tenant.fsm_config else FSMConfig(),
         payment_config=PaymentConfig(**tenant.payment_config) if tenant.payment_config else PaymentConfig(),
+        telegram_config=TelegramConfig(**tenant.telegram_config) if tenant.telegram_config else TelegramConfig(),
     )
     return APIResponse(data=config)
 

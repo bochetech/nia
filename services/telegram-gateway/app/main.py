@@ -17,6 +17,7 @@ Endpoints:
 
 import hashlib
 import hmac
+import json
 import time
 import uuid
 
@@ -28,6 +29,7 @@ from fastapi.responses import JSONResponse
 from app.formatter import build_reply_payload
 from app.session import chat_id_to_session_id, create_channel_token
 from app.settings import get_settings
+from shared.db.redis_client import RedisKeys, get_redis
 from shared.utils.health import build_health_router
 from shared.utils.logging import get_logger, setup_logging
 
@@ -75,17 +77,26 @@ async def add_request_id(request: Request, call_next):
 
 async def _get_tenant_telegram_config(tenant_id: str) -> dict:
     """
-    Obtiene la configuración del tenant desde tenant-manager.
+    Obtiene la configuración del tenant desde Redis (caché) o tenant-manager.
     Devuelve el dict de telegram_config + jwt_secret del tenant.
     """
-    async with httpx.AsyncClient(timeout=5) as client:
-        resp = await client.get(
-            f"{settings.tenant_manager_url}/api/tenants/{tenant_id}/config"
-        )
-        if resp.status_code == 404:
-            raise HTTPException(status_code=404, detail=f"Tenant '{tenant_id}' not found")
-        resp.raise_for_status()
-        data = resp.json().get("data", {})
+    # Intentar leer desde Redis directamente (incluye jwt_secret)
+    redis = await get_redis()
+    raw = await redis.get(RedisKeys.tenant_config(tenant_id))
+    if raw:
+        data = json.loads(raw)
+    else:
+        # Fallback: pedir al tenant-manager que recargue la caché
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(
+                f"{settings.tenant_manager_url}/api/tenants/{tenant_id}/config"
+            )
+            if resp.status_code == 404:
+                raise HTTPException(status_code=404, detail=f"Tenant '{tenant_id}' not found")
+            resp.raise_for_status()
+        # Leer de Redis ahora que la caché está poblada
+        raw = await redis.get(RedisKeys.tenant_config(tenant_id))
+        data = json.loads(raw) if raw else {}
 
     telegram_cfg = data.get("telegram_config", {})
     if not telegram_cfg.get("enabled"):
@@ -94,15 +105,12 @@ async def _get_tenant_telegram_config(tenant_id: str) -> dict:
             detail="Telegram channel not enabled for this tenant",
         )
     return {
-        "bot_token":      telegram_cfg.get("bot_token", ""),
-        "webhook_secret": telegram_cfg.get("webhook_secret", ""),
+        "bot_token":        telegram_cfg.get("bot_token", ""),
+        "webhook_secret":   telegram_cfg.get("webhook_secret", ""),
         "allowed_chat_ids": telegram_cfg.get("allowed_chat_ids", []),
-        "welcome_message": telegram_cfg.get(
-            "welcome_message",
-            "¡Hola! 👋 ¿En qué puedo ayudarte hoy?"
-        ),
-        "parse_mode":     telegram_cfg.get("parse_mode", "Markdown"),
-        "jwt_secret":     data.get("jwt_secret", settings.jwt_secret.get_secret_value()),
+        "welcome_message":  telegram_cfg.get("welcome_message", "¡Hola! 👋 ¿En qué puedo ayudarte hoy?"),
+        "parse_mode":       telegram_cfg.get("parse_mode", "Markdown"),
+        "jwt_secret":       data.get("jwt_secret", settings.jwt_secret.get_secret_value()),
     }
 
 

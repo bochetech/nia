@@ -230,6 +230,11 @@ async def get_widget_config(
     if not tenant or tenant.status != "active":
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found or inactive")
 
+    # Refrescar caché Redis del tenant (contiene jwt_secret que necesita
+    # el orchestrator para verificar los widget-tokens JWT).
+    from app.provisioning import _cache_tenant_config
+    await _cache_tenant_config(tenant)
+
     ui = tenant.ui_config or {}
     lead = tenant.lead_config or {}
 

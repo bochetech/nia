@@ -121,7 +121,7 @@ async def _send_telegram_message(bot_token: str, method: str, payload: dict) -> 
     url = f"https://api.telegram.org/bot{bot_token}/{method}"
     async with httpx.AsyncClient(timeout=10) as client:
         resp = await client.post(url, json=payload)
-        if not resp.ok:
+        if not resp.is_success:
             logger.warning(
                 "telegram_send_failed",
                 method=method,

@@ -29,7 +29,7 @@ from fastapi.responses import JSONResponse
 from app.formatter import build_reply_payload
 from app.session import chat_id_to_session_id, create_channel_token
 from app.settings import get_settings
-from shared.db.redis_client import RedisKeys, get_redis
+from shared.db.redis_client import RedisKeys, get_redis, init_redis, close_redis
 from shared.utils.health import build_health_router
 from shared.utils.logging import get_logger, setup_logging
 
@@ -331,9 +331,11 @@ async def setup_webhook(tenant_id: str, request: Request):
 
 @app.on_event("startup")
 async def on_startup():
+    init_redis(settings.redis_url)
     logger.info("telegram_gateway_starting", port=settings.port)
 
 
 @app.on_event("shutdown")
 async def on_shutdown():
+    await close_redis()
     logger.info("telegram_gateway_shutdown")

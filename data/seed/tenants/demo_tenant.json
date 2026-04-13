@@ -6,8 +6,10 @@
   "ui_config": {
     "primary_color": "#0f766e",
     "logo_url": null,
+    "chat_title": "Asistente de Viajes NIA",
     "welcome_message": "¡Hola! Soy NIA, tu asistente de viajes. ¿A dónde quieres escaparte?",
-    "placeholder": "Ej: Quiero un tour de 3 días en la costa…"
+    "show_welcome_message": true,
+    "input_placeholder": "Ej: Quiero un tour de 3 días en la costa…"
   },
   "rag_config": {
     "confidence_threshold": 0.6,

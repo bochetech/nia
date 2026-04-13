@@ -16,16 +16,20 @@ export interface WidgetProps {
 interface TenantBranding {
   primaryColor: string;
   logoUrl: string | null;
+  chatTitle: string;
   welcomeMessage: string;
-  placeholder: string;
+  showWelcomeMessage: boolean;
+  inputPlaceholder: string;
   token: string;
 }
 
 const DEFAULT_BRANDING: TenantBranding = {
   primaryColor: "#2563eb",
   logoUrl: null,
+  chatTitle: "Asistente NIA",
   welcomeMessage: "¡Hola! Soy NIA, tu asistente de viajes. ¿En qué te puedo ayudar?",
-  placeholder: "Escribe un mensaje…",
+  showWelcomeMessage: true,
+  inputPlaceholder: "Escribe un mensaje…",
   token: "",
 };
 
@@ -56,8 +60,10 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
         setBranding({
           primaryColor: data.primary_color ?? DEFAULT_BRANDING.primaryColor,
           logoUrl: data.logo_url ?? null,
+          chatTitle: data.chat_title ?? DEFAULT_BRANDING.chatTitle,
           welcomeMessage: data.welcome_message ?? DEFAULT_BRANDING.welcomeMessage,
-          placeholder: data.placeholder ?? DEFAULT_BRANDING.placeholder,
+          showWelcomeMessage: data.show_welcome_message ?? DEFAULT_BRANDING.showWelcomeMessage,
+          inputPlaceholder: data.input_placeholder ?? DEFAULT_BRANDING.inputPlaceholder,
           token: data.widget_token ?? "",
         });
       })
@@ -74,6 +80,8 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
     apiUrl,
     token: branding.token,
     sessionId,
+    // Solo pasar el mensaje inicial si show_welcome_message está activado
+    initialMessage: branding.showWelcomeMessage ? branding.welcomeMessage : undefined,
   });
 
   // Track unread when panel is closed
@@ -131,7 +139,7 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
             ) : (
               <span class="nia-logo-text" aria-hidden="true">🤖</span>
             )}
-            <span class="nia-header-title">NIA — Tu asistente de viajes</span>
+            <span class="nia-header-title">{branding.chatTitle}</span>
             <button
               class="nia-close-btn"
               type="button"
@@ -155,7 +163,7 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
             <InputBar
               onSend={send}
               disabled={loading}
-              placeholder={branding.placeholder}
+              placeholder={branding.inputPlaceholder}
             />
             <p class="nia-branding" aria-label="Powered by NIA">
               Powered by <strong>NIA</strong>

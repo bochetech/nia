@@ -12,10 +12,16 @@ export interface UseChatOptions {
   apiUrl: string;
   token: string;
   sessionId: string;
+  /** Si se pasa, se añade como primer mensaje de tipo 'assistant' al montar. */
+  initialMessage?: string;
 }
 
-export function useChat({ apiUrl, token, sessionId }: UseChatOptions) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export function useChat({ apiUrl, token, sessionId, initialMessage }: UseChatOptions) {
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    initialMessage
+      ? [{ id: newId(), role: "assistant" as const, content: initialMessage, timestamp: Date.now() }]
+      : []
+  );
   const [loading, setLoading] = useState(false);
   const [fsmState, setFsmState] = useState("idle");
   const [showLeadForm, setShowLeadForm] = useState(false);

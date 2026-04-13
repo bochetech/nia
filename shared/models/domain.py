@@ -89,10 +89,18 @@ class UIConfig(BaseModel):
     secondary_color: str = "#F39C12"
     logo_url: Union[str, None] = None
     font_family: str = "Inter"
-    welcome_message: str = "Hola 👋 ¿En qué puedo ayudarte hoy?"
+    # Título que aparece en el header del widget (ej: "Soporte Viña Asturias")
     chat_title: str = "Asistente"
     avatar_url: Union[str, None] = None
     position: str = "bottom-right"  # bottom-right | bottom-left
+    # Primer mensaje burbuja que aparece al abrir el chat.
+    # Solo se muestra si show_welcome_message = true.
+    welcome_message: str = "Hola 👋 ¿En qué puedo ayudarte hoy?"
+    # Controla si el widget muestra el welcome_message como burbuja inicial
+    # antes de que el usuario escriba algo. false = el chat arranca vacío.
+    show_welcome_message: bool = True
+    # Hint/placeholder del textarea de entrada
+    input_placeholder: str = "Escribe un mensaje…"
 
 
 class LeadField(BaseModel):

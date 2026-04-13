@@ -73,7 +73,7 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
+                "value": "Bearer {{widget_token}}"
               }
             ],
             "url": {
@@ -88,15 +88,63 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"message\": \"example_message\",\n  \"stream\": true\n}",
+              "raw": "{\n  \"message\": \"Quiero algo para un día soleado\",\n  \"stream\": false\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Envía un mensaje al chat. Usa el `widget_token` JWT obtenido de GET /tenants/{id}/widget-config (vía demo_server) o POST /widget-token.\n\nEl token contiene el `session_id` en el claim `sub`."
           },
-          "response": []
+          "response": [
+            {
+              "name": "200 OK — recomendación de producto",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"data\": {\n    \"session_id\": \"79cab563-c8e0-439b-80a5-4cec5c1ef87e\",\n    \"tenant_id\": \"demo_turismo\",\n    \"response\": \"Te recomiendo estas opciones:\\n\\n**1. Visita Guiada Premium**\\n   💰 $25,000 CLP | ⏱ 120 min\\n\\n**2. Visita Guiada Standard**\\n   💰 $15,000 CLP | ⏱ 90 min\",\n    \"fsm_state\": \"recommending\",\n    \"show_lead_form\": false,\n    \"recommendations\": [\n      {\n        \"product_id\": \"1070535\",\n        \"name\": \"Visita Guiada Premium\",\n        \"category\": \"enoturismo\",\n        \"base_price\": 25000,\n        \"currency\": \"CLP\",\n        \"score\": 0.25,\n        \"rank\": 1\n      }\n    ],\n    \"handoff_triggered\": false,\n    \"checkout_url\": null,\n    \"tokens_used\": 0\n  }\n}",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{widget_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{orchestrator_url}}/v1/chat",
+                  "host": [
+                    "{{orchestrator_url}}"
+                  ],
+                  "path": [
+                    "v1",
+                    "chat"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Quiero algo para un día soleado\",\n  \"stream\": false\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "description": "Envía un mensaje al chat. Usa el `widget_token` JWT obtenido de GET /tenants/{id}/widget-config (vía demo_server) o POST /widget-token.\n\nEl token contiene el `session_id` en el claim `sub`."
+              }
+            }
+          ]
         },
         {
           "name": "Send a message with SSE streaming response",
@@ -180,18 +228,18 @@
               },
               {
                 "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
+                "value": "Bearer {{widget_token}}"
               }
             ],
             "url": {
-              "raw": "{{orchestrator_url}}/v1/sessions/:session_id/lead",
+              "raw": "{{orchestrator_url}}/v1/sessions/{{session_id}}/lead",
               "host": [
                 "{{orchestrator_url}}"
               ],
               "path": [
                 "v1",
                 "sessions",
-                ":session_id",
+                "{{session_id}}",
                 "lead"
               ],
               "variable": [
@@ -203,13 +251,14 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"data\": {},\n  \"gdpr_consent\": true\n}",
+              "raw": "{\n  \"data\": {\n    \"full_name\": \"Carlos MVP\",\n    \"email\": \"carlos@example.com\"\n  },\n  \"gdpr_consent\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Envía los datos del formulario pre-chat (lead form).\n\nLos campos en `data` corresponden a los definidos en `lead_config.fields` del tenant (p.ej. `full_name`, `email`).\n\nEl `session_id` en la URL puede ser cualquier valor — el orchestrator usa el `sub` del JWT para identificar la sesión canónica."
           },
           "response": []
         }
@@ -487,13 +536,14 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id\": \"demo-tenant\",\n  \"name\": \"example_name\",\n  \"contact_email\": \"admin@nia.local\",\n  \"plan\": \"example_plan\",\n  \"ui_config\": \"example_ui_config\",\n  \"lead_config\": \"example_lead_config\",\n  \"limits_config\": \"example_limits_config\",\n  \"rag_config\": \"example_rag_config\",\n  \"teams_config\": \"example_teams_config\",\n  \"email_config\": \"admin@nia.local\",\n  \"ai_config\": \"example_ai_config\",\n  \"fsm_config\": \"example_fsm_config\",\n  \"payment_config\": \"example_payment_config\",\n  \"telegram_config\": \"example_telegram_config\"\n}",
+              "raw": "{\n  \"id\": \"demo_turismo\",\n  \"name\": \"Demo Turismo SA\",\n  \"contact_email\": \"demo@turismo.com\",\n  \"plan\": \"professional\",\n  \"ui_config\": {\n    \"primary_color\": \"#0f766e\",\n    \"logo_url\": null,\n    \"chat_title\": \"Asistente de Viajes NIA\",\n    \"welcome_message\": \"¡Hola! Soy NIA, tu asistente de viajes. ¿A dónde quieres escaparte?\",\n    \"show_welcome_message\": true,\n    \"input_placeholder\": \"Ej: Quiero un tour de 3 días en la costa…\",\n    \"suggested_questions\": [\n      \"¿Cuál es el horario de la viña Concha y Toro?\",\n      \"¿Cómo puedo llegar hasta la viña?\",\n      \"¿Qué tours están disponibles hoy?\",\n      \"¿Cuánto cuesta la visita guiada?\"\n    ]\n  },\n  \"lead_config\": {\n    \"enabled\": true,\n    \"submit_label\": \"Comenzar chat\",\n    \"gdpr_consent_text\": null,\n    \"fields\": [\n      {\n        \"name\": \"full_name\",\n        \"type\": \"text\",\n        \"label\": \"Nombre completo\",\n        \"required\": true,\n        \"options\": null,\n        \"validation\": null\n      },\n      {\n        \"name\": \"email\",\n        \"type\": \"email\",\n        \"label\": \"Correo electrónico\",\n        \"required\": true,\n        \"options\": null,\n        \"validation\": null\n      }\n    ]\n  },\n  \"rag_config\": {\n    \"confidence_threshold\": 0.6,\n    \"max_tokens_response\": 600,\n    \"fallback_message\": \"No tengo información precisa sobre eso. ¿Te gustaría hablar con un asesor?\",\n    \"top_k_retrieval\": 8\n  },\n  \"ai_config\": {\n    \"primary_provider\": \"lmstudio\",\n    \"primary_model\": \"llama-3.2-3b-instruct\",\n    \"temperature\": 0.3\n  },\n  \"fsm_config\": {\n    \"nps_enabled\": true,\n    \"max_conversation_turns\": 50,\n    \"session_timeout_minutes\": 480,\n    \"transitions\": []\n  },\n  \"limits_config\": null,\n  \"teams_config\": null,\n  \"email_config\": null,\n  \"payment_config\": null,\n  \"telegram_config\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Crea un tenant nuevo. El campo `ui_config.suggested_questions` acepta un array de strings — si está vacío `[]` el widget no muestra pills."
           },
           "response": []
         },
@@ -564,13 +614,52 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"example_name\",\n  \"contact_email\": \"admin@nia.local\",\n  \"plan\": \"example_plan\",\n  \"ui_config\": \"example_ui_config\",\n  \"lead_config\": \"example_lead_config\",\n  \"limits_config\": \"example_limits_config\",\n  \"rag_config\": \"example_rag_config\",\n  \"teams_config\": \"example_teams_config\",\n  \"email_config\": \"admin@nia.local\",\n  \"ai_config\": \"example_ai_config\",\n  \"fsm_config\": \"example_fsm_config\",\n  \"payment_config\": \"example_payment_config\",\n  \"telegram_config\": \"example_telegram_config\"\n}",
+              "raw": "{\n  \"name\": \"Demo Turismo SA\",\n  \"contact_email\": \"demo@turismo.com\",\n  \"plan\": \"professional\",\n  \"ui_config\": {\n    \"primary_color\": \"#0f766e\",\n    \"logo_url\": null,\n    \"chat_title\": \"Asistente de Viajes NIA\",\n    \"welcome_message\": \"¡Hola! Soy NIA, tu asistente de viajes. ¿A dónde quieres escaparte?\",\n    \"show_welcome_message\": true,\n    \"input_placeholder\": \"Ej: Quiero un tour de 3 días en la costa…\",\n    \"suggested_questions\": [\n      \"¿Cuál es el horario de la viña Concha y Toro?\",\n      \"¿Cómo puedo llegar hasta la viña?\",\n      \"¿Qué tours están disponibles hoy?\",\n      \"¿Cuánto cuesta la visita guiada?\"\n    ]\n  },\n  \"lead_config\": {\n    \"enabled\": true,\n    \"submit_label\": \"Comenzar chat\",\n    \"gdpr_consent_text\": null,\n    \"fields\": [\n      {\n        \"name\": \"full_name\",\n        \"type\": \"text\",\n        \"label\": \"Nombre completo\",\n        \"required\": true,\n        \"options\": null,\n        \"validation\": null\n      },\n      {\n        \"name\": \"email\",\n        \"type\": \"email\",\n        \"label\": \"Correo electrónico\",\n        \"required\": true,\n        \"options\": null,\n        \"validation\": null\n      }\n    ]\n  }\n}",
               "options": {
                 "raw": {
                   "language": "json"
                 }
               }
-            }
+            },
+            "description": "Actualiza la configuración general del tenant. Para solo actualizar `ui_config` (incluyendo `suggested_questions`) puedes enviar únicamente ese campo en el body."
+          },
+          "response": []
+        },
+        {
+          "name": "Update UI config (colors, welcome, suggested questions)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              },
+              "raw": "{\n  \"ui_config\": {\n    \"primary_color\": \"#0f766e\",\n    \"logo_url\": null,\n    \"chat_title\": \"Asistente de Viajes NIA\",\n    \"welcome_message\": \"¡Hola! Soy NIA, tu asistente de viajes. ¿A dónde quieres escaparte?\",\n    \"show_welcome_message\": true,\n    \"input_placeholder\": \"Ej: Quiero un tour de 3 días en la costa…\",\n    \"suggested_questions\": [\n      \"¿Cuál es el horario de la viña Concha y Toro?\",\n      \"¿Cómo puedo llegar hasta la viña?\",\n      \"¿Qué tours están disponibles hoy?\",\n      \"¿Cuánto cuesta la visita guiada?\"\n    ]\n  }\n}"
+            },
+            "url": {
+              "raw": "{{tenant_manager_url}}/api/tenants/{{tenant_id}}",
+              "host": [
+                "{{tenant_manager_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                "{{tenant_id}}"
+              ]
+            },
+            "description": "Actualiza solo la configuración visual del widget.\n\n**`suggested_questions`**: array de strings con las preguntas sugeridas que aparecen como pills al abrir el chat. El widget las muestra mientras el usuario no ha enviado ningún mensaje. Para desactivarlas, envía `[]`.\n\nTras actualizar, el cambio se refleja en el widget en la próxima carga (el tenant-manager refresca Redis en cada GET /widget-config)."
           },
           "response": []
         },
@@ -1018,9 +1107,56 @@
                   "value": "{{tenant_id}}"
                 }
               ]
-            }
+            },
+            "description": "Devuelve la configuración pública del widget.\n\n**Respuesta incluye:**\n- `suggested_questions`: array de preguntas sugeridas (puede estar vacío)\n- `lead_config`: config del formulario pre-chat (null si desactivado)\n- `widget_token`: vacío aquí — obtenerlo con POST /widget-token\n\nNo requiere autenticación."
           },
-          "response": []
+          "response": [
+            {
+              "name": "200 OK — widget config con preguntas sugeridas",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"primary_color\": \"#0f766e\",\n  \"logo_url\": null,\n  \"chat_title\": \"Asistente de Viajes NIA\",\n  \"welcome_message\": \"¡Hola! Soy NIA, tu asistente de viajes. ¿A dónde quieres escaparte?\",\n  \"show_welcome_message\": true,\n  \"input_placeholder\": \"Ej: Quiero un tour de 3 días en la costa…\",\n  \"suggested_questions\": [\n    \"¿Cuál es el horario de la viña Concha y Toro?\",\n    \"¿Cómo puedo llegar hasta la viña?\",\n    \"¿Qué tours están disponibles hoy?\",\n    \"¿Cuánto cuesta la visita guiada?\"\n  ],\n  \"widget_token\": \"\",\n  \"transcript_url\": \"http://nia_transcript:8008\",\n  \"lead_config\": {\n    \"enabled\": true,\n    \"submit_label\": \"Comenzar chat\",\n    \"gdpr_consent_text\": null,\n    \"fields\": [\n      {\n        \"name\": \"full_name\",\n        \"type\": \"text\",\n        \"label\": \"Nombre completo\",\n        \"required\": true,\n        \"options\": null,\n        \"validation\": null\n      },\n      {\n        \"name\": \"email\",\n        \"type\": \"email\",\n        \"label\": \"Correo electrónico\",\n        \"required\": true,\n        \"options\": null,\n        \"validation\": null\n      }\n    ]\n  }\n}",
+              "originalRequest": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/widget-config",
+                  "host": [
+                    "{{tenant_manager_url}}"
+                  ],
+                  "path": [
+                    "api",
+                    "tenants",
+                    ":tenant_id",
+                    "widget-config"
+                  ],
+                  "variable": [
+                    {
+                      "key": "tenant_id",
+                      "value": "{{tenant_id}}"
+                    }
+                  ]
+                },
+                "description": "Devuelve la configuración pública del widget.\n\n**Respuesta incluye:**\n- `suggested_questions`: array de preguntas sugeridas (puede estar vacío)\n- `lead_config`: config del formulario pre-chat (null si desactivado)\n- `widget_token`: vacío aquí — obtenerlo con POST /widget-token\n\nNo requiere autenticación."
+              }
+            }
+          ]
         },
         {
           "name": "Issue widget JWT for a new session",
@@ -2050,53 +2186,59 @@
   "variable": [
     {
       "key": "orchestrator_url",
-      "value": "{{orchestrator_url}}",
-      "type": "string"
+      "value": "http://localhost:8001"
     },
     {
       "key": "rag_url",
-      "value": "{{rag_url}}",
-      "type": "string"
+      "value": "http://localhost:8002"
     },
     {
       "key": "tenant_manager_url",
-      "value": "{{tenant_manager_url}}",
-      "type": "string"
+      "value": "http://localhost:8003"
     },
     {
       "key": "recommender_url",
-      "value": "{{recommender_url}}",
-      "type": "string"
+      "value": "http://localhost:8004"
     },
     {
       "key": "model_adapter_url",
-      "value": "{{model_adapter_url}}",
-      "type": "string"
+      "value": "http://localhost:8005"
     },
     {
       "key": "checkout_url",
-      "value": "{{checkout_url}}",
-      "type": "string"
+      "value": "http://localhost:8006"
     },
     {
       "key": "handoff_url",
-      "value": "{{handoff_url}}",
-      "type": "string"
+      "value": "http://localhost:8007"
     },
     {
       "key": "transcript_url",
-      "value": "{{transcript_url}}",
-      "type": "string"
+      "value": "http://localhost:8008"
     },
     {
       "key": "fallback_url",
-      "value": "{{fallback_url}}",
-      "type": "string"
+      "value": "http://localhost:8009"
     },
     {
       "key": "telegram_gateway_url",
-      "value": "{{telegram_gateway_url}}",
-      "type": "string"
+      "value": "http://localhost:8010"
+    },
+    {
+      "key": "demo_url",
+      "value": "http://localhost:8088"
+    },
+    {
+      "key": "tenant_id",
+      "value": "demo_turismo"
+    },
+    {
+      "key": "admin_token",
+      "value": ""
+    },
+    {
+      "key": "widget_token",
+      "value": ""
     }
   ]
 }

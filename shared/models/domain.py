@@ -85,58 +85,172 @@ class CheckoutStatus(str, Enum):
 # ─────────────────────────────────────────────────────────────────
 
 class UIConfig(BaseModel):
-    primary_color: str = "#1A5276"
-    secondary_color: str = "#F39C12"
-    logo_url: Union[str, None] = None
-    font_family: str = "Inter"
-    # Título que aparece en el header del widget (ej: "Soporte Viña Asturias")
-    chat_title: str = "Asistente"
-    avatar_url: Union[str, None] = None
-    position: str = "bottom-right"  # bottom-right | bottom-left
-    # Primer mensaje burbuja que aparece al abrir el chat.
-    # Solo se muestra si show_welcome_message = true.
-    welcome_message: str = "Hola 👋 ¿En qué puedo ayudarte hoy?"
-    # Controla si el widget muestra el welcome_message como burbuja inicial
-    # antes de que el usuario escriba algo. false = el chat arranca vacío.
-    show_welcome_message: bool = True
-    # Hint/placeholder del textarea de entrada
-    input_placeholder: str = "Escribe un mensaje…"
+    """Apariencia y textos del widget de chat embebido."""
+
+    primary_color: str = Field(
+        default="#1A5276",
+        description="Color principal del widget en formato hex. Se aplica al header, botón launcher y burbujas del bot.",
+    )
+    secondary_color: str = Field(
+        default="#F39C12",
+        description="Color de acento (botones secundarios, highlights). Formato hex.",
+    )
+    logo_url: Union[str, None] = Field(
+        default=None,
+        description="URL de la imagen del logo que aparece en el header del widget. Si es null se muestra un emoji por defecto.",
+    )
+    font_family: str = Field(
+        default="Inter",
+        description="Fuente CSS a usar en el widget. Debe estar disponible en la página anfitriona.",
+    )
+    chat_title: str = Field(
+        default="Asistente",
+        description="Texto del header del widget. Identifica al asistente (ej: 'Soporte Viña Asturias'). Es distinto al saludo inicial.",
+    )
+    avatar_url: Union[str, None] = Field(
+        default=None,
+        description="URL del avatar del bot que aparece junto a sus mensajes. Si es null no se muestra avatar.",
+    )
+    position: str = Field(
+        default="bottom-right",
+        description="Posición del launcher flotante en la pantalla. Valores: 'bottom-right' | 'bottom-left'.",
+    )
+    welcome_message: str = Field(
+        default="Hola 👋 ¿En qué puedo ayudarte hoy?",
+        description=(
+            "Primer mensaje burbuja que aparece al abrir el chat, antes de que el usuario escriba. "
+            "Solo se muestra si show_welcome_message=true. "
+            "No se envía al backend ni consume tokens."
+        ),
+    )
+    show_welcome_message: bool = Field(
+        default=True,
+        description=(
+            "Controla si el widget muestra el welcome_message como burbuja inicial al abrir el chat. "
+            "true = el bot saluda proactivamente. false = el chat arranca vacío y el usuario escribe primero."
+        ),
+    )
+    input_placeholder: str = Field(
+        default="Escribe un mensaje…",
+        description=(
+            "Texto de ayuda (hint) dentro del textarea de escritura. "
+            "Úsalo para orientar al usuario sobre qué puede preguntar, ej: 'Ej: quiero una cata para 4 personas…'"
+        ),
+    )
 
 
 class LeadField(BaseModel):
-    name: str
-    label: str
-    type: str = "text"  # text | email | tel | number | select
-    required: bool = True
-    validation: Union[str, None] = None
-    options: list[str] | None = None  # para type=select
+    """Define un campo del formulario de captura de lead."""
+
+    name: str = Field(..., description="Identificador interno del campo (ej: 'full_name', 'phone'). Debe ser único dentro del formulario.")
+    label: str = Field(..., description="Etiqueta visible para el usuario (ej: 'Nombre completo').")
+    type: str = Field(
+        default="text",
+        description="Tipo de input HTML. Valores: 'text' | 'email' | 'tel' | 'number' | 'select'.",
+    )
+    required: bool = Field(default=True, description="Si true, el usuario no puede enviar el formulario sin completar este campo.")
+    validation: Union[str, None] = Field(
+        default=None,
+        description="Expresión regular para validar el valor, ej: '^[0-9]{9}$' para teléfono español.",
+    )
+    options: list[str] | None = Field(
+        default=None,
+        description="Solo para type='select'. Lista de opciones desplegables, ej: ['Mañana', 'Tarde', 'Noche'].",
+    )
 
 
 class LeadConfig(BaseModel):
-    enabled: bool = True
-    fields: list[LeadField] = Field(default_factory=lambda: [
-        LeadField(name="full_name", label="Nombre completo", type="text", required=True),
-        LeadField(name="email", label="Correo electrónico", type="email", required=True),
-    ])
-    gdpr_consent_text: Union[str, None] = None
-    submit_label: str = "Comenzar chat"
+    """Configuración del formulario de captura de datos antes de iniciar el chat."""
+
+    enabled: bool = Field(
+        default=True,
+        description=(
+            "Si true, el widget muestra un formulario al usuario antes de la primera conversación. "
+            "Sirve para capturar nombre y email (lead). Si false, el chat empieza directamente."
+        ),
+    )
+    fields: list[LeadField] = Field(
+        default_factory=lambda: [
+            LeadField(name="full_name", label="Nombre completo", type="text", required=True),
+            LeadField(name="email", label="Correo electrónico", type="email", required=True),
+        ],
+        description="Lista de campos del formulario. Por defecto pide nombre completo y email.",
+    )
+    gdpr_consent_text: Union[str, None] = Field(
+        default=None,
+        description=(
+            "Texto del checkbox de consentimiento GDPR. Si se especifica, el usuario debe aceptarlo "
+            "para poder enviar el formulario. Si es null no se muestra el checkbox."
+        ),
+    )
+    submit_label: str = Field(
+        default="Comenzar chat",
+        description="Texto del botón de envío del formulario de lead.",
+    )
 
 
 class LimitsConfig(BaseModel):
-    max_tokens_per_conversation: int = 10_000
-    max_conversations_per_month: int = 1_000
-    max_llm_cost_usd_per_month: float = 50.0
-    max_rag_docs: int = 100
-    handoff_enabled: bool = True
-    response_timeout_minutes: int = 15
+    """Límites operacionales y controles de uso del tenant."""
+
+    max_tokens_per_conversation: int = Field(
+        default=10_000,
+        description="Máximo de tokens LLM acumulados por sesión. Al superarlo la conversación se cierra automáticamente.",
+    )
+    max_conversations_per_month: int = Field(
+        default=1_000,
+        description="Máximo de conversaciones únicas por mes. Al alcanzarlo el widget muestra un mensaje de capacidad agotada.",
+    )
+    max_llm_cost_usd_per_month: float = Field(
+        default=50.0,
+        description="Techo de gasto en LLM (USD/mes). El sistema deja de procesar peticiones al superarlo.",
+    )
+    max_rag_docs: int = Field(
+        default=100,
+        description="Máximo de documentos indexados en Qdrant para este tenant.",
+    )
+    handoff_enabled: bool = Field(
+        default=True,
+        description=(
+            "Habilita o deshabilita el handoff a asesor humano para este tenant. "
+            "Si false, los intents de tipo 'human_request' y los umbrales de queja/sin-respuesta "
+            "no escalan — el bot responde que el servicio humano no está disponible."
+        ),
+    )
+    response_timeout_minutes: int = Field(
+        default=15,
+        description="Minutos sin respuesta del asesor humano en handoff antes de devolver el control al bot.",
+    )
 
 
 class RAGConfig(BaseModel):
-    confidence_threshold: float = 0.65
-    max_tokens_response: int = 500
-    fallback_message: str = "No tengo información precisa sobre eso. ¿Te gustaría hablar con un asesor?"
-    top_k_retrieval: int = 8
-    top_k_rerank: int = 3
+    """Configuración del sistema de Retrieval-Augmented Generation (base de conocimiento)."""
+
+    confidence_threshold: float = Field(
+        default=0.65,
+        description=(
+            "Umbral mínimo de similitud coseno (0.0–1.0) para considerar un chunk relevante. "
+            "Valores más altos = respuestas más precisas pero más fallbacks. Recomendado: 0.6–0.75."
+        ),
+    )
+    max_tokens_response: int = Field(
+        default=500,
+        description="Máximo de tokens en la respuesta generada por el RAG. Controla la longitud de las respuestas.",
+    )
+    fallback_message: str = Field(
+        default="No tengo información precisa sobre eso. ¿Te gustaría hablar con un asesor?",
+        description=(
+            "Mensaje que el bot responde cuando el RAG no encuentra respuesta con suficiente confianza. "
+            "Cada vez que se dispara suma al contador de 'unresolved', que puede escalar a handoff."
+        ),
+    )
+    top_k_retrieval: int = Field(
+        default=8,
+        description="Número de chunks recuperados de Qdrant en la fase de retrieval. Más chunks = más contexto pero más latencia.",
+    )
+    top_k_rerank: int = Field(
+        default=3,
+        description="Número de chunks que pasan al modelo de generación tras el reranking. Subconjunto de top_k_retrieval.",
+    )
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -336,43 +450,167 @@ class HandoffCaseDTO(BaseModel):
 # ─────────────────────────────────────────────────────────────────
 
 class TeamsConfig(BaseModel):
-    """Configuración de integración con Microsoft Teams."""
-    enabled: bool = False
-    webhook_url: str = ""
-    channel_id: str = "general"
-    auto_handoff_keywords: list[str] = Field(default_factory=lambda: ["queja", "problema", "reclamo"])
-    escalation_timeout_minutes: int = 10
-    adaptive_card_template: str = "default"
-    mention_users: list[str] = Field(default_factory=list)
+    """Integración con Microsoft Teams para notificaciones y handoff de conversaciones."""
+
+    enabled: bool = Field(
+        default=False,
+        description="Activa la integración con Teams. Requiere webhook_url configurado.",
+    )
+    webhook_url: str = Field(
+        default="",
+        description="URL del Incoming Webhook de Teams donde se envían las notificaciones de handoff.",
+    )
+    channel_id: str = Field(
+        default="general",
+        description="ID o nombre del canal de Teams donde se publican los mensajes.",
+    )
+    auto_handoff_keywords: list[str] = Field(
+        default_factory=lambda: ["queja", "problema", "reclamo"],
+        description=(
+            "Palabras clave que disparan un handoff automático al detectarse en el mensaje del usuario. "
+            "Se evalúan antes del análisis de intención."
+        ),
+    )
+    escalation_timeout_minutes: int = Field(
+        default=10,
+        description="Minutos que el sistema espera una respuesta del agente en Teams antes de reintentar o cerrar el handoff.",
+    )
+    adaptive_card_template: str = Field(
+        default="default",
+        description="Nombre de la plantilla de Adaptive Card usada en las notificaciones de Teams.",
+    )
+    mention_users: list[str] = Field(
+        default_factory=list,
+        description="Lista de IDs o emails de usuarios de Teams a mencionar (@mention) en cada notificación de handoff.",
+    )
 
 
 class EmailConfig(BaseModel):
-    """Configuración SMTP para envío de emails."""
-    enabled: bool = False
-    smtp_host: str = ""
-    smtp_port: int = 587
-    smtp_user: str = ""
-    smtp_password: str = ""  # En producción: usar Secret Manager
-    smtp_from: str = "noreply@nia-platform.com"
-    smtp_from_name: str = "Asistente NIA"
-    use_tls: bool = True
-    timeout_seconds: int = 30
-    template_path: str = "default"
+    """Configuración SMTP para envío de emails transaccionales (confirmaciones, resúmenes, handoff)."""
+
+    enabled: bool = Field(
+        default=False,
+        description="Activa el envío de emails. Requiere smtp_host y credenciales configurados.",
+    )
+    smtp_host: str = Field(default="", description="Servidor SMTP, ej: 'smtp.gmail.com' o 'smtp.sendgrid.net'.")
+    smtp_port: int = Field(default=587, description="Puerto SMTP. 587 = TLS (recomendado), 465 = SSL, 25 = sin cifrado.")
+    smtp_user: str = Field(default="", description="Usuario de autenticación SMTP.")
+    smtp_password: str = Field(
+        default="",
+        description="Contraseña SMTP. En producción usar Secret Manager — no hardcodear aquí.",
+    )
+    smtp_from: str = Field(
+        default="noreply@nia-platform.com",
+        description="Dirección de email del remitente que verán los destinatarios.",
+    )
+    smtp_from_name: str = Field(
+        default="Asistente NIA",
+        description="Nombre del remitente visible en el cliente de email.",
+    )
+    use_tls: bool = Field(default=True, description="Usar STARTTLS al conectar. Recomendado true para puerto 587.")
+    timeout_seconds: int = Field(default=30, description="Timeout en segundos para la conexión SMTP.")
+    template_path: str = Field(
+        default="default",
+        description="Nombre de la plantilla HTML de email a usar. 'default' usa la plantilla NIA estándar.",
+    )
 
 
 class AIConfig(BaseModel):
-    """Configuración de modelos de IA y prompts."""
-    primary_provider: str = "vertex_ai"  # vertex_ai | openai | anthropic
-    primary_model: str = "gemini-1.5-flash"
-    fallback_provider: str = "openai"
-    fallback_model: str = "gpt-4o-mini"
-    temperature: float = 0.3
-    max_tokens: int = 1000
-    top_p: float = 0.9
-    system_prompt_override: str = ""
-    enable_caching: bool = True
-    cache_ttl_seconds: int = 300
-    cost_optimization: bool = True
+    """Configuración del modelo de lenguaje (LLM) y comportamiento de generación de respuestas."""
+
+    primary_provider: str = Field(
+        default="vertex_ai",
+        description="Proveedor LLM principal. Valores: 'vertex_ai' | 'openai' | 'anthropic' | 'lmstudio'.",
+    )
+    primary_model: str = Field(
+        default="gemini-1.5-flash",
+        description="Nombre del modelo principal, ej: 'gemini-1.5-flash', 'gpt-4o', 'claude-3-haiku', 'llama-3.2-3b-instruct'.",
+    )
+    fallback_provider: str = Field(
+        default="openai",
+        description="Proveedor al que el model-adapter escala si el principal falla o está saturado.",
+    )
+    fallback_model: str = Field(
+        default="gpt-4o-mini",
+        description="Modelo del proveedor de fallback.",
+    )
+    temperature: float = Field(
+        default=0.3,
+        description=(
+            "Controla la aleatoriedad de las respuestas (0.0–1.0). "
+            "0.0 = respuestas deterministas y precisas. 1.0 = más creativas y variadas. "
+            "Para asistentes de atención al cliente se recomienda 0.2–0.4."
+        ),
+    )
+    max_tokens: int = Field(
+        default=1000,
+        description="Máximo de tokens en cada respuesta del LLM. Controla longitud y costo por llamada.",
+    )
+    top_p: float = Field(
+        default=0.9,
+        description="Nucleus sampling: solo considera los tokens cuya probabilidad acumulada alcanza este valor.",
+    )
+    system_prompt_override: str = Field(
+        default="",
+        description=(
+            "Prompt de sistema personalizado que reemplaza al prompt NIA por defecto. "
+            "Úsalo para dar personalidad, restricciones o contexto específico del negocio al bot. "
+            "Vacío = usa el prompt estándar de NIA."
+        ),
+    )
+    enable_caching: bool = Field(
+        default=True,
+        description="Activa caché semántico en Redis. Respuestas a preguntas similares se sirven desde caché, reduciendo latencia y costo.",
+    )
+    cache_ttl_seconds: int = Field(
+        default=300,
+        description="Tiempo de vida del caché semántico en segundos. Tras este tiempo la entrada expira y se regenera.",
+    )
+    cost_optimization: bool = Field(
+        default=True,
+        description="Si true, el model-adapter puede seleccionar automáticamente un modelo más económico para intents de baja complejidad.",
+    )
+
+
+class PaymentConfig(BaseModel):
+    """Configuración del checkout y pasarela de pagos (Stripe) para reservas."""
+
+    enabled: bool = Field(
+        default=False,
+        description="Activa el flujo de checkout. Si false, el estado CHECKOUT_INIT no se alcanza y el bot no ofrece pago.",
+    )
+    stripe_public_key: str = Field(
+        default="",
+        description="Clave pública de Stripe (pk_live_... o pk_test_...). Se expone al frontend.",
+    )
+    stripe_secret_key: str = Field(
+        default="",
+        description="Clave secreta de Stripe. En producción debe cargarse desde Secret Manager, no almacenarse aquí.",
+    )
+    currency_default: str = Field(
+        default="CLP",
+        description="Moneda ISO 4217 por defecto para los pagos, ej: 'CLP', 'EUR', 'USD'.",
+    )
+    payment_methods: list[str] = Field(
+        default_factory=lambda: ["card"],
+        description="Métodos de pago habilitados en Stripe. Valores posibles: 'card', 'bank_transfer', 'paypal'.",
+    )
+    checkout_session_expires_minutes: int = Field(
+        default=30,
+        description="Minutos antes de que una sesión de checkout de Stripe expire sin completarse.",
+    )
+    success_url_template: str = Field(
+        default="https://{domain}/payment/success",
+        description="URL de redirección tras un pago exitoso. Usa {domain} como placeholder.",
+    )
+    cancel_url_template: str = Field(
+        default="https://{domain}/payment/cancel",
+        description="URL de redirección si el usuario cancela el pago. Usa {domain} como placeholder.",
+    )
+    webhook_secret: str = Field(
+        default="",
+        description="Secreto del webhook de Stripe para verificar la autenticidad de los eventos recibidos.",
+    )
 
 
 class FlowTransition(BaseModel):
@@ -406,38 +644,49 @@ class FlowTransition(BaseModel):
 
 
 class FSMConfig(BaseModel):
-    """Configuración avanzada de la máquina de estados."""
-    states_enabled: list[str] = Field(default_factory=lambda: [
-        "idle", "greeting", "discovery", "recommending", "checkout_init"
-    ])
-    max_conversation_turns: int = 50
-    session_timeout_minutes: int = 480  # 8 horas
-    nps_enabled: bool = True
-    post_chat_delay_seconds: int = 300  # 5 minutos
-    handoff_triggers: list[str] = Field(default_factory=lambda: [
-        "complaint", "unresolved", "explicit_request"
-    ])
-    auto_close_after_minutes: int = 60
+    """Configuración de la máquina de estados de la conversación (FSM)."""
+
+    states_enabled: list[str] = Field(
+        default_factory=lambda: ["idle", "greeting", "discovery", "recommending", "checkout_init"],
+        description="Estados FSM activos para este tenant. Desactivar un estado lo excluye del flujo posible.",
+    )
+    max_conversation_turns: int = Field(
+        default=50,
+        description="Máximo de turnos (pares usuario/bot) antes de cerrar la conversación automáticamente.",
+    )
+    session_timeout_minutes: int = Field(
+        default=480,
+        description="Minutos de inactividad antes de expirar la sesión en Redis. Por defecto 8 horas.",
+    )
+    nps_enabled: bool = Field(
+        default=True,
+        description="Si true, al cerrar la conversación el bot pregunta al usuario una puntuación NPS del 1 al 5.",
+    )
+    post_chat_delay_seconds: int = Field(
+        default=300,
+        description="Segundos de espera tras el último mensaje antes de pasar al estado POST_CHAT y lanzar la encuesta NPS.",
+    )
+    handoff_triggers: list[str] = Field(
+        default_factory=lambda: ["complaint", "unresolved", "explicit_request"],
+        description=(
+            "Eventos que pueden disparar un handoff a asesor humano. "
+            "Valores: 'complaint' (queja), 'unresolved' (RAG sin respuesta repetido), 'explicit_request' (el usuario lo pide)."
+        ),
+    )
+    auto_close_after_minutes: int = Field(
+        default=60,
+        description="Minutos tras los que una sesión en estado HANDOFF_ACTIVE sin actividad se cierra automáticamente.",
+    )
     transitions: list[FlowTransition] = Field(
         default_factory=list,
         description=(
-            "Tabla de transiciones personalizada. "
-            "Si está vacía, el orquestador usa el flujo default hardcodeado."
+            "Tabla de transiciones personalizada del flujo de conversación. "
+            "Cada entrada define qué hace el bot cuando detecta un intent desde un estado dado. "
+            "Si está vacía, el orquestador usa el flujo NIA por defecto (DEFAULT_TRANSITIONS)."
         ),
     )
 
 
-class PaymentConfig(BaseModel):
-    """Configuración de checkout y pagos."""
-    enabled: bool = False
-    stripe_public_key: str = ""
-    stripe_secret_key: str = ""  # En producción: Secret Manager
-    currency_default: str = "CLP"
-    payment_methods: list[str] = Field(default_factory=lambda: ["card"])
-    checkout_session_expires_minutes: int = 30
-    success_url_template: str = "https://{domain}/payment/success"
-    cancel_url_template: str = "https://{domain}/payment/cancel"
-    webhook_secret: str = ""
 
 
 class TenantConfigDTO(BaseModel):

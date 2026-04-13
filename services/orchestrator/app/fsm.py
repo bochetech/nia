@@ -314,7 +314,7 @@ async def _handle_discovery(
     para generar una respuesta de discovery natural.
     """
     rag_config = tenant_config.get("rag_config", {})
-    collection_name = f"nia_tenant_{session.tenant_id}_knowledge"
+    collection_name = f"{session.tenant_id}_docs"
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -363,7 +363,7 @@ async def _handle_faq(
 ) -> FSMResult:
     """Consulta al RAG service."""
     rag_config = tenant_config.get("rag_config", {})
-    collection_name = f"nia_tenant_{session.tenant_id}_knowledge"
+    collection_name = f"{session.tenant_id}_docs"
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:

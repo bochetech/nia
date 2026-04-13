@@ -1,12 +1,16 @@
 """
-demo_server.py — Mini servidor para la demo del widget NIA.
+demo_server.py — Reverse-proxy ligero para la demo del widget NIA.
 
-Expone:
-  GET  /              → sirve demo.html
-  GET  /static/*      → archivos estáticos (widget JS)
-  POST /v1/chat       → proxy al model-adapter (model-adapter en :8005)
-  POST /v1/sessions/* → no-op (lead capture — solo para la demo)
-  GET  /tenants/*/widget-config → config de branding hardcodeada
+Sirve la página demo.html y actúa como proxy transparente al stack real:
+  GET  /                            → sirve demo.html
+  GET  /packages/widget/dist/*      → widget JS compilado
+  GET  /tenants/{id}/widget-config  → proxy → tenant-manager /api/tenants/{id}/widget-config
+  POST /api/tenants/{id}/widget-token → proxy → tenant-manager
+  POST /v1/chat                     → proxy → orchestrator
+  POST /v1/sessions/{id}/lead       → proxy → orchestrator
+
+NO tiene LLM propio, NO mantiene historial: todo pasa por el stack real
+(orchestrator → RAG, recommender, model-adapter, etc.).
 
 Uso:
   python demo_server.py
@@ -14,8 +18,6 @@ Uso:
 Luego abre: http://localhost:8088
 """
 
-import asyncio
-import json
 import os
 from pathlib import Path
 
@@ -23,62 +25,18 @@ import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
-from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-MODEL_ADAPTER_URL  = os.getenv("MODEL_ADAPTER_URL",  "http://127.0.0.1:8005")
+ORCHESTRATOR_URL   = os.getenv("ORCHESTRATOR_URL",   "http://127.0.0.1:8001")
 TENANT_MANAGER_URL = os.getenv("TENANT_MANAGER_URL", "http://127.0.0.1:8003")
 DEMO_PORT          = int(os.getenv("DEMO_PORT", "8088"))
-ROOT              = Path(__file__).parent
-
-SYSTEM_PROMPT = """Eres NIA, asistente de enoturismo del Centro del Vino Concha y Toro.
-Ayudas a los visitantes a conocer y reservar experiencias en el centro ubicado en Pirque, Chile (≈1 hora de Santiago).
-Responde siempre en español, de forma amigable y concisa (máximo 4 oraciones por respuesta).
-Si no conoces el precio exacto, invita al visitante a contactar directamente al centro.
-
-ACTIVIDADES DISPONIBLES:
-• Visita Guiada Premium (2h) — Horarios: 09:10, 09:40, 10:10, 10:50, 12:00 (+8 más) | Extras: Menú Almuerzo Bodega 1883; Degustación Elixir Casillero del Diablo
-• Visita Guiada Premium + Tasting The New Wines (2h 45min) — Horarios: 12:55, 14:30, 21:00 | Lujo y ocasiones especiales
-• Visita Guiada Premium + Tasting y Maridaje Terrunyo (2h 45min) — Horarios: 11:50, 12:50 | Maridaje gourmet
-• Visita Guiada Premium + Tasting Cellar Collection (2h 45min) — Horarios: 10:00, 13:10, 14:50, 21:00 | Colección de autor
-• Experiencia Nocturna Casillero del Diablo + Cena (3h) — Horarios: 18:30, 19:00, 19:50, 20:20, 20:50, 21:00 | Cena y maridaje
-• Experiencia Nocturna Casillero del Diablo + Maridaje La Gran Barra (3h) — Horarios: 18:00, 18:30, 19:00, 19:50, 20:20, 21:00
-• Visita Guiada Standard (1h 10min) — Horarios: 08:40, 08:50, 09:05, 09:20 (+10 más) | Opción económica
-• Visita Guiada Premium + Tasting Marqués de Casa Concha (2h 45min) — Horarios: 09:30, 09:50, 10:20, 10:40 (+7 más)
-• Visita Guiada Premium + Almuerzo Bodega 1883 (1h 40min) — Horarios: 11:10, 12:30 | Gastronomía
-• Visita Guiada Casa Don Melchor y Parque Histórico + Tasting Amelia (2h) — Horario: 16:10 | Lujo, tasting 5 copas
-• Experiencia Vendimia Concha y Toro 2026 (3h) — Horario: 12:00 | Temporada vendimia
-• Tiny Wine Concerts II (3h) — Horario: 19:00 | Conciertos con vino
-• Tiny Wine Concerts II + Cena (3h) — Horario: 19:00 | Conciertos + cena
-• Bodega 1883 - Almuerzo (1h) — Horarios: 12:30, 12:45, 13:00, 13:15 (+8 más) | Solo gastronomía
-• Bodega 1883 - Cena (1h) — Horarios: 16:00, 16:15, 16:30 (+9 más)
-• Bodega 1883 - Maridaje Terrunyo (1h) — Múltiples horarios desde 12:45
-• Bodega 1883 - La Gran Barra (1h) — Múltiples horarios, amplia disponibilidad
-• Experience The New Wines Shell and Bull (2h 45min) — Horarios: 12:55, 14:30 | Experiencia premium
-• Experiencia Gastronómica Valentine's Day (2h) — Múltiples horarios | Ocasiones especiales
-• Experiencia & Sabores de Semana Santa (3h) — Horarios: 10:30, 11:00, 12:45, 16:30
-• Visita Guiada Premium Privada (2h) — Disponible bajo reserva | Grupos privados
-• Visita Guiada Standard Privada (1h 10min) — Disponible bajo reserva
-• Visita Guiada Premium + Tasting Marqués de Casa Concha Privada (2h 45min) — Privada
-• Visita Guiada Premium + Tasting Cellar Collection Privada (2h 45min) — Privada
-• Bodega 1883 - Almuerzo Semana Santa (3h) — Múltiples horarios
-
-INFORMACIÓN GENERAL:
-- Ubicación: Av. Virginia Subercaseaux 210, Pirque, Región Metropolitana, Chile
-- Distancia desde Santiago: ≈1 hora en auto
-- Rango de edades: La mayoría de tours permiten menores acompañados; consultar por experiencias nocturnas
-- Reservas: A través del asistente NIA o contactando directamente al centro
-"""
-
-# ── Historial en memoria (por session_id) ─────────────────────────────────────
-# Nota: en producción esto está en Redis + orchestrator
-_sessions: dict[str, list[dict]] = {}
+ROOT               = Path(__file__).parent
 
 # ── App ───────────────────────────────────────────────────────────────────────
 
-app = FastAPI(title="NIA Demo Server")
+app = FastAPI(title="NIA Demo Server — Reverse Proxy")
 
 app.add_middleware(
     CORSMiddleware,
@@ -88,43 +46,13 @@ app.add_middleware(
 )
 
 
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    """Middleware de seguridad — CSP, anti-clickjacking, MIME sniffing protection."""
-    response = await call_next(request)
-    
-    # Content Security Policy — permite el widget embed + fuentes externas
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:; "
-        "style-src 'self' 'unsafe-inline' https:; "
-        "font-src 'self' https: data:; "
-        "img-src 'self' https: data:; "
-        "connect-src 'self' https: http://localhost:* http://127.0.0.1:*; "
-        "frame-ancestors 'self'"
-    )
-    
-    # Prevenir MIME sniffing
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    
-    # Prevenir clickjacking
-    response.headers["X-Frame-Options"] = "SAMEORIGIN"
-    
-    # Referrer policy
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    
-    # Permissions policy (restrictivo)
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    
-    return response
-
 # ── Rutas estáticas ────────────────────────────────────────────────────────────
 
 @app.get("/", response_class=HTMLResponse)
 async def serve_demo():
     return (ROOT / "demo.html").read_text()
 
-@app.get("/docs", response_class=HTMLResponse)
+@app.get("/docs/widget", response_class=HTMLResponse)
 async def serve_docs():
     return (ROOT / "packages/widget/docs/index.html").read_text()
 
@@ -133,107 +61,130 @@ async def serve_widget():
     return FileResponse(ROOT / "packages/widget/dist/nia-widget.iife.js",
                         media_type="application/javascript")
 
-# ── Tenant branding — proxy al tenant-manager real ───────────────────────────
 
-# Fallback hardcodeado por si el tenant-manager no está disponible
-_FALLBACK_CONFIG = {
-    "primary_color":        "#5c1a1a",
-    "logo_url":             "https://conchaytoro.com/wp-content/themes/conchaytoro_wp/dist/assets/icons/cyt-logo.svg",
-    "welcome_message":      "¡Hola! Soy NIA 🍷 Tu asistente del Centro del Vino Concha y Toro. ¿En qué puedo ayudarte hoy?",
-    "chat_title":           "NIA — Centro del Vino",
-    "show_welcome_message": True,
-    "input_placeholder":    "Pregunta sobre nuestros tours y experiencias…",
-    "widget_token":         "demo-token",
-    "transcript_url":       "http://localhost:8008",
-    "lead_config":          None,
-}
+# ── Proxy: widget-config (widget llama /tenants/{id}/widget-config) ──────────
+#    El widget NO pone /api en esta ruta, pero el tenant-manager sí,
+#    así que reescribimos la ruta.
 
 @app.get("/tenants/{tenant_id}/widget-config")
 async def widget_config(tenant_id: str):
     """
-    Proxea al tenant-manager real para reflejar cambios de BD al instante.
-    Si el tenant-manager no responde, usa config hardcodeada de fallback.
+    1. Obtiene la config de branding del tenant-manager real.
+    2. Pide un widget-token JWT real (para que el widget se autentique
+       contra el orchestrator).
+    3. Inyecta el token en la respuesta para que el widget lo use.
     """
-    try:
-        async with httpx.AsyncClient(timeout=3) as client:
-            resp = await client.get(
+    async with httpx.AsyncClient(timeout=5) as client:
+        # 1) Branding config
+        try:
+            cfg_resp = await client.get(
                 f"{TENANT_MANAGER_URL}/api/tenants/{tenant_id}/widget-config"
             )
-            if resp.status_code == 200:
-                return JSONResponse(resp.json())
-    except Exception:
-        pass  # caemos al fallback
+            cfg_resp.raise_for_status()
+            config = cfg_resp.json()
+        except Exception as exc:
+            return JSONResponse(
+                {"detail": f"tenant-manager /widget-config error: {exc}"},
+                status_code=502,
+            )
 
-    return JSONResponse(_FALLBACK_CONFIG)
+        # 2) Widget token (JWT real para autenticarse contra orchestrator)
+        try:
+            tok_resp = await client.post(
+                f"{TENANT_MANAGER_URL}/api/tenants/{tenant_id}/widget-token",
+                json={"page_url": "http://localhost:8088"},
+            )
+            tok_resp.raise_for_status()
+            token_data = tok_resp.json().get("data", {})
+            config["widget_token"] = token_data.get("token", "")
+        except Exception:
+            # Si falla el token, el widget arranca sin auth (limitado)
+            config["widget_token"] = ""
 
-# ── Chat proxy → model-adapter ────────────────────────────────────────────────
+    return JSONResponse(config)
+
+
+# ── Proxy: widget-token (por si el widget lo pide directo) ───────────────────
+
+@app.post("/api/tenants/{tenant_id}/widget-token")
+async def proxy_widget_token(tenant_id: str, request: Request):
+    body = await request.body()
+    headers = {"Content-Type": "application/json"}
+    auth = request.headers.get("Authorization")
+    if auth:
+        headers["Authorization"] = auth
+
+    async with httpx.AsyncClient(timeout=5) as client:
+        resp = await client.post(
+            f"{TENANT_MANAGER_URL}/api/tenants/{tenant_id}/widget-token",
+            content=body,
+            headers=headers,
+        )
+    return JSONResponse(resp.json(), status_code=resp.status_code)
+
+
+# ── Proxy: chat → orchestrator ───────────────────────────────────────────────
 
 @app.post("/v1/chat")
-async def chat(req: Request):
-    body = await req.json()
-    message: str = body.get("message", "")
-    session_id: str = body.get("session_id", "default")
+async def proxy_chat(request: Request):
+    """Reenvía el POST /v1/chat al orchestrator real."""
+    body = await request.body()
+    headers = {"Content-Type": "application/json"}
+    auth = request.headers.get("Authorization")
+    if auth:
+        headers["Authorization"] = auth
 
-    # Mantener historial de la sesión
-    history = _sessions.setdefault(session_id, [])
-    history.append({"role": "user", "content": message})
-
-    # Construir payload para el model-adapter
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
-
-    try:
-        async with httpx.AsyncClient(timeout=60) as client:
+    async with httpx.AsyncClient(timeout=60) as client:
+        try:
             resp = await client.post(
-                f"{MODEL_ADAPTER_URL}/v1/chat/completions",
-                json={"messages": messages},
+                f"{ORCHESTRATOR_URL}/v1/chat",
+                content=body,
+                headers=headers,
             )
-            resp.raise_for_status()
-    except httpx.HTTPError as exc:
-        return JSONResponse(
-            {"detail": f"Model adapter error: {exc}"},
-            status_code=502,
-        )
+        except httpx.ConnectError as exc:
+            return JSONResponse(
+                {"detail": f"Orchestrator no disponible: {exc}"},
+                status_code=502,
+            )
 
-    adapter_data = resp.json()
-    assistant_reply: str = adapter_data["data"]["content"]
+    return JSONResponse(resp.json(), status_code=resp.status_code)
 
-    # Guardar respuesta del asistente en historial
-    history.append({"role": "assistant", "content": assistant_reply})
 
-    # Limitar historial a últimas 20 vueltas
-    if len(history) > 40:
-        _sessions[session_id] = history[-40:]
-
-    # Respuesta en el formato que espera el widget
-    return JSONResponse({
-        "data": {
-            "session_id":         session_id,
-            "response":           assistant_reply,
-            "fsm_state":          "chatting",
-            "show_lead_form":     False,
-            "recommendations":    None,
-            "handoff_triggered":  False,
-            "checkout_url":       None,
-        }
-    })
-
-# ── Lead capture (no-op en demo) ──────────────────────────────────────────────
+# ── Proxy: lead capture → orchestrator ───────────────────────────────────────
 
 @app.post("/v1/sessions/{session_id}/lead")
-async def submit_lead(session_id: str, req: Request):
-    body = await req.json()
-    print(f"[DEMO] Lead capturado session={session_id}: {body}")
-    return JSONResponse({"data": {"ok": True}})
+async def proxy_lead(session_id: str, request: Request):
+    body = await request.body()
+    headers = {"Content-Type": "application/json"}
+    auth = request.headers.get("Authorization")
+    if auth:
+        headers["Authorization"] = auth
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        try:
+            resp = await client.post(
+                f"{ORCHESTRATOR_URL}/v1/sessions/{session_id}/lead",
+                content=body,
+                headers=headers,
+            )
+        except httpx.ConnectError:
+            return JSONResponse({"data": {"ok": True}})
+
+    return JSONResponse(resp.json(), status_code=resp.status_code)
 
 # ── Run ───────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     print(f"""
 ╔══════════════════════════════════════════════════╗
-║        NIA Widget Demo Server v1.0               ║
+║    NIA Widget Demo — Reverse Proxy v2.0          ║
 ╠══════════════════════════════════════════════════╣
-║  URL:             http://localhost:{DEMO_PORT}          ║
-║  Model adapter:   {MODEL_ADAPTER_URL}    ║
+║  URL:            http://localhost:{DEMO_PORT}          ║
+║  Orchestrator:   {ORCHESTRATOR_URL:<28s} ║
+║  Tenant Manager: {TENANT_MANAGER_URL:<28s} ║
+║                                                  ║
+║  /v1/chat            → orchestrator (stack real) ║
+║  /tenants/*/config   → tenant-manager            ║
 ╚══════════════════════════════════════════════════╝
 """)
-    uvicorn.run(app, host="0.0.0.0", port=DEMO_PORT, log_level="warning")
+    uvicorn.run(app, host="0.0.0.0", port=DEMO_PORT, log_level="info")

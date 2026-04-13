@@ -209,6 +209,43 @@ async def list_api_keys(
 
 
 # ─────────────────────────────────────────────────────────────────
+# Widget config (público — sin autenticación, para el widget JS)
+# ─────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/{tenant_id}/widget-config",
+    summary="Get public widget branding and lead configuration",
+)
+async def get_widget_config(
+    tenant_id: str,
+    db: AsyncSession = Depends(get_db_session),
+    settings: TenantManagerSettings = Depends(get_settings),
+):
+    """
+    Devuelve la configuración pública del widget: colores, textos, lead_config.
+    No requiere autenticación — es llamado por el widget JS al montar.
+    """
+    tenant = await crud.get_tenant(tenant_id, db)
+    if not tenant or tenant.status != "active":
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found or inactive")
+
+    ui = tenant.ui_config or {}
+    lead = tenant.lead_config or {}
+
+    return {
+        "primary_color":        ui.get("primary_color", "#2563EB"),
+        "logo_url":             ui.get("logo_url"),
+        "chat_title":           ui.get("chat_title", "Asistente Virtual"),
+        "welcome_message":      ui.get("welcome_message", ""),
+        "show_welcome_message": ui.get("show_welcome_message", False),
+        "input_placeholder":    ui.get("input_placeholder", "Escribe un mensaje…"),
+        "widget_token":         "",   # el widget obtiene el JWT real vía /widget-token
+        "transcript_url":       settings.transcript_service_url,
+        "lead_config":          lead if lead.get("enabled") else None,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────
 # Widget token (público — autenticado con API key del tenant)
 # ─────────────────────────────────────────────────────────────────
 

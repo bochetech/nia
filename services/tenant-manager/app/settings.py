@@ -15,6 +15,9 @@ class TenantManagerSettings(BaseServiceSettings):
     super_admin_email: str = "admin@nia.local"
     super_admin_password: str = "changeme"
 
+    # URLs de servicios internos (para referencias en widget-config)
+    transcript_service_url: str = "http://nia_transcript:8008"
+
 
 _settings: TenantManagerSettings | None = None
 

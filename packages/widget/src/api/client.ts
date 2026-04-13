@@ -103,3 +103,29 @@ export async function submitLead(
   });
   if (!res.ok) throw new Error(`Lead submit failed: ${res.status}`);
 }
+
+/**
+ * Solicita al servicio transcript que envíe la conversación por email.
+ * transcriptUrl apunta al servicio transcript (ej: http://localhost:8008)
+ */
+export async function requestTranscriptEmail(
+  transcriptUrl: string,
+  tenantId: string,
+  sessionId: string,
+  toEmail: string,
+  tenantName: string,
+): Promise<void> {
+  const res = await fetch(
+    `${transcriptUrl}/v1/transcripts/${tenantId}/${sessionId}/email`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        to_email: toEmail,
+        subject: `Tu conversación con ${tenantName}`,
+        tenant_name: tenantName,
+      }),
+    },
+  );
+  if (!res.ok) throw new Error(`Transcript email failed: ${res.status}`);
+}

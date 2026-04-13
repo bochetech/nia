@@ -138,11 +138,23 @@ async def serve_widget():
 async def widget_config(tenant_id: str):
     # El widget lee g.primary_color directamente (sin wrapper "data")
     return JSONResponse({
-        "primary_color":   "#5c1a1a",
-        "logo_url":        "https://conchaytoro.com/wp-content/themes/conchaytoro_wp/dist/assets/icons/cyt-logo.svg",
-        "welcome_message": "¡Hola! Soy NIA 🍷 Tu asistente del Centro del Vino Concha y Toro. ¿En qué puedo ayudarte hoy?",
-        "placeholder":     "Pregunta sobre nuestros tours y experiencias…",
-        "widget_token":    "demo-token",
+        "primary_color":        "#5c1a1a",
+        "logo_url":             "https://conchaytoro.com/wp-content/themes/conchaytoro_wp/dist/assets/icons/cyt-logo.svg",
+        "welcome_message":      "¡Hola! Soy NIA 🍷 Tu asistente del Centro del Vino Concha y Toro. ¿En qué puedo ayudarte hoy?",
+        "chat_title":           "NIA — Centro del Vino",
+        "show_welcome_message": True,
+        "input_placeholder":    "Pregunta sobre nuestros tours y experiencias…",
+        "widget_token":         "demo-token",
+        "transcript_url":       "http://localhost:8008",
+        "lead_config": {
+            "enabled": True,
+            "submit_label": "Comenzar chat",
+            "gdpr_consent_text": "Acepto el tratamiento de mis datos según la Política de Privacidad.",
+            "fields": [
+                {"name": "full_name", "type": "text",  "label": "Nombre completo",      "required": True,  "options": None, "validation": None},
+                {"name": "email",     "type": "email", "label": "Correo electrónico",    "required": True,  "options": None, "validation": None},
+            ],
+        },
     })
 
 # ── Chat proxy → model-adapter ────────────────────────────────────────────────

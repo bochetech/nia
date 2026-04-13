@@ -3,6 +3,9 @@ import { useState, useEffect, useRef } from "preact/hooks";
 import { useChat } from "../hooks/useChat.ts";
 import { MessageList } from "./MessageList.tsx";
 import { InputBar } from "./InputBar.tsx";
+import { LeadForm } from "./LeadForm.tsx";
+import { TranscriptOffer } from "./TranscriptOffer.tsx";
+import type { LeadConfig } from "./LeadForm.tsx";
 
 /** Props passed from embed.tsx */
 export interface WidgetProps {
@@ -21,6 +24,8 @@ interface TenantBranding {
   showWelcomeMessage: boolean;
   inputPlaceholder: string;
   token: string;
+  leadConfig: LeadConfig | null;
+  transcriptUrl: string;
 }
 
 const DEFAULT_BRANDING: TenantBranding = {
@@ -31,6 +36,8 @@ const DEFAULT_BRANDING: TenantBranding = {
   showWelcomeMessage: true,
   inputPlaceholder: "Escribe un mensaje…",
   token: "",
+  leadConfig: null,
+  transcriptUrl: "",
 };
 
 /** Generate a stable session ID for this browser tab */
@@ -65,6 +72,8 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
           showWelcomeMessage: data.show_welcome_message ?? DEFAULT_BRANDING.showWelcomeMessage,
           inputPlaceholder: data.input_placeholder ?? DEFAULT_BRANDING.inputPlaceholder,
           token: data.widget_token ?? "",
+          leadConfig: data.lead_config?.enabled ? data.lead_config : null,
+          transcriptUrl: data.transcript_url ?? "",
         });
       })
       .catch(() => {
@@ -76,13 +85,43 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
     messages,
     loading,
     send,
+    submitLeadForm,
+    sendTranscript,
+    showLeadForm: hookShowLead,
+    leadEmail,
+    error: chatError,
   } = useChat({
     apiUrl,
     token: branding.token,
     sessionId,
+    tenantId,
+    transcriptUrl: branding.transcriptUrl,
+    chatTitle: branding.chatTitle,
     // Solo pasar el mensaje inicial si show_welcome_message está activado
     initialMessage: branding.showWelcomeMessage ? branding.welcomeMessage : undefined,
   });
+
+  // El formulario de lead se muestra si la config lo tiene habilitado Y no hay lead
+  // capturado todavía (leadEmail vacío significa que aún no se ha enviado)
+  const showPreChatLead =
+    branding.leadConfig !== null && branding.leadConfig.enabled && !leadEmail;
+
+  // Estado del offer de transcript (idle | sent | error | dismissed)
+  type TranscriptStatus = "idle" | "sent" | "error" | "dismissed";
+  const [transcriptStatus, setTranscriptStatus] = useState<TranscriptStatus>("idle");
+  const [transcriptLoading, setTranscriptLoading] = useState(false);
+
+  async function handleSendTranscript(email: string) {
+    setTranscriptLoading(true);
+    try {
+      await sendTranscript(email);
+      setTranscriptStatus("sent");
+    } catch {
+      setTranscriptStatus("error");
+    } finally {
+      setTranscriptLoading(false);
+    }
+  }
 
   // Track unread when panel is closed
   useEffect(() => {
@@ -96,7 +135,13 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
 
   function toggleOpen() {
     setOpen((v) => {
+      const closing = v; // si era true, estamos cerrando
       if (!v) setUnread(0);
+      // Al cerrar: si hay mensajes y email, mostrar oferta de transcript
+      if (closing && messages.length > 1 && leadEmail && transcriptStatus === "idle") {
+        // No hacer nada especial aquí — el offer se renderiza abajo cuando !open
+        // El estado transcriptStatus ya está en "idle" por defecto
+      }
       return !v;
     });
   }
@@ -132,44 +177,69 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
           ref={panelRef}
           style={cssVars}
         >
-          {/* Header */}
-          <header class="nia-header">
-            {branding.logoUrl ? (
-              <img class="nia-logo" src={branding.logoUrl} alt="Logo" aria-hidden="true" />
-            ) : (
-              <span class="nia-logo-text" aria-hidden="true">🤖</span>
-            )}
-            <span class="nia-header-title">{branding.chatTitle}</span>
-            <button
-              class="nia-close-btn"
-              type="button"
-              aria-label="Cerrar chat"
-              onClick={toggleOpen}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="16" height="16" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          </header>
-
-          {/* Message area */}
-          <div class="nia-body">
-            <MessageList messages={messages} loading={loading} />
-          </div>
-
-          {/* Input area */}
-          <footer class="nia-footer">
-            <InputBar
-              onSend={send}
-              disabled={loading}
-              placeholder={branding.inputPlaceholder}
+          {/* ── FORMULARIO PRE-CHAT ── */}
+          {showPreChatLead && branding.leadConfig ? (
+            <LeadForm
+              config={branding.leadConfig}
+              chatTitle={branding.chatTitle}
+              primaryColor={branding.primaryColor}
+              onSubmit={submitLeadForm}
+              loading={loading}
             />
-            <p class="nia-branding" aria-label="Powered by NIA">
-              Powered by <strong>NIA</strong>
-            </p>
-          </footer>
+          ) : (
+            <Fragment>
+              {/* Header */}
+              <header class="nia-header">
+                {branding.logoUrl ? (
+                  <img class="nia-logo" src={branding.logoUrl} alt="Logo" aria-hidden="true" />
+                ) : (
+                  <span class="nia-logo-text" aria-hidden="true">🤖</span>
+                )}
+                <span class="nia-header-title">{branding.chatTitle}</span>
+                <button
+                  class="nia-close-btn"
+                  type="button"
+                  aria-label="Cerrar chat"
+                  onClick={toggleOpen}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="16" height="16" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              </header>
+
+              {/* Message area */}
+              <div class="nia-body">
+                <MessageList messages={messages} loading={loading} />
+              </div>
+
+              {/* Input area */}
+              <footer class="nia-footer">
+                <InputBar
+                  onSend={send}
+                  disabled={loading}
+                  placeholder={branding.inputPlaceholder}
+                />
+                <p class="nia-branding" aria-label="Powered by NIA">
+                  Powered by <strong>NIA</strong>
+                </p>
+              </footer>
+            </Fragment>
+          )}
         </div>
+      )}
+
+      {/* ── OFERTA DE TRANSCRIPT (aparece flotando sobre el launcher al cerrar) ── */}
+      {!open && messages.length > 1 && leadEmail && transcriptStatus !== "dismissed" && (
+        <TranscriptOffer
+          prefillEmail={leadEmail}
+          primaryColor={branding.primaryColor}
+          onSend={handleSendTranscript}
+          onDismiss={() => setTranscriptStatus("dismissed")}
+          loading={transcriptLoading}
+          status={transcriptStatus as "idle" | "sent" | "error"}
+        />
       )}
 
       {/* Launcher FAB */}

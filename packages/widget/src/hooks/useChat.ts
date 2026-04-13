@@ -2,7 +2,7 @@
  * useChat hook — gestiona el estado de la conversación.
  */
 import { useCallback, useState } from "preact/hooks";
-import { sendMessage, submitLead } from "../api/client";
+import { sendMessage, submitLead, requestTranscriptEmail } from "../api/client";
 import type { ChatMessage, ChatResponse } from "../api/client";
 
 let _msgCounter = 0;
@@ -12,11 +12,14 @@ export interface UseChatOptions {
   apiUrl: string;
   token: string;
   sessionId: string;
+  tenantId: string;
+  transcriptUrl?: string;
+  chatTitle?: string;
   /** Si se pasa, se añade como primer mensaje de tipo 'assistant' al montar. */
   initialMessage?: string;
 }
 
-export function useChat({ apiUrl, token, sessionId, initialMessage }: UseChatOptions) {
+export function useChat({ apiUrl, token, sessionId, tenantId, transcriptUrl, chatTitle, initialMessage }: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     initialMessage
       ? [{ id: newId(), role: "assistant" as const, content: initialMessage, timestamp: Date.now() }]
@@ -28,6 +31,8 @@ export function useChat({ apiUrl, token, sessionId, initialMessage }: UseChatOpt
   const [handoffActive, setHandoffActive] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Email del lead capturado — disponible para pre-rellenar la oferta de transcript */
+  const [leadEmail, setLeadEmail] = useState<string>("");
 
   const addMessage = useCallback(
     (role: "user" | "assistant", content: string, extra: Partial<ChatMessage> = {}) => {
@@ -71,6 +76,9 @@ export function useChat({ apiUrl, token, sessionId, initialMessage }: UseChatOpt
       setLoading(true);
       try {
         await submitLead(apiUrl, token, sessionId, data, gdprConsent);
+        // Guardar el email para la oferta de transcript
+        const email = data["email"] ?? data["correo"] ?? "";
+        if (email) setLeadEmail(email);
         setShowLeadForm(false);
         setFsmState("greeting");
         addMessage("assistant", "¡Gracias! ¿En qué puedo ayudarte hoy?");
@@ -83,6 +91,20 @@ export function useChat({ apiUrl, token, sessionId, initialMessage }: UseChatOpt
     [apiUrl, token, sessionId, addMessage],
   );
 
+  const sendTranscript = useCallback(
+    async (toEmail: string) => {
+      if (!transcriptUrl) throw new Error("transcriptUrl not configured");
+      await requestTranscriptEmail(
+        transcriptUrl,
+        tenantId,
+        sessionId,
+        toEmail,
+        chatTitle ?? "NIA",
+      );
+    },
+    [transcriptUrl, tenantId, sessionId, chatTitle],
+  );
+
   return {
     messages,
     loading,
@@ -91,7 +113,9 @@ export function useChat({ apiUrl, token, sessionId, initialMessage }: UseChatOpt
     handoffActive,
     checkoutUrl,
     error,
+    leadEmail,
     send,
     submitLeadForm,
+    sendTranscript,
   };
 }

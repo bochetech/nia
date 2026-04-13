@@ -8,62 +8,62 @@
       "type": "default"
     },
     {
-      "key": "orchestrator_port",
-      "value": "",
+      "key": "orchestrator_url",
+      "value": "https://api.nia-tourism.com",
       "enabled": true,
       "type": "default"
     },
     {
-      "key": "rag_port",
-      "value": "",
+      "key": "rag_url",
+      "value": "https://api.nia-tourism.com",
       "enabled": true,
       "type": "default"
     },
     {
-      "key": "tenant_manager_port",
-      "value": "",
+      "key": "tenant_manager_url",
+      "value": "https://api.nia-tourism.com",
       "enabled": true,
       "type": "default"
     },
     {
-      "key": "recommender_port",
-      "value": "",
+      "key": "recommender_url",
+      "value": "https://api.nia-tourism.com",
       "enabled": true,
       "type": "default"
     },
     {
-      "key": "model_adapter_port",
-      "value": "",
+      "key": "model_adapter_url",
+      "value": "https://api.nia-tourism.com",
       "enabled": true,
       "type": "default"
     },
     {
-      "key": "checkout_port",
-      "value": "",
+      "key": "checkout_url",
+      "value": "https://api.nia-tourism.com",
       "enabled": true,
       "type": "default"
     },
     {
-      "key": "handoff_port",
-      "value": "",
+      "key": "handoff_url",
+      "value": "https://api.nia-tourism.com",
       "enabled": true,
       "type": "default"
     },
     {
-      "key": "transcript_port",
-      "value": "",
+      "key": "transcript_url",
+      "value": "https://api.nia-tourism.com",
       "enabled": true,
       "type": "default"
     },
     {
-      "key": "fallback_port",
-      "value": "",
+      "key": "fallback_url",
+      "value": "https://api.nia-tourism.com",
       "enabled": true,
       "type": "default"
     },
     {
-      "key": "demo_port",
-      "value": "",
+      "key": "telegram_gateway_url",
+      "value": "https://api.nia-tourism.com",
       "enabled": true,
       "type": "default"
     },
@@ -81,19 +81,25 @@
     },
     {
       "key": "auth_token",
-      "value": "Bearer your-production-jwt-token",
+      "value": "",
       "enabled": true,
       "type": "default"
     },
     {
       "key": "admin_token",
-      "value": "Bearer your-production-admin-token",
+      "value": "",
       "enabled": true,
       "type": "default"
     },
     {
       "key": "api_key",
-      "value": "your-production-api-key",
+      "value": "",
+      "enabled": true,
+      "type": "default"
+    },
+    {
+      "key": "public_url",
+      "value": "https://api.nia-tourism.com",
       "enabled": true,
       "type": "default"
     }

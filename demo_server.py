@@ -97,8 +97,8 @@ async def widget_config(tenant_id: str):
             tok_resp.raise_for_status()
             token_data = tok_resp.json().get("data", {})
             config["widget_token"] = token_data.get("token", "")
-        except Exception:
-            # Si falla el token, el widget arranca sin auth (limitado)
+        except Exception as exc:
+            print(f"[DEMO] widget-token failed: {exc}")
             config["widget_token"] = ""
 
     return JSONResponse(config)

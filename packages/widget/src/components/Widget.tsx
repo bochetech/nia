@@ -5,6 +5,7 @@ import { MessageList } from "./MessageList.tsx";
 import { InputBar } from "./InputBar.tsx";
 import { LeadForm } from "./LeadForm.tsx";
 import { TranscriptOffer } from "./TranscriptOffer.tsx";
+import { SuggestedQuestions } from "./SuggestedQuestions.tsx";
 import type { LeadConfig } from "./LeadForm.tsx";
 
 /** Props passed from embed.tsx */
@@ -26,6 +27,7 @@ interface TenantBranding {
   token: string;
   leadConfig: LeadConfig | null;
   transcriptUrl: string;
+  suggestedQuestions: string[];
 }
 
 const DEFAULT_BRANDING: TenantBranding = {
@@ -38,6 +40,7 @@ const DEFAULT_BRANDING: TenantBranding = {
   token: "",
   leadConfig: null,
   transcriptUrl: "",
+  suggestedQuestions: [],
 };
 
 /** Generate a stable session ID for this browser tab */
@@ -74,12 +77,17 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
           token: data.widget_token ?? "",
           leadConfig: data.lead_config?.enabled ? data.lead_config : null,
           transcriptUrl: data.transcript_url ?? "",
+          suggestedQuestions: Array.isArray(data.suggested_questions) ? data.suggested_questions : [],
         });
       })
       .catch(() => {
         // Fall back to defaults — widget still functional with anonymous token
       });
   }, [tenantId, tenantManagerUrl]);
+
+  // Si hay lead form activo, el welcome se inyecta DESPUÉS de que el usuario
+  // lo envía (en submitLeadForm). Si no hay lead form, lo ponemos directamente.
+  const hasLeadForm = branding.leadConfig !== null && branding.leadConfig?.enabled;
 
   const {
     messages,
@@ -97,8 +105,16 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
     tenantId,
     transcriptUrl: branding.transcriptUrl,
     chatTitle: branding.chatTitle,
-    // Solo pasar el mensaje inicial si show_welcome_message está activado
-    initialMessage: branding.showWelcomeMessage ? branding.welcomeMessage : undefined,
+    // Mostrar welcome inmediatamente solo si NO hay lead form activo
+    initialMessage:
+      branding.showWelcomeMessage && !hasLeadForm
+        ? branding.welcomeMessage
+        : undefined,
+    // Cuando hay lead form, pasamos el welcome para que se inyecte post-submit
+    postLeadMessage:
+      branding.showWelcomeMessage && hasLeadForm
+        ? branding.welcomeMessage
+        : undefined,
   });
 
   // El formulario de lead se muestra si la config lo tiene habilitado Y no hay lead
@@ -212,6 +228,13 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
               {/* Message area */}
               <div class="nia-body">
                 <MessageList messages={messages} loading={loading} />
+                {/* Preguntas sugeridas: solo mientras el usuario no ha enviado nada */}
+                {branding.suggestedQuestions.length > 0 && !messages.some((m) => m.role === "user") && (
+                  <SuggestedQuestions
+                    questions={branding.suggestedQuestions}
+                    onSelect={send}
+                  />
+                )}
               </div>
 
               {/* Input area */}

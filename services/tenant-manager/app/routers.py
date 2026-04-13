@@ -245,6 +245,7 @@ async def get_widget_config(
         "welcome_message":      ui.get("welcome_message", ""),
         "show_welcome_message": ui.get("show_welcome_message", False),
         "input_placeholder":    ui.get("input_placeholder", "Escribe un mensaje…"),
+        "suggested_questions":  ui.get("suggested_questions", []),
         "widget_token":         "",   # el widget obtiene el JWT real vía /widget-token
         "transcript_url":       settings.transcript_service_url,
         "lead_config":          lead if lead.get("enabled") else None,

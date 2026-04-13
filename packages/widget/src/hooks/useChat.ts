@@ -15,11 +15,16 @@ export interface UseChatOptions {
   tenantId: string;
   transcriptUrl?: string;
   chatTitle?: string;
-  /** Si se pasa, se añade como primer mensaje de tipo 'assistant' al montar. */
+  /** Se añade como primer mensaje de tipo 'assistant' al montar (sin lead form). */
   initialMessage?: string;
+  /**
+   * Mensaje de bienvenida que se inyecta DESPUÉS de que el usuario envía el
+   * formulario de lead. Si está definido, reemplaza el "¡Gracias!" hardcoded.
+   */
+  postLeadMessage?: string;
 }
 
-export function useChat({ apiUrl, token, sessionId, tenantId, transcriptUrl, chatTitle, initialMessage }: UseChatOptions) {
+export function useChat({ apiUrl, token, sessionId, tenantId, transcriptUrl, chatTitle, initialMessage, postLeadMessage }: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     initialMessage
       ? [{ id: newId(), role: "assistant" as const, content: initialMessage, timestamp: Date.now() }]
@@ -76,19 +81,19 @@ export function useChat({ apiUrl, token, sessionId, tenantId, transcriptUrl, cha
       setLoading(true);
       try {
         await submitLead(apiUrl, token, sessionId, data, gdprConsent);
-        // Guardar el email para la oferta de transcript
         const email = data["email"] ?? data["correo"] ?? "";
         if (email) setLeadEmail(email);
         setShowLeadForm(false);
         setFsmState("greeting");
-        addMessage("assistant", "¡Gracias! ¿En qué puedo ayudarte hoy?");
+        // Mostrar el mensaje de bienvenida configurado, o el saludo genérico
+        addMessage("assistant", postLeadMessage ?? "¡Gracias! ¿En qué puedo ayudarte hoy?");
       } catch {
         setError("Error al enviar tus datos. Por favor intenta de nuevo.");
       } finally {
         setLoading(false);
       }
     },
-    [apiUrl, token, sessionId, addMessage],
+    [apiUrl, token, sessionId, addMessage, postLeadMessage],
   );
 
   const sendTranscript = useCallback(

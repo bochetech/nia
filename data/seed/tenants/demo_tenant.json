@@ -9,7 +9,13 @@
     "chat_title": "Asistente de Viajes NIA",
     "welcome_message": "¡Hola! Soy NIA, tu asistente de viajes. ¿A dónde quieres escaparte?",
     "show_welcome_message": true,
-    "input_placeholder": "Ej: Quiero un tour de 3 días en la costa…"
+    "input_placeholder": "Ej: Quiero un tour de 3 días en la costa…",
+    "suggested_questions": [
+      "¿Cuál es el horario de la viña Concha y Toro?",
+      "¿Cómo puedo llegar hasta la viña?",
+      "¿Qué tours están disponibles hoy?",
+      "¿Cuánto cuesta la visita guiada?"
+    ]
   },
   "rag_config": {
     "confidence_threshold": 0.6,

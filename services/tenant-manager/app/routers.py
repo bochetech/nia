@@ -90,10 +90,9 @@ async def list_tenants(
     return PaginatedResponse(
         data=items,
         pagination=PaginationMeta(
-            page=page,
-            page_size=page_size,
-            total=total,
-            total_pages=(total + page_size - 1) // page_size,
+            total_returned=len(items),
+            has_more=(offset + len(items)) < total,
+            limit=page_size,
         ),
     )
 

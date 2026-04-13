@@ -205,20 +205,20 @@ async def _route_by_intent(
         break
 
     if matched is None:
-        # Ninguna transición coincide → respuesta genérica DISCOVERY
+        # Ninguna transición coincide → intentar RAG como fallback inteligente
         logger.warning(
             "fsm_no_transition_matched",
             tenant_id=session.tenant_id,
             intent=intent.value,
             state=current_state,
         )
-        return FSMResult(
-            response_text=(
-                "Entiendo. ¿Puedes darme más detalles? Por ejemplo, ¿qué tipo de actividad buscas, "
-                "para cuántas personas y en qué fecha?"
-            ),
-            new_state=ConversationFSMState.DISCOVERY,
+        tenant_name = tenant_config.get("ui_config", {}).get("chat_title", "el centro de turismo")
+        return await _handle_discovery(
+            message=message,
             session=session,
+            tenant_config=tenant_config,
+            settings=settings,
+            tenant_name=tenant_name,
         )
 
     # ── Ejecutar acción ───────────────────────────────────────────────────────
@@ -276,13 +276,12 @@ async def _route_by_intent(
         )
 
     if matched.action == "discovery":
-        return FSMResult(
-            response_text=(
-                "Entiendo. ¿Puedes darme más detalles? Por ejemplo, ¿qué tipo de actividad buscas, "
-                "para cuántas personas y en qué fecha?"
-            ),
-            new_state=ConversationFSMState.DISCOVERY,
+        return await _handle_discovery(
+            message=message,
             session=session,
+            tenant_config=tenant_config,
+            settings=settings,
+            tenant_name=tenant_name,
         )
 
     # Acción desconocida → fallback seguro
@@ -296,6 +295,61 @@ async def _route_by_intent(
         response_text="Ha ocurrido un error al procesar tu solicitud. Por favor, intenta de nuevo.",
         new_state=session.fsm_state,
         session=session,
+    )
+
+
+async def _handle_discovery(
+    *,
+    message: str,
+    session: SessionState,
+    tenant_config: dict,
+    settings: OrchestratorSettings,
+    tenant_name: str,
+) -> FSMResult:
+    """
+    Maneja mensajes ambiguos o de saludo usando el RAG.
+    En vez de un string genérico hardcodeado, consulta la base de conocimiento
+    del tenant para dar una respuesta contextual y útil.
+    Si el RAG no tiene contexto suficiente, usa el LLM con el historial
+    para generar una respuesta de discovery natural.
+    """
+    rag_config = tenant_config.get("rag_config", {})
+    collection_name = f"nia_tenant_{session.tenant_id}_knowledge"
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                f"{settings.rag_service_url}/v1/rag/query",
+                json={
+                    "query": message,
+                    "tenant_id": session.tenant_id,
+                    "collection_name": collection_name,
+                    "tenant_name": tenant_name,
+                },
+            )
+            resp.raise_for_status()
+            rag_result = resp.json()["data"]
+        answer = rag_result.get("answer", "")
+        is_fallback = rag_result.get("is_fallback", True)
+    except Exception as exc:
+        logger.warning("discovery_rag_failed", error=str(exc))
+        answer = ""
+        is_fallback = True
+
+    if is_fallback or not answer.strip():
+        # RAG no encontró contexto útil → respuesta de discovery del LLM
+        answer = rag_config.get(
+            "fallback_message",
+            f"Hola 👋 Soy el asistente de {tenant_name}. ¿Qué tipo de experiencia buscas? "
+            "Puedo recomendarte actividades, horarios y precios.",
+        )
+
+    await transition_state(session, ConversationFSMState.DISCOVERY)
+    return FSMResult(
+        response_text=answer,
+        new_state=ConversationFSMState.DISCOVERY,
+        session=session,
+        rag_answer=answer if not is_fallback else None,
     )
 
 

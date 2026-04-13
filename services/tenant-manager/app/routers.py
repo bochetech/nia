@@ -31,6 +31,7 @@ from shared.models.domain import (
     AIConfig,
     FSMConfig,
     PaymentConfig,
+    TelegramConfig,
 )
 from shared.utils.logging import get_logger
 from shared.utils.responses import APIResponse, PaginatedResponse, PaginationMeta
@@ -475,6 +476,32 @@ async def update_payment_config(
 
     update_data = TenantUpdateRequest(payment_config=config)
     
+    try:
+        tenant = await crud.update_tenant(tenant_id, update_data, db)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+    return APIResponse(data=TenantResponse.model_validate(tenant))
+
+
+@router.patch(
+    "/{tenant_id}/telegram-config",
+    response_model=APIResponse[TenantResponse],
+    summary="Update Telegram channel configuration",
+)
+async def update_telegram_config(
+    tenant_id: str,
+    config: TelegramConfig,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Actualizar configuración del canal de Telegram (bot token, webhook secret, etc.)."""
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+        admin.require_admin()
+
+    update_data = TenantUpdateRequest(telegram_config=config)
+
     try:
         tenant = await crud.update_tenant(tenant_id, update_data, db)
     except ValueError as exc:

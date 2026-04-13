@@ -16,6 +16,7 @@ from shared.models.domain import (
     PaymentConfig,
     RAGConfig,
     TeamsConfig,
+    TelegramConfig,
     TenantPlan,
     TenantStatus,
     UIConfig,
@@ -94,6 +95,10 @@ class TenantCreateRequest(BaseModel):
         default_factory=PaymentConfig,
         description="Checkout con Stripe para reservas de pago. Desactivado por defecto.",
     )
+    telegram_config: TelegramConfig = Field(
+        default_factory=TelegramConfig,
+        description="Canal de Telegram: bot token, webhook secret, lista de chats permitidos. Desactivado por defecto.",
+    )
 
 
 class TenantUpdateRequest(BaseModel):
@@ -115,6 +120,7 @@ class TenantUpdateRequest(BaseModel):
     ai_config: AIConfig | None = Field(None, description="Reemplaza toda la configuración del modelo LLM.")
     fsm_config: FSMConfig | None = Field(None, description="Reemplaza toda la configuración del FSM, incluidas las transiciones.")
     payment_config: PaymentConfig | None = Field(None, description="Reemplaza toda la configuración de pagos.")
+    telegram_config: TelegramConfig | None = Field(None, description="Reemplaza toda la configuración del canal de Telegram.")
 
 
 class TenantResponse(BaseModel):
@@ -136,6 +142,7 @@ class TenantResponse(BaseModel):
     ai_config: dict
     fsm_config: dict
     payment_config: dict
+    telegram_config: dict
     created_at: datetime
     updated_at: datetime
 

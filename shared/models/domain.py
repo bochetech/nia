@@ -689,6 +689,39 @@ class FSMConfig(BaseModel):
 
 
 
+class TelegramConfig(BaseModel):
+    """Configuración del canal de Telegram para un tenant."""
+
+    enabled: bool = Field(
+        default=False,
+        description="Activa o desactiva el canal de Telegram para este tenant.",
+    )
+    bot_token: str = Field(
+        default="",
+        description="Token del bot de Telegram obtenido desde @BotFather. Ej: 123456:ABC-DEF...",
+    )
+    bot_username: str = Field(
+        default="",
+        description="Username del bot sin @. Se usa para mostrar el enlace de inicio.",
+    )
+    webhook_secret: str = Field(
+        default="",
+        description="Token secreto para validar que los webhooks provienen de Telegram (X-Telegram-Bot-Api-Secret-Token).",
+    )
+    allowed_chat_ids: list[int] = Field(
+        default_factory=list,
+        description="Lista blanca de chat_ids permitidos. Si está vacía, acepta cualquier usuario.",
+    )
+    welcome_message: str = Field(
+        default="¡Hola! 👋 Soy tu asistente virtual. ¿En qué puedo ayudarte hoy?",
+        description="Mensaje enviado automáticamente al recibir /start.",
+    )
+    parse_mode: str = Field(
+        default="Markdown",
+        description="Modo de formato de mensajes: Markdown o HTML.",
+    )
+
+
 class TenantConfigDTO(BaseModel):
     tenant_id: str
     version: int
@@ -701,4 +734,5 @@ class TenantConfigDTO(BaseModel):
     ai_config: AIConfig = Field(default_factory=AIConfig)
     fsm_config: FSMConfig = Field(default_factory=FSMConfig)
     payment_config: PaymentConfig = Field(default_factory=PaymentConfig)
+    telegram_config: TelegramConfig = Field(default_factory=TelegramConfig)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

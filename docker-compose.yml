@@ -348,6 +348,36 @@ services:
       timeout: 5s
       retries: 5
 
+  telegram-gateway:
+    build:
+      context: .
+      dockerfile: ./services/telegram-gateway/Dockerfile.dev
+    container_name: nia_telegram_gateway
+    restart: unless-stopped
+    ports:
+      - "8010:8010"
+    environment:
+      - SERVICE_NAME=telegram-gateway
+      - PORT=8010
+      - ORCHESTRATOR_URL=http://nia_orchestrator:8001
+      - TENANT_MANAGER_URL=http://nia_tenant_manager:8003
+    env_file:
+      - .env
+    depends_on:
+      orchestrator:
+        condition: service_healthy
+      tenant-manager:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8010/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.telegram-gateway.rule=PathPrefix(`/webhook`)"
+      - "traefik.http.services.telegram-gateway.loadbalancer.server.port=8010"
+
   # ─────────────────────────────────────────────────────────────────
   # Stubs / Mocks
   # ─────────────────────────────────────────────────────────────────

@@ -60,6 +60,7 @@ async def create_tenant(
         ai_config=data.ai_config.model_dump(),
         fsm_config=data.fsm_config.model_dump(),
         payment_config=data.payment_config.model_dump(),
+        telegram_config=data.telegram_config.model_dump(),
         config_version=1,
     )
 
@@ -133,6 +134,8 @@ async def update_tenant(
         tenant.fsm_config = data.fsm_config.model_dump()
     if data.payment_config is not None:
         tenant.payment_config = data.payment_config.model_dump()
+    if data.telegram_config is not None:
+        tenant.telegram_config = data.telegram_config.model_dump()
 
     tenant.config_version += 1
 

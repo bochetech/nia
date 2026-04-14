@@ -257,6 +257,23 @@ async def _ensure_lead_captured(tenant_id: str, session_id: str, chat_id: int) -
     )
 
 
+def _tenant_display_name(data: dict) -> str:
+    """
+    Extrae el nombre para mostrar de un dict de configuración de tenant.
+    La estructura en Redis usa 'tenant_id' (no 'id') y guarda el nombre
+    en ui_config.chat_title (no en un campo 'name' top-level).
+    Fallback chain: chat_title → header_title → tenant_id
+    """
+    ui = data.get("ui_config", {}) or {}
+    return (
+        ui.get("chat_title")
+        or ui.get("header_title")
+        or data.get("name")
+        or data.get("tenant_id")
+        or data.get("id", "")
+    )
+
+
 async def _get_available_tenants() -> list[dict]:
     """
     Obtiene la lista de tenants activos con Telegram habilitado desde Redis.
@@ -273,10 +290,11 @@ async def _get_available_tenants() -> list[dict]:
             data = json.loads(raw)
             telegram_cfg = data.get("telegram_config", {})
             if telegram_cfg.get("enabled"):
+                tid = data.get("tenant_id") or data.get("id", "")
                 tenants.append({
-                    "id": data.get("id", ""),
-                    "name": data.get("name", ""),
-                    "title": data.get("ui_config", {}).get("header_title") or data.get("name", ""),
+                    "id": tid,
+                    "name": _tenant_display_name(data),
+                    "title": _tenant_display_name(data),
                     "welcome": data.get("ui_config", {}).get("welcome_message", ""),
                 })
         except Exception:
@@ -400,7 +418,7 @@ async def _switch_tenant(
     old_lead_key = f"lead_lock:{current_tenant_id}:{old_session_id}"
     await redis.delete(old_lead_key)
 
-    target_name = target_config.get("ui_config", {}).get("header_title") or target_config.get("name", target_tenant_id)
+    target_name = _tenant_display_name(target_config)
     welcome = target_config.get("ui_config", {}).get("welcome_message", f"¡Hola! Soy el asistente de {target_name}.")
 
     confirm_msg = (
@@ -701,7 +719,7 @@ async def setup_webhook(tenant_id: str, request: Request):
         raw = await redis.get(f"tenant:{tenant_id}:config")
         if raw:
             tenant_data = json.loads(raw)
-            tenant_name = tenant_data.get("ui_config", {}).get("header_title") or tenant_data.get("name", tenant_id)
+            tenant_name = _tenant_display_name(tenant_data)
     except Exception:
         pass
     await _register_bot_commands(bot_token, tenant_name)
@@ -736,10 +754,7 @@ async def on_startup():
             telegram_cfg = data.get("telegram_config", {})
             bot_token = telegram_cfg.get("bot_token", "")
             if telegram_cfg.get("enabled") and bot_token:
-                tenant_name = (
-                    data.get("ui_config", {}).get("header_title")
-                    or data.get("name", "")
-                )
+                tenant_name = _tenant_display_name(data)
                 await _register_bot_commands(bot_token, tenant_name)
     except Exception as exc:
         logger.warning("startup_commands_register_failed", error=str(exc))

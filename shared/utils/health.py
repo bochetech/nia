@@ -32,6 +32,7 @@ def build_health_router(
     """
     router = APIRouter(tags=["ops"])
 
+    @router.get("/health", include_in_schema=False)
     @router.get("/health/live", include_in_schema=False)
     async def liveness():
         return {"status": "alive", "service": service_name}

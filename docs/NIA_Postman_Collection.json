@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "NIA Platform API",
-    "description": "Complete API collection for NIA conversational platform.\nGenerated automatically from live OpenAPI specs.\nServices: 10 | Endpoints: 69\n\n**Quick Start**:\n1. Import this collection into Postman\n2. Run 'Login — obtén un JWT de admin' to get admin_token (auto-saved)\n3. All URLs point to localhost — ready for local development\n\n**Default credentials**: admin@nia.local / changeme",
+    "description": "Complete API collection for NIA conversational platform.\nGenerated automatically from live OpenAPI specs.\nServices: 10 | Endpoints: 69\n\n**Quick Start**:\n1. Import this collection into Postman\n2. Run 'Login — obtén un JWT de admin' to get admin_token (auto-saved)\n3. All URLs point to localhost — ready for local development\n\n**Default credentials**: admin@nia.local / changeme\n\n_Updated: 2026-04-14_",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "nia-auto"
   },
@@ -147,43 +147,6 @@
           ]
         },
         {
-          "name": "Send a message with SSE streaming response",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8001/v1/chat/stream",
-              "host": [
-                "http://localhost:8001"
-              ],
-              "path": [
-                "v1",
-                "chat",
-                "stream"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"message\": \"example_message\",\n  \"stream\": true\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
           "name": "Get current session state",
           "request": {
             "method": "GET",
@@ -246,7 +209,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"data\": {\n    \"full_name\": \"Carlos MVP\",\n    \"email\": \"carlos@example.com\"\n  },\n  \"gdpr_consent\": true\n}",
+              "raw": "{\n  \"lead_data\": {\n    \"full_name\": \"Carlos MVP\",\n    \"email\": \"carlos@example.com\"\n  },\n  \"gdpr_consent\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -367,7 +330,7 @@
           "response": []
         },
         {
-          "name": "Ingest a document into the knowledge base",
+          "name": "Ingest a document (text, Markdown or JSON)",
           "request": {
             "method": "POST",
             "header": [
@@ -390,35 +353,8 @@
                 "rag",
                 "ingest"
               ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Ingest a JSON knowledge base (array of activity/knowledge objects)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8002/v1/rag/ingest-json",
-              "host": [
-                "http://localhost:8002"
-              ],
-              "path": [
-                "v1",
-                "rag",
-                "ingest-json"
-              ]
-            }
+            },
+            "description": "Upload a plain text, Markdown or JSON file. JSON files are auto-detected by extension and converted to text chunks automatically. `collection_name` is optional (defaults to {tenant_id}_docs)."
           },
           "response": []
         },

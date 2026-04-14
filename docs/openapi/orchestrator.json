@@ -2,6 +2,7 @@
     "openapi": "3.1.0",
     "info": {
         "title": "NIA Orchestrator",
+        "description": "Central conversation orchestrator: intent detection, FSM routing, RAG, recommendations and handoff.",
         "version": "1.0.0"
     },
     "paths": {
@@ -26,7 +27,11 @@
         },
         "/v1/chat": {
             "post": {
+                "tags": [
+                    "chat"
+                ],
                 "summary": "Send a message in a conversation session",
+                "description": "Main chat endpoint. Authenticated with a widget JWT (`Authorization: Bearer <token>`).\n\nThe JWT is issued by the tenant-manager via `POST /api/tenants/{tenant_id}/widget-token`\nand encodes the `session_id` and `tenant_id` \u2014 no need to pass them in the body.",
                 "operationId": "chat_v1_chat_post",
                 "requestBody": {
                     "content": {
@@ -67,51 +72,13 @@
                 ]
             }
         },
-        "/v1/chat/stream": {
-            "post": {
-                "summary": "Send a message with SSE streaming response",
-                "description": "Streaming via Server-Sent Events.",
-                "operationId": "chat_stream_v1_chat_stream_post",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/ChatRequest"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "HTTPBearer": []
-                    }
-                ]
-            }
-        },
         "/v1/sessions/{session_id}/lead": {
             "post": {
+                "tags": [
+                    "chat"
+                ],
                 "summary": "Submit lead capture form",
+                "description": "Submit the lead capture form for the current session.\nCalled by the widget after the user fills in their contact data.\nThe JWT session_id is used as the canonical session identity.",
                 "operationId": "submit_lead_v1_sessions__session_id__lead_post",
                 "security": [
                     {
@@ -165,7 +132,11 @@
         },
         "/v1/sessions/{session_id}": {
             "get": {
+                "tags": [
+                    "chat"
+                ],
                 "summary": "Get current session state",
+                "description": "Returns the FSM state and metadata for the current session.",
                 "operationId": "get_session_v1_sessions__session_id__get",
                 "security": [
                     {
@@ -189,7 +160,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/APIResponse_dict_"
+                                    "$ref": "#/components/schemas/APIResponse_SessionStateResponse_"
                                 }
                             }
                         }
@@ -201,25 +172,6 @@
                                 "schema": {
                                     "$ref": "#/components/schemas/HTTPValidationError"
                                 }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/health": {
-            "get": {
-                "tags": [
-                    "ops"
-                ],
-                "summary": "Health",
-                "operationId": "health_health_get",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
                             }
                         }
                     }
@@ -252,6 +204,29 @@
                 ],
                 "title": "APIResponse[ChatResponse]"
             },
+            "APIResponse_SessionStateResponse_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/SessionStateResponse"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[SessionStateResponse]"
+            },
             "APIResponse_dict_": {
                 "properties": {
                     "data": {
@@ -281,18 +256,16 @@
                     "message": {
                         "type": "string",
                         "title": "Message"
-                    },
-                    "stream": {
-                        "type": "boolean",
-                        "title": "Stream",
-                        "default": false
                     }
                 },
                 "type": "object",
                 "required": [
                     "message"
                 ],
-                "title": "ChatRequest"
+                "title": "ChatRequest",
+                "example": {
+                    "message": "\u00bfCu\u00e1l es el horario de la vi\u00f1a?"
+                }
             },
             "ChatResponse": {
                 "properties": {
@@ -404,9 +377,9 @@
             },
             "LeadSubmitRequest": {
                 "properties": {
-                    "data": {
+                    "lead_data": {
                         "type": "object",
-                        "title": "Data"
+                        "title": "Lead Data"
                     },
                     "gdpr_consent": {
                         "type": "boolean",
@@ -416,9 +389,16 @@
                 },
                 "type": "object",
                 "required": [
-                    "data"
+                    "lead_data"
                 ],
-                "title": "LeadSubmitRequest"
+                "title": "LeadSubmitRequest",
+                "example": {
+                    "gdpr_consent": true,
+                    "lead_data": {
+                        "email": "maria@example.com",
+                        "full_name": "Mar\u00eda Garc\u00eda"
+                    }
+                }
             },
             "ResponseMeta": {
                 "properties": {
@@ -438,6 +418,55 @@
                 },
                 "type": "object",
                 "title": "ResponseMeta"
+            },
+            "SessionStateResponse": {
+                "properties": {
+                    "session_id": {
+                        "type": "string",
+                        "title": "Session Id"
+                    },
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "fsm_state": {
+                        "type": "string",
+                        "title": "Fsm State"
+                    },
+                    "messages_count": {
+                        "type": "integer",
+                        "title": "Messages Count"
+                    },
+                    "lead_captured": {
+                        "type": "boolean",
+                        "title": "Lead Captured"
+                    },
+                    "last_intent": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Last Intent"
+                    },
+                    "tokens_used": {
+                        "type": "integer",
+                        "title": "Tokens Used",
+                        "default": 0
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "session_id",
+                    "tenant_id",
+                    "fsm_state",
+                    "messages_count",
+                    "lead_captured"
+                ],
+                "title": "SessionStateResponse"
             },
             "ValidationError": {
                 "properties": {

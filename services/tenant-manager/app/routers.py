@@ -425,7 +425,7 @@ async def list_intents(
         intents = [IntentDefinition(**i) if isinstance(i, dict) else i for i in raw_intents]
     else:
         # Return defaults so the caller can see what's active
-        from services.orchestrator.app.flow_defaults import DEFAULT_INTENTS
+        from shared.models.flow_defaults import DEFAULT_INTENTS
         intents = DEFAULT_INTENTS
 
     return APIResponse(data=intents)
@@ -457,7 +457,7 @@ async def create_intent(
 
     # If empty, bootstrap with defaults so we don't lose the base intents
     if not raw_intents:
-        from services.orchestrator.app.flow_defaults import DEFAULT_INTENTS
+        from shared.models.flow_defaults import DEFAULT_INTENTS
         raw_intents = [i.model_dump() for i in DEFAULT_INTENTS]
 
     # Check for duplicate key
@@ -500,7 +500,7 @@ async def update_intent(
 
     # If no custom intents, bootstrap with defaults
     if not raw_intents:
-        from services.orchestrator.app.flow_defaults import DEFAULT_INTENTS
+        from shared.models.flow_defaults import DEFAULT_INTENTS
         raw_intents = [i.model_dump() for i in DEFAULT_INTENTS]
 
     # Find the intent
@@ -626,7 +626,7 @@ async def list_transitions(
     if raw_transitions:
         transitions = [FlowTransition(**t) if isinstance(t, dict) else t for t in raw_transitions]
     else:
-        from services.orchestrator.app.flow_defaults import DEFAULT_TRANSITIONS
+        from shared.models.flow_defaults import DEFAULT_TRANSITIONS
         transitions = DEFAULT_TRANSITIONS
 
     return APIResponse(data=transitions)
@@ -659,7 +659,7 @@ async def replace_transitions(
         valid_keys = {i["key"] for i in raw_intents}
     else:
         # Use default intent keys
-        from services.orchestrator.app.flow_defaults import DEFAULT_INTENTS
+        from shared.models.flow_defaults import DEFAULT_INTENTS
         valid_keys = {i.key for i in DEFAULT_INTENTS}
 
     # Validate all actions are known
@@ -714,7 +714,7 @@ async def list_skills(
     if raw_skills:
         skills = [SkillConfig(**s) if isinstance(s, dict) else s for s in raw_skills]
     else:
-        from services.orchestrator.app.flow_defaults import DEFAULT_SKILLS
+        from shared.models.flow_defaults import DEFAULT_SKILLS
         skills = DEFAULT_SKILLS
 
     return APIResponse(data=skills)
@@ -742,7 +742,7 @@ async def get_skill(
     if raw_skills:
         skills = [SkillConfig(**s) if isinstance(s, dict) else s for s in raw_skills]
     else:
-        from services.orchestrator.app.flow_defaults import DEFAULT_SKILLS
+        from shared.models.flow_defaults import DEFAULT_SKILLS
         skills = DEFAULT_SKILLS
 
     for skill in skills:
@@ -804,7 +804,7 @@ async def upsert_skill(
 
     # If empty, bootstrap from defaults
     if not raw_skills:
-        from services.orchestrator.app.flow_defaults import DEFAULT_SKILLS
+        from shared.models.flow_defaults import DEFAULT_SKILLS
         raw_skills = [s.model_dump() for s in DEFAULT_SKILLS]
 
     # Upsert: replace if exists, append if new
@@ -859,7 +859,7 @@ async def patch_skill(
 
     # If empty, bootstrap from defaults
     if not raw_skills:
-        from services.orchestrator.app.flow_defaults import DEFAULT_SKILLS
+        from shared.models.flow_defaults import DEFAULT_SKILLS
         raw_skills = [s.model_dump() for s in DEFAULT_SKILLS]
 
     # Find and update
@@ -943,7 +943,7 @@ async def delete_skill(
 
 @router.patch(
     "/{tenant_id}/teams-config",
-    response_model=APIResponse[TenantResponse],
+    response_model=APIResponse[TeamsConfig],
     summary="Update Teams integration configuration",
 )
 async def update_teams_config(
@@ -964,12 +964,12 @@ async def update_teams_config(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
-    return APIResponse(data=TenantResponse.model_validate(tenant))
+    return APIResponse(data=TeamsConfig(**(tenant.teams_config or {})))
 
 
 @router.patch(
     "/{tenant_id}/email-config",
-    response_model=APIResponse[TenantResponse],
+    response_model=APIResponse[EmailConfig],
     summary="Update email/SMTP configuration",
 )
 async def update_email_config(
@@ -990,12 +990,12 @@ async def update_email_config(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
-    return APIResponse(data=TenantResponse.model_validate(tenant))
+    return APIResponse(data=EmailConfig(**(tenant.email_config or {})))
 
 
 @router.patch(
     "/{tenant_id}/ai-config",
-    response_model=APIResponse[TenantResponse],
+    response_model=APIResponse[AIConfig],
     summary="Update AI model configuration",
 )
 async def update_ai_config(
@@ -1016,12 +1016,12 @@ async def update_ai_config(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
-    return APIResponse(data=TenantResponse.model_validate(tenant))
+    return APIResponse(data=AIConfig(**(tenant.ai_config or {})))
 
 
 @router.patch(
     "/{tenant_id}/fsm-config",
-    response_model=APIResponse[TenantResponse],
+    response_model=APIResponse[FSMConfig],
     summary="Update conversation state machine configuration",
 )
 async def update_fsm_config(
@@ -1042,12 +1042,12 @@ async def update_fsm_config(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
-    return APIResponse(data=TenantResponse.model_validate(tenant))
+    return APIResponse(data=FSMConfig(**(tenant.fsm_config or {})))
 
 
 @router.patch(
     "/{tenant_id}/payment-config",
-    response_model=APIResponse[TenantResponse],
+    response_model=APIResponse[PaymentConfig],
     summary="Update payment/checkout configuration",
 )
 async def update_payment_config(
@@ -1068,12 +1068,12 @@ async def update_payment_config(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
-    return APIResponse(data=TenantResponse.model_validate(tenant))
+    return APIResponse(data=PaymentConfig(**(tenant.payment_config or {})))
 
 
 @router.patch(
     "/{tenant_id}/telegram-config",
-    response_model=APIResponse[TenantResponse],
+    response_model=APIResponse[TelegramConfig],
     summary="Update Telegram channel configuration",
 )
 async def update_telegram_config(
@@ -1094,4 +1094,4 @@ async def update_telegram_config(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
-    return APIResponse(data=TenantResponse.model_validate(tenant))
+    return APIResponse(data=TelegramConfig(**(tenant.telegram_config or {})))

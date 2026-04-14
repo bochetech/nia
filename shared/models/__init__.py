@@ -1,4 +1,9 @@
 """Shared domain models."""
+from shared.models.flow_defaults import (
+    DEFAULT_INTENTS,
+    DEFAULT_SKILLS,
+    DEFAULT_TRANSITIONS,
+)
 from shared.models.domain import (
     AIConfig,
     AvailabilitySlot,
@@ -69,4 +74,8 @@ __all__ = [
     "BookingIntentDTO",
     "CheckoutSessionDTO",
     "HandoffCaseDTO",
+    # flow defaults
+    "DEFAULT_INTENTS",
+    "DEFAULT_TRANSITIONS",
+    "DEFAULT_SKILLS",
 ]

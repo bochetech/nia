@@ -956,6 +956,295 @@
                 }
             }
         },
+        "/api/tenants/{tenant_id}/skills": {
+            "get": {
+                "tags": [
+                    "tenants"
+                ],
+                "summary": "List skill configs for a tenant",
+                "description": "Returns the skill configurations for this tenant.\n\nEach skill config defines how the AI prepares to execute a particular action:\nentity extraction schema, preparation prompt, and response templates.\n\nIf the tenant has no custom skill configs, returns the NIA defaults.",
+                "operationId": "list_skills_api_tenants__tenant_id__skills_get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Tenant Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_list_SkillConfig__"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/tenants/{tenant_id}/skills/{action_key}": {
+            "get": {
+                "tags": [
+                    "tenants"
+                ],
+                "summary": "Get skill config for a specific action",
+                "description": "Returns the skill configuration for a specific action.",
+                "operationId": "get_skill_api_tenants__tenant_id__skills__action_key__get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Tenant Id"
+                        }
+                    },
+                    {
+                        "name": "action_key",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Action Key"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_SkillConfig_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "tags": [
+                    "tenants"
+                ],
+                "summary": "Create or replace skill config for an action",
+                "description": "Create or replace the skill configuration for a specific action.\n\nThis endpoint lets you configure:\n- **entity_schema**: What entities the AI should extract from user messages\n  for this action (e.g., date, number of guests, activity type).\n- **preparation_prompt**: Instructions for the AI on how to extract entities.\n- **response_templates**: Customizable response text patterns (success, error, empty, followup).\n\nExample: For a hotel tenant's `recommend` skill, you might configure\nentity_schema to extract check_in_date, check_out_date, room_type, and guests\ninstead of the default tourism entities (activity_type, date, pax_count).",
+                "operationId": "upsert_skill_api_tenants__tenant_id__skills__action_key__put",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Tenant Id"
+                        }
+                    },
+                    {
+                        "name": "action_key",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Action Key"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SkillConfig"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_SkillConfig_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "tags": [
+                    "tenants"
+                ],
+                "summary": "Partially update skill config for an action",
+                "description": "Partially update the skill configuration for a specific action.\nOnly the provided fields will be updated.\n\nUseful for updating just the entity_schema or response_templates\nwithout replacing the entire skill config.",
+                "operationId": "patch_skill_api_tenants__tenant_id__skills__action_key__patch",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Tenant Id"
+                        }
+                    },
+                    {
+                        "name": "action_key",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Action Key"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "title": "Updates"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_SkillConfig_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "tenants"
+                ],
+                "summary": "Reset skill config for an action to defaults",
+                "description": "Remove the custom skill configuration for a specific action,\nreverting it to NIA defaults.",
+                "operationId": "delete_skill_api_tenants__tenant_id__skills__action_key__delete",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Tenant Id"
+                        }
+                    },
+                    {
+                        "name": "action_key",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Action Key"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/tenants/{tenant_id}/teams-config": {
             "patch": {
                 "tags": [
@@ -996,7 +1285,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/APIResponse_TenantResponse_"
+                                    "$ref": "#/components/schemas/APIResponse_TeamsConfig_"
                                 }
                             }
                         }
@@ -1054,7 +1343,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/APIResponse_TenantResponse_"
+                                    "$ref": "#/components/schemas/APIResponse_EmailConfig_"
                                 }
                             }
                         }
@@ -1112,7 +1401,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/APIResponse_TenantResponse_"
+                                    "$ref": "#/components/schemas/APIResponse_AIConfig_"
                                 }
                             }
                         }
@@ -1159,7 +1448,7 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/FSMConfig"
+                                "$ref": "#/components/schemas/FSMConfig-Input"
                             }
                         }
                     }
@@ -1170,7 +1459,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/APIResponse_TenantResponse_"
+                                    "$ref": "#/components/schemas/APIResponse_FSMConfig_"
                                 }
                             }
                         }
@@ -1228,7 +1517,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/APIResponse_TenantResponse_"
+                                    "$ref": "#/components/schemas/APIResponse_PaymentConfig_"
                                 }
                             }
                         }
@@ -1286,7 +1575,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/APIResponse_TenantResponse_"
+                                    "$ref": "#/components/schemas/APIResponse_TelegramConfig_"
                                 }
                             }
                         }
@@ -1399,6 +1688,29 @@
                 "title": "AIConfig",
                 "description": "Configuraci\u00f3n del modelo de lenguaje (LLM) y comportamiento de generaci\u00f3n de respuestas."
             },
+            "APIResponse_AIConfig_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/AIConfig"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[AIConfig]"
+            },
             "APIResponse_ApiKeyCreateResponse_": {
                 "properties": {
                     "data": {
@@ -1422,6 +1734,52 @@
                 ],
                 "title": "APIResponse[ApiKeyCreateResponse]"
             },
+            "APIResponse_EmailConfig_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/EmailConfig"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[EmailConfig]"
+            },
+            "APIResponse_FSMConfig_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/FSMConfig-Output"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[FSMConfig]"
+            },
             "APIResponse_IntentDefinition_": {
                 "properties": {
                     "data": {
@@ -1444,6 +1802,98 @@
                     "data"
                 ],
                 "title": "APIResponse[IntentDefinition]"
+            },
+            "APIResponse_PaymentConfig_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/PaymentConfig"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[PaymentConfig]"
+            },
+            "APIResponse_SkillConfig_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/SkillConfig"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[SkillConfig]"
+            },
+            "APIResponse_TeamsConfig_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/TeamsConfig"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[TeamsConfig]"
+            },
+            "APIResponse_TelegramConfig_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/TelegramConfig"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[TelegramConfig]"
             },
             "APIResponse_TenantConfigDTO_": {
                 "properties": {
@@ -1617,6 +2067,33 @@
                     "data"
                 ],
                 "title": "APIResponse[list[IntentDefinition]]"
+            },
+            "APIResponse_list_SkillConfig__": {
+                "properties": {
+                    "data": {
+                        "items": {
+                            "$ref": "#/components/schemas/SkillConfig"
+                        },
+                        "type": "array",
+                        "title": "Data"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[list[SkillConfig]]"
             },
             "ApiKeyCreateRequest": {
                 "properties": {
@@ -1822,7 +2299,65 @@
                 "title": "EmailConfig",
                 "description": "Configuraci\u00f3n SMTP para env\u00edo de emails transaccionales (confirmaciones, res\u00famenes, handoff)."
             },
-            "FSMConfig": {
+            "EntityField": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "maxLength": 50,
+                        "minLength": 1,
+                        "pattern": "^[a-z][a-z0-9_]*$",
+                        "title": "Name",
+                        "description": "Nombre del campo (snake_case). Se usa como clave JSON en el resultado de extracci\u00f3n."
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Type",
+                        "description": "Tipo de dato esperado: string, integer, float, date, boolean, enum. El LLM lo usa como hint para el formato de la respuesta.",
+                        "default": "string"
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 300,
+                        "minLength": 5,
+                        "title": "Description",
+                        "description": "Descripci\u00f3n del campo para el LLM. Explica qu\u00e9 dato extraer y en qu\u00e9 formato."
+                    },
+                    "required": {
+                        "type": "boolean",
+                        "title": "Required",
+                        "description": "Si true, el LLM intentar\u00e1 siempre extraer este campo. Si no puede, devuelve null.",
+                        "default": false
+                    },
+                    "default": {
+                        "title": "Default",
+                        "description": "Valor por defecto si el LLM no puede extraer el campo del mensaje."
+                    },
+                    "enum_values": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Enum Values",
+                        "description": "Valores permitidos cuando type='enum'. Ej: ['morning', 'afternoon', 'evening']."
+                    },
+                    "examples": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Examples",
+                        "description": "Ejemplos de valores v\u00e1lidos para este campo. Ayudan al LLM con few-shot extraction."
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "description"
+                ],
+                "title": "EntityField",
+                "description": "Defines a single entity that the LLM should extract from the user message\nwhen preparing to execute a skill/action.\n\nThe field name becomes the JSON key in the extraction output.\nThe LLM uses `description` and `examples` to understand what to extract.\n\nExample:\n    EntityField(\n        name=\"check_in_date\",\n        type=\"date\",\n        description=\"Fecha de ingreso al hotel en formato YYYY-MM-DD\",\n        required=True,\n        examples=[\"2025-03-15\", \"ma\u00f1ana\", \"el pr\u00f3ximo viernes\"],\n    )"
+            },
+            "FSMConfig-Input": {
                 "properties": {
                     "intents": {
                         "items": {
@@ -1885,6 +2420,91 @@
                         "title": "Auto Close After Minutes",
                         "description": "Minutos tras los que una sesi\u00f3n en estado HANDOFF_ACTIVE sin actividad se cierra autom\u00e1ticamente.",
                         "default": 60
+                    },
+                    "skills": {
+                        "items": {
+                            "$ref": "#/components/schemas/SkillConfig"
+                        },
+                        "type": "array",
+                        "title": "Skills",
+                        "description": "Configuraci\u00f3n de skills/acciones para este tenant. Cada entrada define qu\u00e9 entidades extraer, qu\u00e9 instrucciones darle a la IA y qu\u00e9 plantillas de respuesta usar para cada acci\u00f3n. Si est\u00e1 vac\u00eda, el orquestador usa los skills NIA por defecto (DEFAULT_SKILLS)."
+                    }
+                },
+                "type": "object",
+                "title": "FSMConfig",
+                "description": "Configuraci\u00f3n de la m\u00e1quina de estados de la conversaci\u00f3n (FSM)."
+            },
+            "FSMConfig-Output": {
+                "properties": {
+                    "intents": {
+                        "items": {
+                            "$ref": "#/components/schemas/IntentDefinition"
+                        },
+                        "type": "array",
+                        "title": "Intents",
+                        "description": "Lista de intents configurados para este tenant. Cada intent define una intenci\u00f3n del usuario que el LLM puede detectar. Si est\u00e1 vac\u00eda, el orquestador usa los 8 intents NIA por defecto (booking_intent, faq_query, complaint, out_of_scope, unclear, product_inquiry, human_request, nps_response)."
+                    },
+                    "transitions": {
+                        "items": {
+                            "$ref": "#/components/schemas/FlowTransition"
+                        },
+                        "type": "array",
+                        "title": "Transitions",
+                        "description": "Tabla de transiciones personalizada del flujo de conversaci\u00f3n. Cada entrada define qu\u00e9 hace el bot cuando detecta un intent desde un estado dado. Si est\u00e1 vac\u00eda, el orquestador usa el flujo NIA por defecto (DEFAULT_TRANSITIONS)."
+                    },
+                    "states_enabled": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "States Enabled",
+                        "description": "Estados FSM activos para este tenant. Desactivar un estado lo excluye del flujo posible."
+                    },
+                    "max_conversation_turns": {
+                        "type": "integer",
+                        "title": "Max Conversation Turns",
+                        "description": "M\u00e1ximo de turnos (pares usuario/bot) antes de cerrar la conversaci\u00f3n autom\u00e1ticamente.",
+                        "default": 50
+                    },
+                    "session_timeout_minutes": {
+                        "type": "integer",
+                        "title": "Session Timeout Minutes",
+                        "description": "Minutos de inactividad antes de expirar la sesi\u00f3n en Redis. Por defecto 8 horas.",
+                        "default": 480
+                    },
+                    "nps_enabled": {
+                        "type": "boolean",
+                        "title": "Nps Enabled",
+                        "description": "Si true, al cerrar la conversaci\u00f3n el bot pregunta al usuario una puntuaci\u00f3n NPS del 1 al 5.",
+                        "default": true
+                    },
+                    "post_chat_delay_seconds": {
+                        "type": "integer",
+                        "title": "Post Chat Delay Seconds",
+                        "description": "Segundos de espera tras el \u00faltimo mensaje antes de pasar al estado POST_CHAT y lanzar la encuesta NPS.",
+                        "default": 300
+                    },
+                    "handoff_triggers": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Handoff Triggers",
+                        "description": "Eventos que pueden disparar un handoff a asesor humano. Valores: 'complaint' (queja), 'unresolved' (RAG sin respuesta repetido), 'explicit_request' (el usuario lo pide)."
+                    },
+                    "auto_close_after_minutes": {
+                        "type": "integer",
+                        "title": "Auto Close After Minutes",
+                        "description": "Minutos tras los que una sesi\u00f3n en estado HANDOFF_ACTIVE sin actividad se cierra autom\u00e1ticamente.",
+                        "default": 60
+                    },
+                    "skills": {
+                        "items": {
+                            "$ref": "#/components/schemas/SkillConfig"
+                        },
+                        "type": "array",
+                        "title": "Skills",
+                        "description": "Configuraci\u00f3n de skills/acciones para este tenant. Cada entrada define qu\u00e9 entidades extraer, qu\u00e9 instrucciones darle a la IA y qu\u00e9 plantillas de respuesta usar para cada acci\u00f3n. Si est\u00e1 vac\u00eda, el orquestador usa los skills NIA por defecto (DEFAULT_SKILLS)."
                     }
                 },
                 "type": "object",
@@ -2383,6 +3003,64 @@
                 "type": "object",
                 "title": "ResponseMeta"
             },
+            "SkillConfig": {
+                "properties": {
+                    "action": {
+                        "type": "string",
+                        "title": "Action",
+                        "description": "Clave del ActionType al que aplica esta configuraci\u00f3n. Debe coincidir con uno de los valores del enum ActionType (faq, recommend, handoff, nps, complaint, static_reply, discovery)."
+                    },
+                    "name": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "title": "Name",
+                        "description": "Nombre legible del skill. Se muestra en dashboards.",
+                        "default": ""
+                    },
+                    "description": {
+                        "type": "string",
+                        "maxLength": 500,
+                        "title": "Description",
+                        "description": "Descripci\u00f3n de lo que hace este skill para el tenant.",
+                        "default": ""
+                    },
+                    "entity_schema": {
+                        "items": {
+                            "$ref": "#/components/schemas/EntityField"
+                        },
+                        "type": "array",
+                        "title": "Entity Schema",
+                        "description": "Schema de entidades que la IA debe extraer del mensaje del usuario antes de ejecutar este skill. Se inyecta en el prompt de detecci\u00f3n de intents. Si est\u00e1 vac\u00edo, se usan los campos por defecto (IntentEntities)."
+                    },
+                    "preparation_prompt": {
+                        "type": "string",
+                        "maxLength": 1000,
+                        "title": "Preparation Prompt",
+                        "description": "Instrucciones adicionales para la IA al preparar la ejecuci\u00f3n de este skill. Se agrega al system prompt del clasificador de intents cuando la acci\u00f3n detectada requiere extracci\u00f3n de entidades. Ej: 'Extrae preferencias de habitaci\u00f3n: tipo, fecha check-in/check-out y n\u00famero de hu\u00e9spedes'.",
+                        "default": ""
+                    },
+                    "response_templates": {
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "type": "object",
+                        "title": "Response Templates",
+                        "description": "Plantillas de texto para las respuestas del skill. Claves est\u00e1ndar: 'success' (resultado exitoso), 'empty' (sin resultados), 'error' (fallo), 'followup' (pregunta de seguimiento). El handler puede usar str.format() con variables de contexto."
+                    },
+                    "enabled": {
+                        "type": "boolean",
+                        "title": "Enabled",
+                        "description": "Si false, el skill est\u00e1 desactivado para este tenant.",
+                        "default": true
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "action"
+                ],
+                "title": "SkillConfig",
+                "description": "Configuraci\u00f3n de un skill/action para un tenant.\n\nCada tenant puede personalizar c\u00f3mo la IA prepara y ejecuta cada skill.\nEsto incluye:\n  - Qu\u00e9 entidades extraer del mensaje del usuario (entity_schema)\n  - Instrucciones espec\u00edficas para la IA (preparation_prompt)\n  - Plantillas de respuesta personalizables (response_templates)\n\nExample:\n    SkillConfig(\n        action=\"recommend\",\n        name=\"Recomendador de experiencias\",\n        entity_schema=[\n            EntityField(name=\"activity_type\", type=\"string\", description=\"Tipo de actividad tur\u00edstica\"),\n            EntityField(name=\"date\", type=\"date\", description=\"Fecha deseada en formato YYYY-MM-DD\"),\n            EntityField(name=\"pax_count\", type=\"integer\", description=\"N\u00famero de personas\"),\n        ],\n        preparation_prompt=\"Extrae las preferencias del usuario para buscar actividades tur\u00edsticas.\",\n        response_templates={\n            \"success\": \"Te recomiendo estas opciones:\",\n            \"empty\": \"No encontr\u00e9 actividades que coincidan. \u00bfQuieres ampliar la b\u00fasqueda?\",\n            \"error\": \"Estoy teniendo dificultades. \u00bfPuedes intentarlo de nuevo?\",\n        },\n    )"
+            },
             "TeamsConfig": {
                 "properties": {
                     "enabled": {
@@ -2519,7 +3197,7 @@
                         "$ref": "#/components/schemas/AIConfig"
                     },
                     "fsm_config": {
-                        "$ref": "#/components/schemas/FSMConfig"
+                        "$ref": "#/components/schemas/FSMConfig-Output"
                     },
                     "payment_config": {
                         "$ref": "#/components/schemas/PaymentConfig"
@@ -2631,7 +3309,7 @@
                     "fsm_config": {
                         "allOf": [
                             {
-                                "$ref": "#/components/schemas/FSMConfig"
+                                "$ref": "#/components/schemas/FSMConfig-Input"
                             }
                         ],
                         "description": "M\u00e1quina de estados de la conversaci\u00f3n: timeouts, NPS, y tabla de transiciones personalizada. Si transitions est\u00e1 vac\u00edo, se usa el flujo NIA por defecto."
@@ -3025,7 +3703,7 @@
                     "fsm_config": {
                         "anyOf": [
                             {
-                                "$ref": "#/components/schemas/FSMConfig"
+                                "$ref": "#/components/schemas/FSMConfig-Input"
                             },
                             {
                                 "type": "null"

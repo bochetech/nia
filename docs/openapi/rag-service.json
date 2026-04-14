@@ -2,7 +2,7 @@
     "openapi": "3.1.0",
     "info": {
         "title": "NIA RAG Service",
-        "description": "Ingestion and retrieval-augmented generation for tourism knowledge bases",
+        "description": "Ingestion and retrieval-augmented generation for tenant knowledge bases. Supports plain text, Markdown and JSON documents.",
         "version": "1.0.0"
     },
     "paths": {
@@ -27,7 +27,11 @@
         },
         "/v1/rag/query": {
             "post": {
+                "tags": [
+                    "rag"
+                ],
                 "summary": "Query the RAG knowledge base",
+                "description": "Query the knowledge base for a tenant and return an LLM-generated answer\ngrounded in the retrieved chunks.\n\n`collection_name` defaults to `{tenant_id}_docs` if not provided.",
                 "operationId": "rag_query_v1_rag_query_post",
                 "requestBody": {
                     "content": {
@@ -65,7 +69,11 @@
         },
         "/v1/rag/ingest": {
             "post": {
+                "tags": [
+                    "rag"
+                ],
                 "summary": "Ingest a document into the knowledge base",
+                "description": "Ingest a document into the tenant knowledge base.\n\n- **Plain text / Markdown** (`.txt`, `.md`): chunked by paragraph and embedded.\n- **JSON file** (`.json`): auto-detected. Each top-level object becomes one chunk.\n  Supports a root array `[{...}]` or a dict with one list value `{\"items\": [{...}]}`.\n\n`collection_name` defaults to `{tenant_id}_docs`.",
                 "operationId": "ingest_v1_rag_ingest_post",
                 "requestBody": {
                     "content": {
@@ -101,48 +109,13 @@
                 }
             }
         },
-        "/v1/rag/ingest-json": {
-            "post": {
-                "summary": "Ingest a JSON knowledge base (array of activity/knowledge objects)",
-                "description": "Acepta un JSON cuya ra\u00edz es una lista de objetos. Cada objeto se convierte\nen un chunk de texto incluyendo todos sus campos key-value.\n\nEjemplo de estructura soportada (demo_knowledge.json):\n  [{\"id\": \"1\", \"name\": \"Tour del Valle\", \"description\": \"...\", ...}, ...]",
-                "operationId": "ingest_json_v1_rag_ingest_json_post",
-                "requestBody": {
-                    "content": {
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/Body_ingest_json_v1_rag_ingest_json_post"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "201": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/APIResponse_IngestResponse_"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/v1/rag/documents/{doc_id}": {
             "delete": {
+                "tags": [
+                    "rag"
+                ],
                 "summary": "Delete all chunks for a document",
+                "description": "Delete all vector chunks associated with a specific document ID.\n`collection_name` defaults to `{tenant_id}_docs`.",
                 "operationId": "delete_document_v1_rag_documents__doc_id__delete",
                 "parameters": [
                     {
@@ -166,9 +139,10 @@
                     {
                         "name": "collection_name",
                         "in": "query",
-                        "required": true,
+                        "required": false,
                         "schema": {
                             "type": "string",
+                            "default": "",
                             "title": "Collection Name"
                         }
                     }
@@ -178,7 +152,9 @@
                         "description": "Successful Response",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_DeleteResponse_"
+                                }
                             }
                         }
                     },
@@ -194,29 +170,33 @@
                     }
                 }
             }
-        },
-        "/health": {
-            "get": {
-                "tags": [
-                    "ops"
-                ],
-                "summary": "Health",
-                "operationId": "health_health_get",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                }
-            }
         }
     },
     "components": {
         "schemas": {
+            "APIResponse_DeleteResponse_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/DeleteResponse"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[DeleteResponse]"
+            },
             "APIResponse_IngestResponse_": {
                 "properties": {
                     "data": {
@@ -263,53 +243,52 @@
                 ],
                 "title": "APIResponse[RAGQueryResult]"
             },
-            "Body_ingest_json_v1_rag_ingest_json_post": {
-                "properties": {
-                    "tenant_id": {
-                        "type": "string",
-                        "title": "Tenant Id"
-                    },
-                    "collection_name": {
-                        "type": "string",
-                        "title": "Collection Name"
-                    },
-                    "file": {
-                        "type": "string",
-                        "format": "binary",
-                        "title": "File"
-                    }
-                },
-                "type": "object",
-                "required": [
-                    "tenant_id",
-                    "collection_name",
-                    "file"
-                ],
-                "title": "Body_ingest_json_v1_rag_ingest_json_post"
-            },
             "Body_ingest_v1_rag_ingest_post": {
                 "properties": {
                     "tenant_id": {
                         "type": "string",
                         "title": "Tenant Id"
                     },
-                    "collection_name": {
-                        "type": "string",
-                        "title": "Collection Name"
-                    },
                     "file": {
                         "type": "string",
                         "format": "binary",
                         "title": "File"
+                    },
+                    "collection_name": {
+                        "type": "string",
+                        "title": "Collection Name",
+                        "default": ""
                     }
                 },
                 "type": "object",
                 "required": [
                     "tenant_id",
-                    "collection_name",
                     "file"
                 ],
                 "title": "Body_ingest_v1_rag_ingest_post"
+            },
+            "DeleteResponse": {
+                "properties": {
+                    "deleted": {
+                        "type": "boolean",
+                        "title": "Deleted"
+                    },
+                    "doc_id": {
+                        "type": "string",
+                        "title": "Doc Id"
+                    },
+                    "collection_name": {
+                        "type": "string",
+                        "title": "Collection Name"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "deleted",
+                    "doc_id",
+                    "collection_name"
+                ],
+                "title": "DeleteResponse"
             },
             "HATEOASLink": {
                 "properties": {
@@ -370,6 +349,10 @@
                     "tenant_id": {
                         "type": "string",
                         "title": "Tenant Id"
+                    },
+                    "collection_name": {
+                        "type": "string",
+                        "title": "Collection Name"
                     }
                 },
                 "type": "object",
@@ -377,7 +360,8 @@
                     "doc_id",
                     "filename",
                     "chunks_created",
-                    "tenant_id"
+                    "tenant_id",
+                    "collection_name"
                 ],
                 "title": "IngestResponse"
             },
@@ -392,22 +376,32 @@
                         "title": "Tenant Id"
                     },
                     "collection_name": {
-                        "type": "string",
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
                         "title": "Collection Name"
                     },
                     "tenant_name": {
                         "type": "string",
                         "title": "Tenant Name",
-                        "default": "el centro de turismo"
+                        "default": "el asistente"
                     }
                 },
                 "type": "object",
                 "required": [
                     "query",
-                    "tenant_id",
-                    "collection_name"
+                    "tenant_id"
                 ],
-                "title": "QueryRequest"
+                "title": "QueryRequest",
+                "example": {
+                    "query": "\u00bfCu\u00e1l es el horario de la vi\u00f1a?",
+                    "tenant_id": "demo_turismo"
+                }
             },
             "RAGChunkSource": {
                 "properties": {

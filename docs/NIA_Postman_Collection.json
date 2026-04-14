@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "NIA Platform API",
-    "description": "Complete API collection for NIA conversational platform.\nGenerated automatically from live OpenAPI specs.\nServices: 10 | Endpoints: 56\n\n**Setup**: Import NIA-Environment-Development.json, set admin_token via POST /auth/token.",
+    "description": "Complete API collection for NIA conversational platform.\nGenerated automatically from live OpenAPI specs.\nServices: 10 | Endpoints: 63\n\n**Setup**: Import NIA-Environment-Development.json, set admin_token via POST /auth/token.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "nia-auto"
   },
@@ -536,7 +536,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"id\": \"demo_turismo\",\n  \"name\": \"Demo Turismo SA\",\n  \"contact_email\": \"demo@turismo.com\",\n  \"plan\": \"professional\",\n  \"ui_config\": {\n    \"primary_color\": \"#0f766e\",\n    \"logo_url\": null,\n    \"chat_title\": \"Asistente de Viajes NIA\",\n    \"welcome_message\": \"¡Hola! Soy NIA, tu asistente de viajes. ¿A dónde quieres escaparte?\",\n    \"show_welcome_message\": true,\n    \"input_placeholder\": \"Ej: Quiero un tour de 3 días en la costa…\",\n    \"suggested_questions\": [\n      \"¿Cuál es el horario de la viña Concha y Toro?\",\n      \"¿Cómo puedo llegar hasta la viña?\",\n      \"¿Qué tours están disponibles hoy?\",\n      \"¿Cuánto cuesta la visita guiada?\"\n    ]\n  },\n  \"lead_config\": {\n    \"enabled\": true,\n    \"submit_label\": \"Comenzar chat\",\n    \"gdpr_consent_text\": null,\n    \"fields\": [\n      {\n        \"name\": \"full_name\",\n        \"type\": \"text\",\n        \"label\": \"Nombre completo\",\n        \"required\": true,\n        \"options\": null,\n        \"validation\": null\n      },\n      {\n        \"name\": \"email\",\n        \"type\": \"email\",\n        \"label\": \"Correo electrónico\",\n        \"required\": true,\n        \"options\": null,\n        \"validation\": null\n      }\n    ]\n  },\n  \"rag_config\": {\n    \"confidence_threshold\": 0.6,\n    \"max_tokens_response\": 600,\n    \"fallback_message\": \"No tengo información precisa sobre eso. ¿Te gustaría hablar con un asesor?\",\n    \"top_k_retrieval\": 8\n  },\n  \"ai_config\": {\n    \"primary_provider\": \"lmstudio\",\n    \"primary_model\": \"llama-3.2-3b-instruct\",\n    \"temperature\": 0.3\n  },\n  \"fsm_config\": {\n    \"nps_enabled\": true,\n    \"max_conversation_turns\": 50,\n    \"session_timeout_minutes\": 480,\n    \"transitions\": []\n  },\n  \"limits_config\": null,\n  \"teams_config\": null,\n  \"email_config\": null,\n  \"payment_config\": null,\n  \"telegram_config\": null\n}",
+              "raw": "{\n  \"id\": \"demo_turismo\",\n  \"name\": \"Demo Turismo SA\",\n  \"contact_email\": \"demo@turismo.com\",\n  \"plan\": \"professional\",\n  \"ui_config\": {\n    \"primary_color\": \"#0f766e\",\n    \"logo_url\": null,\n    \"chat_title\": \"Asistente de Viajes NIA\",\n    \"welcome_message\": \"¡Hola! Soy NIA, tu asistente de viajes. ¿A dónde quieres escaparte?\",\n    \"show_welcome_message\": true,\n    \"input_placeholder\": \"Ej: Quiero un tour de 3 días en la costa…\",\n    \"suggested_questions\": [\n      \"¿Cuál es el horario de la viña Concha y Toro?\",\n      \"¿Cómo puedo llegar hasta la viña?\",\n      \"¿Qué tours están disponibles hoy?\",\n      \"¿Cuánto cuesta la visita guiada?\"\n    ]\n  },\n  \"lead_config\": {\n    \"enabled\": true,\n    \"submit_label\": \"Comenzar chat\",\n    \"gdpr_consent_text\": null,\n    \"fields\": [\n      {\n        \"name\": \"full_name\",\n        \"type\": \"text\",\n        \"label\": \"Nombre completo\",\n        \"required\": true,\n        \"options\": null,\n        \"validation\": null\n      },\n      {\n        \"name\": \"email\",\n        \"type\": \"email\",\n        \"label\": \"Correo electrónico\",\n        \"required\": true,\n        \"options\": null,\n        \"validation\": null\n      }\n    ]\n  },\n  \"rag_config\": {\n    \"confidence_threshold\": 0.6,\n    \"max_tokens_response\": 600,\n    \"fallback_message\": \"No tengo información precisa sobre eso. ¿Te gustaría hablar con un asesor?\",\n    \"top_k_retrieval\": 8\n  },\n  \"ai_config\": {\n    \"primary_provider\": \"lmstudio\",\n    \"primary_model\": \"llama-3.2-3b-instruct\",\n    \"temperature\": 0.3\n  },\n  \"fsm_config\": {\n    \"intents\": [\n      {\n        \"key\": \"booking_intent\",\n        \"name\": \"Reserva / Booking\",\n        \"description\": \"El usuario quiere reservar, agendar o comprar una experiencia turística.\",\n        \"examples\": [\n          \"Quiero reservar\",\n          \"¿Cómo agendo?\"\n        ],\n        \"enabled\": true,\n        \"priority\": 1\n      },\n      {\n        \"key\": \"faq_query\",\n        \"name\": \"Pregunta frecuente\",\n        \"description\": \"El usuario hace una pregunta informativa general sobre servicios o ubicación.\",\n        \"examples\": [\n          \"¿Cuál es el horario?\",\n          \"¿Dónde queda?\"\n        ],\n        \"enabled\": true,\n        \"priority\": 2\n      }\n    ],\n    \"transitions\": [\n      {\n        \"from_state\": \"greeting\",\n        \"intent\": \"booking_intent\",\n        \"action\": \"recommend\",\n        \"to_state\": \"recommending\"\n      },\n      {\n        \"from_state\": \"greeting\",\n        \"intent\": \"faq_query\",\n        \"action\": \"faq\",\n        \"to_state\": \"faq_answer\"\n      }\n    ],\n    \"max_conversation_turns\": 50,\n    \"session_timeout_minutes\": 480,\n    \"nps_enabled\": true,\n    \"post_chat_delay_seconds\": 30,\n    \"auto_close_after_minutes\": 60\n  },\n  \"limits_config\": null,\n  \"teams_config\": null,\n  \"email_config\": null,\n  \"payment_config\": null,\n  \"telegram_config\": null\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -899,7 +899,289 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"states_enabled\": [],\n  \"max_conversation_turns\": 1,\n  \"session_timeout_minutes\": 1,\n  \"nps_enabled\": true,\n  \"post_chat_delay_seconds\": 1,\n  \"handoff_triggers\": [],\n  \"auto_close_after_minutes\": 1,\n  \"transitions\": []\n}",
+              "raw": "{\n  \"intents\": [\n    {\n      \"key\": \"booking_intent\",\n      \"name\": \"Reserva / Booking\",\n      \"description\": \"El usuario quiere reservar, agendar o comprar una experiencia, tour o servicio.\",\n      \"examples\": [\n        \"Quiero reservar\",\n        \"¿Cómo agendo un tour?\",\n        \"Me gustaría comprar entradas\"\n      ],\n      \"enabled\": true,\n      \"priority\": 1\n    },\n    {\n      \"key\": \"faq_query\",\n      \"name\": \"Pregunta frecuente\",\n      \"description\": \"El usuario hace una pregunta informativa general sobre horarios, precios, ubicación, etc.\",\n      \"examples\": [\n        \"¿Cuál es el horario?\",\n        \"¿Dónde queda?\",\n        \"¿Cuánto cuesta?\"\n      ],\n      \"enabled\": true,\n      \"priority\": 2\n    }\n  ],\n  \"transitions\": [\n    {\n      \"from_state\": \"greeting\",\n      \"intent\": \"booking_intent\",\n      \"action\": \"recommend\",\n      \"to_state\": \"recommending\"\n    },\n    {\n      \"from_state\": \"greeting\",\n      \"intent\": \"faq_query\",\n      \"action\": \"faq\",\n      \"to_state\": \"faq_answer\"\n    }\n  ],\n  \"states_enabled\": [],\n  \"max_conversation_turns\": 50,\n  \"session_timeout_minutes\": 480,\n  \"nps_enabled\": true,\n  \"post_chat_delay_seconds\": 30,\n  \"handoff_triggers\": [\n    \"hablar con humano\",\n    \"agente real\"\n  ],\n  \"auto_close_after_minutes\": 60\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List intents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/intents",
+              "host": [
+                "{{tenant_manager_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "intents"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/intents",
+              "host": [
+                "{{tenant_manager_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "intents"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"menu_question\",\n  \"name\": \"Consulta de menú\",\n  \"description\": \"El usuario pregunta sobre la carta, opciones gastronómicas o maridajes.\",\n  \"examples\": [\n    \"¿Tienen carta de vinos?\",\n    \"¿Qué opciones de almuerzo ofrecen?\"\n  ],\n  \"priority\": 4,\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update intent",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/intents/:intent_key",
+              "host": [
+                "{{tenant_manager_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "intents",
+                ":intent_key"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                },
+                {
+                  "key": "intent_key",
+                  "value": "menu_question"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"description\": \"Nueva descripción del intent.\",\n  \"priority\": 5,\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete intent",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/intents/:intent_key",
+              "host": [
+                "{{tenant_manager_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "intents",
+                ":intent_key"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                },
+                {
+                  "key": "intent_key",
+                  "value": "menu_question"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List actions (skills)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/actions",
+              "host": [
+                "{{tenant_manager_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "actions"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List transitions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/transitions",
+              "host": [
+                "{{tenant_manager_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "transitions"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Replace transitions",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/transitions",
+              "host": [
+                "{{tenant_manager_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                ":tenant_id",
+                "transitions"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenant_id}}"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"intent\": \"faq_query\",\n    \"from_states\": [],\n    \"to_state\": \"faq_answer\",\n    \"action\": \"faq\",\n    \"enabled\": true\n  },\n  {\n    \"intent\": \"booking_intent\",\n    \"from_states\": [],\n    \"to_state\": \"recommending\",\n    \"action\": \"recommend\",\n    \"enabled\": true\n  }\n]",
               "options": {
                 "raw": {
                   "language": "json"

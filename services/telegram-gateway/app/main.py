@@ -423,6 +423,44 @@ async def _get_preferred_tenant(chat_id: int, default_tenant_id: str) -> str:
     return pref.decode() if pref else default_tenant_id
 
 
+async def _register_bot_commands(bot_token: str, tenant_name: str = "") -> bool:
+    """
+    Registra los comandos del bot en Telegram mediante setMyCommands.
+    Esto hace que aparezcan en el menú '/' del cliente Telegram de forma nativa.
+    Devuelve True si el registro fue exitoso.
+    """
+    name_hint = f" de {tenant_name}" if tenant_name else ""
+    commands = [
+        {
+            "command": "start",
+            "description": f"👋 Iniciar conversación con el asistente{name_hint}",
+        },
+        {
+            "command": "tenant",
+            "description": "🤖 Ver y cambiar de asistente disponible",
+        },
+        {
+            "command": "reset",
+            "description": "🔄 Reiniciar la conversación desde cero",
+        },
+    ]
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.post(
+            f"https://api.telegram.org/bot{bot_token}/setMyCommands",
+            json={"commands": commands},
+        )
+        result = resp.json()
+    if result.get("ok"):
+        logger.info("bot_commands_registered", tenant=tenant_name, count=len(commands))
+    else:
+        logger.warning(
+            "bot_commands_register_failed",
+            tenant=tenant_name,
+            error=result.get("description"),
+        )
+    return bool(result.get("ok"))
+
+
 async def _call_orchestrator(
     token: str,
     message: str,
@@ -576,6 +614,14 @@ async def _process_message(tenant_id: str, chat_id: int, text: str, cfg: dict) -
     # pre_chat y permite que el orchestrator use el flujo RAG completo.
     await _ensure_lead_captured(tenant_id, session_id, chat_id)
 
+    # Mostrar indicador "escribiendo…" mientras el orchestrator procesa.
+    # Telegram lo mantiene visible ~5 s; si la respuesta tarda más se repetiría
+    # automáticamente, pero en la práctica el LLM responde en < 5 s.
+    await _send_telegram_message(cfg["bot_token"], "sendChatAction", {
+        "chat_id": chat_id,
+        "action": "typing",
+    })
+
     try:
         nia_response = await _call_orchestrator(token, text, session_id)
     except Exception as exc:
@@ -648,6 +694,18 @@ async def setup_webhook(tenant_id: str, request: Request):
     if not result.get("ok"):
         raise HTTPException(status_code=502, detail=f"Telegram API error: {result.get('description')}")
 
+    # Registrar los comandos del bot (/start, /tenant, /reset) en el menú nativo de Telegram
+    tenant_name = ""
+    try:
+        redis = await get_redis()
+        raw = await redis.get(f"tenant:{tenant_id}:config")
+        if raw:
+            tenant_data = json.loads(raw)
+            tenant_name = tenant_data.get("ui_config", {}).get("header_title") or tenant_data.get("name", tenant_id)
+    except Exception:
+        pass
+    await _register_bot_commands(bot_token, tenant_name)
+
     logger.info("webhook_registered", tenant_id=tenant_id, url=webhook_url)
     return {
         "ok": True,
@@ -664,6 +722,27 @@ async def setup_webhook(tenant_id: str, request: Request):
 async def on_startup():
     init_redis(settings.redis_url)
     logger.info("telegram_gateway_starting", port=settings.port)
+
+    # Registrar comandos automáticamente en todos los bots ya configurados en Redis.
+    # Esto garantiza que el menú '/' aparezca incluso sin volver a llamar a /setup.
+    try:
+        redis = await get_redis()
+        keys = await redis.keys("tenant:*:config")
+        for key in keys:
+            raw = await redis.get(key)
+            if not raw:
+                continue
+            data = json.loads(raw)
+            telegram_cfg = data.get("telegram_config", {})
+            bot_token = telegram_cfg.get("bot_token", "")
+            if telegram_cfg.get("enabled") and bot_token:
+                tenant_name = (
+                    data.get("ui_config", {}).get("header_title")
+                    or data.get("name", "")
+                )
+                await _register_bot_commands(bot_token, tenant_name)
+    except Exception as exc:
+        logger.warning("startup_commands_register_failed", error=str(exc))
 
 
 @app.on_event("shutdown")

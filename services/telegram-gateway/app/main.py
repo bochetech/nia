@@ -438,7 +438,11 @@ async def _get_preferred_tenant(chat_id: int, default_tenant_id: str) -> str:
     """Devuelve el tenant activo preferido para este chat_id, o el default."""
     redis = await get_redis()
     pref = await redis.get(f"tg_tenant_pref:{chat_id}")
-    return pref.decode() if pref else default_tenant_id
+    if not pref:
+        return default_tenant_id
+    if isinstance(pref, bytes):
+        return pref.decode()
+    return str(pref)
 
 
 async def _register_bot_commands(bot_token: str, tenant_name: str = "") -> bool:

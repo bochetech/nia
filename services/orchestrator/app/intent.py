@@ -272,7 +272,16 @@ async def detect_intent(
                 },
             )
             resp.raise_for_status()
-            content = resp.json()["data"]["content"]
+            resp_data = resp.json()["data"]
+            content = resp_data.get("content", "")
+
+            # Reasoning models (Gemma 4, DeepSeek-R1, etc.) may return an empty
+            # `content` because all tokens were consumed by the internal thinking
+            # block. Fall back to `reasoning_content` which often contains the JSON.
+            if not content or not content.strip():
+                content = resp_data.get("reasoning_content", "")
+                if content:
+                    logger.debug("intent_using_reasoning_content", tenant_id=tenant_id)
 
         parsed = _parse_intent_response(content)
         intent_str = parsed.get("intent", "unclear")

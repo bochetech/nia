@@ -22,6 +22,10 @@ class RAGSettings(BaseServiceSettings):
     min_confidence_threshold: float = 0.65
     groundedness_check_enabled: bool = True
 
+    # Embed model names (for metadata/logging only)
+    lm_studio_embed_model: str = "text-embedding-nomic-embed-text-v1.5"
+    vertex_ai_embed_model: str = "textembedding-gecko@003"
+
     # Semantic cache
     semantic_cache_enabled: bool = True
     semantic_cache_similarity_threshold: float = 0.92

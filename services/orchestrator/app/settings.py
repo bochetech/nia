@@ -13,7 +13,7 @@ class OrchestratorSettings(BaseServiceSettings):
 
     # Intent detection
     intent_detection_temperature: float = 0.0
-    intent_max_tokens: int = 200
+    intent_max_tokens: int = 1000  # must be high enough for reasoning models (Gemma, DeepSeek, etc.)
 
     # Thresholds
     complaint_handoff_threshold: int = 2  # N complaints → handoff

@@ -4,7 +4,8 @@
   "private": true,
   "description": "NIA — Nodo de Inteligencia Activa para Turismo SaaS",
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "apps/*"
   ],
   "scripts": {
     "dev": "docker compose up --build",
@@ -13,7 +14,9 @@
     "seed": "bash scripts/seed.sh",
     "test": "bash scripts/test-all.sh",
     "widget:dev": "npm run dev --workspace=packages/widget",
-    "widget:build": "npm run build --workspace=packages/widget"
+    "widget:build": "npm run build --workspace=packages/widget",
+    "admin:dev": "npm run dev --workspace=apps/admin",
+    "admin:build": "npm run build --workspace=apps/admin"
   },
   "engines": {
     "node": ">=20.0.0"

@@ -1,0 +1,139 @@
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "dynamicRoutes": [
+    {
+      "page": "/api/auth/[...nextauth]",
+      "regex": "^/api/auth/(.+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPnextauth": "nxtPnextauth"
+      },
+      "namedRegex": "^/api/auth/(?<nxtPnextauth>.+?)(?:/)?$"
+    },
+    {
+      "page": "/dashboard/tenants/[tenantId]/analytics",
+      "regex": "^/dashboard/tenants/([^/]+?)/analytics(?:/)?$",
+      "routeKeys": {
+        "nxtPtenantId": "nxtPtenantId"
+      },
+      "namedRegex": "^/dashboard/tenants/(?<nxtPtenantId>[^/]+?)/analytics(?:/)?$"
+    },
+    {
+      "page": "/dashboard/tenants/[tenantId]/channels",
+      "regex": "^/dashboard/tenants/([^/]+?)/channels(?:/)?$",
+      "routeKeys": {
+        "nxtPtenantId": "nxtPtenantId"
+      },
+      "namedRegex": "^/dashboard/tenants/(?<nxtPtenantId>[^/]+?)/channels(?:/)?$"
+    },
+    {
+      "page": "/dashboard/tenants/[tenantId]/config",
+      "regex": "^/dashboard/tenants/([^/]+?)/config(?:/)?$",
+      "routeKeys": {
+        "nxtPtenantId": "nxtPtenantId"
+      },
+      "namedRegex": "^/dashboard/tenants/(?<nxtPtenantId>[^/]+?)/config(?:/)?$"
+    },
+    {
+      "page": "/dashboard/tenants/[tenantId]/fsm",
+      "regex": "^/dashboard/tenants/([^/]+?)/fsm(?:/)?$",
+      "routeKeys": {
+        "nxtPtenantId": "nxtPtenantId"
+      },
+      "namedRegex": "^/dashboard/tenants/(?<nxtPtenantId>[^/]+?)/fsm(?:/)?$"
+    },
+    {
+      "page": "/dashboard/tenants/[tenantId]/knowledge",
+      "regex": "^/dashboard/tenants/([^/]+?)/knowledge(?:/)?$",
+      "routeKeys": {
+        "nxtPtenantId": "nxtPtenantId"
+      },
+      "namedRegex": "^/dashboard/tenants/(?<nxtPtenantId>[^/]+?)/knowledge(?:/)?$"
+    },
+    {
+      "page": "/dashboard/tenants/[tenantId]/skills",
+      "regex": "^/dashboard/tenants/([^/]+?)/skills(?:/)?$",
+      "routeKeys": {
+        "nxtPtenantId": "nxtPtenantId"
+      },
+      "namedRegex": "^/dashboard/tenants/(?<nxtPtenantId>[^/]+?)/skills(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/dashboard",
+      "regex": "^/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard(?:/)?$"
+    },
+    {
+      "page": "/login",
+      "regex": "^/login(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/login(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "RSC",
+    "varyHeader": "RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch",
+    "prefetchHeader": "Next-Router-Prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "Next-Router-Segment-Prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments"
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  },
+  "rewrites": [
+    {
+      "source": "/api/proxy/tenant-manager/:path*",
+      "destination": "http://localhost:8003/api/:path*",
+      "regex": "^/api/proxy/tenant-manager(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+    },
+    {
+      "source": "/api/proxy/orchestrator/:path*",
+      "destination": "http://localhost:8001/v1/:path*",
+      "regex": "^/api/proxy/orchestrator(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+    },
+    {
+      "source": "/api/proxy/rag/:path*",
+      "destination": "http://localhost:8002/v1/rag/:path*",
+      "regex": "^/api/proxy/rag(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+    },
+    {
+      "source": "/api/proxy/transcript/:path*",
+      "destination": "http://localhost:8008/v1/transcripts/:path*",
+      "regex": "^/api/proxy/transcript(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))?(?:/)?$"
+    }
+  ]
+}

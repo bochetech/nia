@@ -5,6 +5,8 @@ Implementa las transiciones de estado para la conversación.
 from __future__ import annotations
 
 import asyncio
+import json
+import time
 from typing import Any
 
 import httpx
@@ -13,6 +15,7 @@ from app.flow_defaults import DEFAULT_TRANSITIONS
 from app.intent import detect_intent, get_skill_config
 from app.session import get_or_create_session, save_session, transition_state
 from app.settings import OrchestratorSettings
+from shared.db.redis_client import get_redis
 from shared.models.domain import (
     ConversationFSMState,
     ConversationTurn,
@@ -29,6 +32,18 @@ from shared.utils.sanitizer import sanitize_user_message
 logger = get_logger(__name__)
 
 MAX_HISTORY_TURNS = 10  # Máximo de turnos a mantener en Redis
+
+
+async def _publish_trace(tenant_id: str, session_id: str, event: dict) -> None:
+    """Publish a FSM trace event to Redis pub/sub for the live Admin Console trace overlay."""
+    try:
+        redis = await get_redis()
+        channel = f"nia:trace:{tenant_id}:{session_id}"
+        event["ts"] = time.time()
+        await redis.publish(channel, json.dumps(event))
+    except Exception:
+        pass  # Trace is best-effort — never block the conversation
+
 
 
 class FSMResult:
@@ -122,6 +137,14 @@ async def process_message(
     # Helper to get intent as plain string
     intent_value = intent.value if isinstance(intent, IntentType) else str(intent)
 
+    # Publish intent detection trace event
+    asyncio.create_task(_publish_trace(tenant_id, session_id, {
+        "type": "intent_detected",
+        "intent": intent_value,
+        "confidence": confidence,
+        "fsm_state": session.fsm_state.value if isinstance(session.fsm_state, ConversationFSMState) else str(session.fsm_state),
+    }))
+
     # 6. Routing por intent
     result = await _route_by_intent(
         message=clean_message,
@@ -137,6 +160,14 @@ async def process_message(
     # 7. Guardar turno en historial de la sesión (en Redis)
     _append_turn(session, user_msg=clean_message, assistant_msg=result.response_text, intent=intent_value)
     await save_session(session)
+
+    # Publish FSM transition trace event
+    asyncio.create_task(_publish_trace(tenant_id, session_id, {
+        "type": "fsm_transition",
+        "to": result.new_state.value if isinstance(result.new_state, ConversationFSMState) else str(result.new_state),
+        "handoff": result.handoff_triggered,
+        "action": result.metadata.get("action") if result.metadata else None,
+    }))
 
     # 8. Fire-and-forget: persistir mensajes en transcript service
     asyncio.create_task(
@@ -236,6 +267,15 @@ async def _route_by_intent(
 
     # Resolve skill config for the matched action
     skill = get_skill_config(matched.action, tenant_config)
+
+    # Publish skill_call trace (best-effort, fire-and-forget)
+    asyncio.create_task(_publish_trace(session.tenant_id, session.session_id, {
+        "type": "skill_call",
+        "action": matched.action,
+        "intent": intent_value,
+        "from_state": current_state,
+        "to_state": matched.to_state,
+    }))
 
     if matched.action == "handoff":
         if limits_config.get("handoff_enabled", True):

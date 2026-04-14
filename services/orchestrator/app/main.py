@@ -3,12 +3,14 @@ Orchestrator — FastAPI entry point.
 Puerto: 8001 — Servicio central del sistema.
 """
 import asyncio
+import json
 import time
 import uuid
 
 import httpx
 from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -266,6 +268,63 @@ async def get_session(session_id: str, ctx: TenantCtx) -> APIResponse[SessionSta
         last_intent=session.last_intent,
         tokens_used=session.tokens_used,
     ))
+
+
+@app.get(
+    "/v1/sessions/{session_id}/trace",
+    summary="SSE stream of FSM trace events for live execution visualization",
+    tags=["chat"],
+)
+async def session_trace_stream(
+    session_id: str,
+    request: Request,
+    ctx: TenantCtx,
+):
+    """
+    Server-Sent Events stream that publishes FSM state transitions and skill
+    execution events for the Admin Console live trace overlay on the FSM graph.
+
+    Subscribes to the Redis pub/sub channel `nia:trace:{tenant_id}:{session_id}`.
+    Events are published by the orchestrator during `process_message`.
+
+    Event format:
+    ```
+    data: {"type": "fsm_transition", "from": "DISCOVERY", "to": "FAQ_ANSWER", "ts": 1234567890}
+    data: {"type": "skill_call", "action": "faq", "latency_ms": 320, "ts": 1234567890}
+    data: {"type": "session_end", "final_state": "CLOSED", "ts": 1234567890}
+    ```
+    """
+    tenant_id = ctx.tenant_id
+    channel = f"nia:trace:{tenant_id}:{session_id}"
+
+    async def event_generator():
+        redis = await get_redis()
+        pubsub = redis.pubsub()
+        await pubsub.subscribe(channel)
+        try:
+            yield f"data: {json.dumps({'type': 'connected', 'session_id': session_id, 'channel': channel})}\n\n"
+            while True:
+                if await request.is_disconnected():
+                    break
+                message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                if message and message["type"] == "message":
+                    data = message["data"]
+                    if isinstance(data, bytes):
+                        data = data.decode()
+                    yield f"data: {data}\n\n"
+                await asyncio.sleep(0.05)
+        finally:
+            await pubsub.unsubscribe(channel)
+            await pubsub.close()
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.on_event("startup")

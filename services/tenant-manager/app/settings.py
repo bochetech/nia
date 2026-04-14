@@ -18,6 +18,10 @@ class TenantManagerSettings(BaseServiceSettings):
     # URLs de servicios internos (para referencias en widget-config)
     transcript_service_url: str = "http://nia_transcript:8008"
 
+    # URLs para analytics / RAG stats
+    rag_url: str = "http://nia_rag:8002"
+    qdrant_url: str = "http://nia_qdrant:6333"
+
 
 _settings: TenantManagerSettings | None = None
 

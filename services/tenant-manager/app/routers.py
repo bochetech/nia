@@ -3,8 +3,10 @@ Routers del Tenant Manager.
 """
 
 import uuid
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import crud
@@ -1095,3 +1097,268 @@ async def update_telegram_config(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
     return APIResponse(data=TelegramConfig(**(tenant.telegram_config or {})))
+
+
+# ─────────────────────────────────────────────────────────────────
+# Analytics — aggregated stats per tenant
+# ─────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/{tenant_id}/analytics",
+    summary="Get aggregated analytics stats for a tenant",
+    tags=["tenants"],
+)
+async def get_analytics(
+    tenant_id: str,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+    days: int = Query(default=30, ge=1, le=365, description="Look-back window in days"),
+):
+    """
+    Returns aggregated metrics for the Admin Console dashboards:
+    - Total conversations and messages in the time window
+    - Average NPS score
+    - Top 5 intents by frequency
+    - Daily message volume (for sparkline charts)
+    - Token usage and estimated cost
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+
+    schema = f"tenant_{tenant_id}"
+    since = datetime.now(UTC) - timedelta(days=days)
+
+    try:
+        # Total conversations
+        r_convs = await db.execute(
+            text(f"""
+                SELECT COUNT(*) AS total_conversations,
+                       COALESCE(SUM(messages_count), 0) AS total_messages
+                FROM {schema}.conversations
+                WHERE created_at >= :since
+            """),
+            {"since": since},
+        )
+        conv_row = r_convs.mappings().first() or {}
+
+        # NPS average (stored in conversation metadata column if available)
+        r_nps = await db.execute(
+            text(f"""
+                SELECT ROUND(AVG(nps_score)::numeric, 2) AS avg_nps,
+                       COUNT(*) FILTER (WHERE nps_score IS NOT NULL) AS nps_responses
+                FROM {schema}.conversations
+                WHERE created_at >= :since
+            """),
+            {"since": since},
+        )
+        nps_row = r_nps.mappings().first() or {}
+
+        # Top intents
+        r_intents = await db.execute(
+            text(f"""
+                SELECT intent, COUNT(*) AS freq
+                FROM {schema}.messages
+                WHERE intent IS NOT NULL
+                  AND created_at >= :since
+                GROUP BY intent
+                ORDER BY freq DESC
+                LIMIT 10
+            """),
+            {"since": since},
+        )
+        top_intents = [{"intent": row["intent"], "count": row["freq"]} for row in r_intents.mappings().all()]
+
+        # Daily message volume (last `days` days)
+        r_daily = await db.execute(
+            text(f"""
+                SELECT DATE(created_at) AS day, COUNT(*) AS messages
+                FROM {schema}.messages
+                WHERE created_at >= :since
+                GROUP BY day
+                ORDER BY day ASC
+            """),
+            {"since": since},
+        )
+        daily_volume = [{"date": str(row["day"]), "messages": row["messages"]} for row in r_daily.mappings().all()]
+
+        # Token & cost estimates
+        r_tokens = await db.execute(
+            text(f"""
+                SELECT COALESCE(SUM(tokens), 0) AS total_tokens
+                FROM {schema}.messages
+                WHERE created_at >= :since
+            """),
+            {"since": since},
+        )
+        token_row = r_tokens.mappings().first() or {}
+        total_tokens = int(token_row.get("total_tokens", 0))
+        # Rough estimate: $0.0001 per 1000 tokens (gemini-flash tier)
+        estimated_cost_usd = round(total_tokens * 0.0000001, 4)
+
+    except Exception:
+        # Schema may not exist yet for new tenants — return empty stats
+        return APIResponse(data={
+            "tenant_id": tenant_id,
+            "days": days,
+            "total_conversations": 0,
+            "total_messages": 0,
+            "avg_nps": None,
+            "nps_responses": 0,
+            "top_intents": [],
+            "daily_volume": [],
+            "total_tokens": 0,
+            "estimated_cost_usd": 0.0,
+        })
+
+    return APIResponse(data={
+        "tenant_id": tenant_id,
+        "days": days,
+        "total_conversations": int(conv_row.get("total_conversations", 0)),
+        "total_messages": int(conv_row.get("total_messages", 0)),
+        "avg_nps": float(nps_row["avg_nps"]) if nps_row.get("avg_nps") else None,
+        "nps_responses": int(nps_row.get("nps_responses", 0)),
+        "top_intents": top_intents,
+        "daily_volume": daily_volume,
+        "total_tokens": total_tokens,
+        "estimated_cost_usd": estimated_cost_usd,
+    })
+
+
+# ─────────────────────────────────────────────────────────────────
+# Sessions list — paginated conversation list for Admin Console
+# ─────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/{tenant_id}/sessions",
+    summary="List conversations/sessions for a tenant (Admin Console)",
+    tags=["tenants"],
+)
+async def list_sessions(
+    tenant_id: str,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    days: int = Query(default=30, ge=1, le=365),
+):
+    """
+    Returns a paginated list of conversations for the Admin Console conversation viewer.
+    Each item includes session_id, message count, NPS score, lead info, and timestamps.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+
+    schema = f"tenant_{tenant_id}"
+    since = datetime.now(UTC) - timedelta(days=days)
+    offset = (page - 1) * page_size
+
+    try:
+        r_total = await db.execute(
+            text(f"SELECT COUNT(*) FROM {schema}.conversations WHERE created_at >= :since"),
+            {"since": since},
+        )
+        total = r_total.scalar() or 0
+
+        r_convs = await db.execute(
+            text(f"""
+                SELECT c.id, c.session_id, c.messages_count, c.nps_score,
+                       c.created_at, c.last_active_at,
+                       l.full_name AS lead_name, l.email AS lead_email
+                FROM {schema}.conversations c
+                LEFT JOIN {schema}.leads l ON l.session_id = c.session_id
+                WHERE c.created_at >= :since
+                ORDER BY c.last_active_at DESC NULLS LAST
+                LIMIT :limit OFFSET :offset
+            """),
+            {"since": since, "limit": page_size, "offset": offset},
+        )
+        rows = r_convs.mappings().all()
+
+        sessions = []
+        for row in rows:
+            sessions.append({
+                "id": str(row["id"]),
+                "session_id": row["session_id"],
+                "messages_count": row["messages_count"] or 0,
+                "nps_score": row["nps_score"],
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+                "last_active_at": row["last_active_at"].isoformat() if row["last_active_at"] else None,
+                "lead_name": row["lead_name"],
+                "lead_email": row["lead_email"],
+            })
+
+    except Exception:
+        return APIResponse(data={"items": [], "total": 0, "page": page, "page_size": page_size})
+
+    return APIResponse(data={
+        "items": sessions,
+        "total": int(total),
+        "page": page,
+        "page_size": page_size,
+        "has_more": (offset + len(sessions)) < int(total),
+    })
+
+
+# ─────────────────────────────────────────────────────────────────
+# RAG collection stats
+# ─────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/{tenant_id}/rag/stats",
+    summary="Get Qdrant collection stats for a tenant",
+    tags=["tenants"],
+)
+async def get_rag_stats(
+    tenant_id: str,
+    admin: AdminCtx,
+    settings: TenantManagerSettings = Depends(get_settings),
+):
+    """
+    Returns the Qdrant vector collection stats for a tenant's knowledge base:
+    - vectors_count: total indexed chunks
+    - status: collection health
+    - collection_name: the canonical collection name used by RAG service
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+
+    import httpx
+    collection_name = f"{tenant_id}_docs"
+
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"{settings.rag_url}/v1/qdrant/collections/{collection_name}")
+            if resp.status_code == 200:
+                data = resp.json()
+                return APIResponse(data={
+                    "collection_name": collection_name,
+                    "vectors_count": data.get("vectors_count", 0),
+                    "status": data.get("status", "unknown"),
+                    "points_count": data.get("points_count", 0),
+                })
+    except Exception:
+        pass
+
+    # Fallback: query Qdrant directly if RAG URL accessible
+    try:
+        qdrant_url = getattr(settings, "qdrant_url", "http://localhost:6333")
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(f"{qdrant_url}/collections/{collection_name}")
+            if resp.status_code == 200:
+                body = resp.json()
+                info = body.get("result", {})
+                return APIResponse(data={
+                    "collection_name": collection_name,
+                    "vectors_count": info.get("vectors_count", 0),
+                    "status": info.get("status", "unknown"),
+                    "points_count": info.get("points_count", 0),
+                })
+    except Exception:
+        pass
+
+    return APIResponse(data={
+        "collection_name": collection_name,
+        "vectors_count": 0,
+        "status": "unreachable",
+        "points_count": 0,
+    })

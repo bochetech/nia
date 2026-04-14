@@ -1,0 +1,483 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "NIA Orchestrator",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/health/ready": {
+            "get": {
+                "tags": [
+                    "ops"
+                ],
+                "summary": "Readiness",
+                "operationId": "readiness_health_ready_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/chat": {
+            "post": {
+                "summary": "Send a message in a conversation session",
+                "operationId": "chat_v1_chat_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChatRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_ChatResponse_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ]
+            }
+        },
+        "/v1/chat/stream": {
+            "post": {
+                "summary": "Send a message with SSE streaming response",
+                "description": "Streaming via Server-Sent Events.",
+                "operationId": "chat_stream_v1_chat_stream_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChatRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ]
+            }
+        },
+        "/v1/sessions/{session_id}/lead": {
+            "post": {
+                "summary": "Submit lead capture form",
+                "operationId": "submit_lead_v1_sessions__session_id__lead_post",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Session Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LeadSubmitRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_dict_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/sessions/{session_id}": {
+            "get": {
+                "summary": "Get current session state",
+                "operationId": "get_session_v1_sessions__session_id__get",
+                "security": [
+                    {
+                        "HTTPBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Session Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_dict_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "tags": [
+                    "ops"
+                ],
+                "summary": "Health",
+                "operationId": "health_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "APIResponse_ChatResponse_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/ChatResponse"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[ChatResponse]"
+            },
+            "APIResponse_dict_": {
+                "properties": {
+                    "data": {
+                        "type": "object",
+                        "title": "Data"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[dict]"
+            },
+            "ChatRequest": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "stream": {
+                        "type": "boolean",
+                        "title": "Stream",
+                        "default": false
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "message"
+                ],
+                "title": "ChatRequest"
+            },
+            "ChatResponse": {
+                "properties": {
+                    "session_id": {
+                        "type": "string",
+                        "title": "Session Id"
+                    },
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "response": {
+                        "type": "string",
+                        "title": "Response"
+                    },
+                    "fsm_state": {
+                        "type": "string",
+                        "title": "Fsm State"
+                    },
+                    "show_lead_form": {
+                        "type": "boolean",
+                        "title": "Show Lead Form",
+                        "default": false
+                    },
+                    "recommendations": {
+                        "anyOf": [
+                            {
+                                "items": {},
+                                "type": "array"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Recommendations"
+                    },
+                    "handoff_triggered": {
+                        "type": "boolean",
+                        "title": "Handoff Triggered",
+                        "default": false
+                    },
+                    "checkout_url": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Checkout Url"
+                    },
+                    "tokens_used": {
+                        "type": "integer",
+                        "title": "Tokens Used",
+                        "default": 0
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "session_id",
+                    "tenant_id",
+                    "response",
+                    "fsm_state"
+                ],
+                "title": "ChatResponse"
+            },
+            "HATEOASLink": {
+                "properties": {
+                    "href": {
+                        "type": "string",
+                        "title": "Href"
+                    },
+                    "method": {
+                        "type": "string",
+                        "title": "Method",
+                        "default": "GET"
+                    },
+                    "rel": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Rel"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "href"
+                ],
+                "title": "HATEOASLink"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "LeadSubmitRequest": {
+                "properties": {
+                    "data": {
+                        "type": "object",
+                        "title": "Data"
+                    },
+                    "gdpr_consent": {
+                        "type": "boolean",
+                        "title": "Gdpr Consent",
+                        "default": false
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "LeadSubmitRequest"
+            },
+            "ResponseMeta": {
+                "properties": {
+                    "request_id": {
+                        "type": "string",
+                        "title": "Request Id"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "title": "Timestamp"
+                    },
+                    "version": {
+                        "type": "string",
+                        "title": "Version",
+                        "default": "1"
+                    }
+                },
+                "type": "object",
+                "title": "ResponseMeta"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        },
+        "securitySchemes": {
+            "HTTPBearer": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        }
+    }
+}

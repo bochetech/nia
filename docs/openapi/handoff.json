@@ -1,0 +1,463 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "NIA Handoff Service",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/v1/handoff/cases": {
+            "post": {
+                "summary": "Create Handoff Case",
+                "operationId": "create_handoff_case_v1_handoff_cases_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateHandoffRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_HandoffCaseDTO_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/handoff/cases/{case_id}": {
+            "get": {
+                "summary": "Get Handoff Status",
+                "operationId": "get_handoff_status_v1_handoff_cases__case_id__get",
+                "parameters": [
+                    {
+                        "name": "case_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Case Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_HandoffStatusResponse_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/handoff/cases/{case_id}/resolve": {
+            "post": {
+                "summary": "Resolve Case",
+                "description": "El agente resuelve el caso \u2192 reactivar bot.",
+                "operationId": "resolve_case_v1_handoff_cases__case_id__resolve_post",
+                "parameters": [
+                    {
+                        "name": "case_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Case Id"
+                        }
+                    },
+                    {
+                        "name": "session_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Session Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "title": "Response Resolve Case V1 Handoff Cases  Case Id  Resolve Post"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "summary": "Health",
+                "operationId": "health_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "APIResponse_HandoffCaseDTO_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/HandoffCaseDTO"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[HandoffCaseDTO]"
+            },
+            "APIResponse_HandoffStatusResponse_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/HandoffStatusResponse"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[HandoffStatusResponse]"
+            },
+            "CreateHandoffRequest": {
+                "properties": {
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "title": "Session Id"
+                    },
+                    "trigger_type": {
+                        "type": "string",
+                        "title": "Trigger Type"
+                    },
+                    "trigger_reason": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Trigger Reason"
+                    },
+                    "context_summary": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Context Summary"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "tenant_id",
+                    "session_id",
+                    "trigger_type"
+                ],
+                "title": "CreateHandoffRequest"
+            },
+            "HATEOASLink": {
+                "properties": {
+                    "href": {
+                        "type": "string",
+                        "title": "Href"
+                    },
+                    "method": {
+                        "type": "string",
+                        "title": "Method",
+                        "default": "GET"
+                    },
+                    "rel": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Rel"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "href"
+                ],
+                "title": "HATEOASLink"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "HandoffCaseDTO": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "title": "Session Id"
+                    },
+                    "trigger_type": {
+                        "$ref": "#/components/schemas/HandoffTrigger"
+                    },
+                    "trigger_reason": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Trigger Reason"
+                    },
+                    "status": {
+                        "type": "string",
+                        "title": "Status",
+                        "default": "pending"
+                    },
+                    "context_summary": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Context Summary"
+                    },
+                    "bot_paused_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Bot Paused At"
+                    },
+                    "expires_at": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Expires At"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "tenant_id",
+                    "session_id",
+                    "trigger_type"
+                ],
+                "title": "HandoffCaseDTO"
+            },
+            "HandoffStatusResponse": {
+                "properties": {
+                    "case_id": {
+                        "type": "string",
+                        "title": "Case Id"
+                    },
+                    "status": {
+                        "type": "string",
+                        "title": "Status"
+                    },
+                    "bot_paused": {
+                        "type": "boolean",
+                        "title": "Bot Paused"
+                    },
+                    "agent_joined": {
+                        "type": "boolean",
+                        "title": "Agent Joined"
+                    },
+                    "expires_at": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Expires At"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "case_id",
+                    "status",
+                    "bot_paused",
+                    "agent_joined",
+                    "expires_at"
+                ],
+                "title": "HandoffStatusResponse"
+            },
+            "HandoffTrigger": {
+                "type": "string",
+                "enum": [
+                    "complaint",
+                    "unresolved",
+                    "explicit_request",
+                    "payment_failed",
+                    "timeout"
+                ],
+                "title": "HandoffTrigger"
+            },
+            "ResponseMeta": {
+                "properties": {
+                    "request_id": {
+                        "type": "string",
+                        "title": "Request Id"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "title": "Timestamp"
+                    },
+                    "version": {
+                        "type": "string",
+                        "title": "Version",
+                        "default": "1"
+                    }
+                },
+                "type": "object",
+                "title": "ResponseMeta"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        }
+    }
+}

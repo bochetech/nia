@@ -1,0 +1,517 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "NIA Checkout",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/v1/checkout/booking-intents": {
+            "post": {
+                "summary": "Create Booking Intent",
+                "operationId": "create_booking_intent_v1_checkout_booking_intents_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateBookingIntentRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_BookingIntentDTO_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/checkout/sessions": {
+            "post": {
+                "summary": "Create Checkout Session",
+                "description": "Crea una sesi\u00f3n de Stripe Checkout (o mock en dev).",
+                "operationId": "create_checkout_session_v1_checkout_sessions_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CreateCheckoutSessionRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_CheckoutSessionDTO_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/checkout/webhook": {
+            "post": {
+                "summary": "Stripe Webhook",
+                "description": "Recibe webhooks de Stripe.",
+                "operationId": "stripe_webhook_v1_checkout_webhook_post",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "summary": "Health",
+                "operationId": "health_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "APIResponse_BookingIntentDTO_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/BookingIntentDTO"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[BookingIntentDTO]"
+            },
+            "APIResponse_CheckoutSessionDTO_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/CheckoutSessionDTO"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[CheckoutSessionDTO]"
+            },
+            "BookingContact": {
+                "properties": {
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "title": "Email"
+                    },
+                    "phone": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Phone"
+                    },
+                    "special_requests": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Special Requests"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "name",
+                    "email"
+                ],
+                "title": "BookingContact"
+            },
+            "BookingIntentDTO": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "title": "Session Id"
+                    },
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "product_id": {
+                        "type": "string",
+                        "title": "Product Id"
+                    },
+                    "selected_date": {
+                        "type": "string",
+                        "format": "date",
+                        "title": "Selected Date"
+                    },
+                    "selected_time": {
+                        "type": "string",
+                        "format": "time",
+                        "title": "Selected Time"
+                    },
+                    "pax_count": {
+                        "type": "integer",
+                        "title": "Pax Count"
+                    },
+                    "contact": {
+                        "$ref": "#/components/schemas/BookingContact"
+                    },
+                    "total_amount": {
+                        "type": "number",
+                        "title": "Total Amount"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "title": "Currency",
+                        "default": "CLP"
+                    },
+                    "status": {
+                        "type": "string",
+                        "title": "Status",
+                        "default": "pending"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "session_id",
+                    "tenant_id",
+                    "product_id",
+                    "selected_date",
+                    "selected_time",
+                    "pax_count",
+                    "contact",
+                    "total_amount"
+                ],
+                "title": "BookingIntentDTO"
+            },
+            "CheckoutSessionDTO": {
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "title": "Id"
+                    },
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "booking_intent_id": {
+                        "type": "string",
+                        "title": "Booking Intent Id"
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "title": "Session Id"
+                    },
+                    "payment_url": {
+                        "type": "string",
+                        "title": "Payment Url"
+                    },
+                    "amount": {
+                        "type": "number",
+                        "title": "Amount"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "title": "Currency"
+                    },
+                    "status": {
+                        "$ref": "#/components/schemas/CheckoutStatus"
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Expires At"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "tenant_id",
+                    "booking_intent_id",
+                    "session_id",
+                    "payment_url",
+                    "amount",
+                    "currency",
+                    "status",
+                    "expires_at"
+                ],
+                "title": "CheckoutSessionDTO"
+            },
+            "CheckoutStatus": {
+                "type": "string",
+                "enum": [
+                    "created",
+                    "pending",
+                    "paid",
+                    "failed",
+                    "expired",
+                    "refunded"
+                ],
+                "title": "CheckoutStatus"
+            },
+            "CreateBookingIntentRequest": {
+                "properties": {
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "title": "Session Id"
+                    },
+                    "product_id": {
+                        "type": "string",
+                        "title": "Product Id"
+                    },
+                    "selected_date": {
+                        "type": "string",
+                        "title": "Selected Date"
+                    },
+                    "selected_time": {
+                        "type": "string",
+                        "title": "Selected Time"
+                    },
+                    "pax_count": {
+                        "type": "integer",
+                        "title": "Pax Count"
+                    },
+                    "contact": {
+                        "$ref": "#/components/schemas/BookingContact"
+                    },
+                    "total_amount": {
+                        "type": "number",
+                        "title": "Total Amount"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "title": "Currency",
+                        "default": "CLP"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "tenant_id",
+                    "session_id",
+                    "product_id",
+                    "selected_date",
+                    "selected_time",
+                    "pax_count",
+                    "contact",
+                    "total_amount"
+                ],
+                "title": "CreateBookingIntentRequest"
+            },
+            "CreateCheckoutSessionRequest": {
+                "properties": {
+                    "booking_intent_id": {
+                        "type": "string",
+                        "title": "Booking Intent Id"
+                    },
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "title": "Session Id"
+                    },
+                    "success_url": {
+                        "type": "string",
+                        "title": "Success Url",
+                        "default": "https://example.com/success"
+                    },
+                    "cancel_url": {
+                        "type": "string",
+                        "title": "Cancel Url",
+                        "default": "https://example.com/cancel"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "booking_intent_id",
+                    "tenant_id",
+                    "session_id"
+                ],
+                "title": "CreateCheckoutSessionRequest"
+            },
+            "HATEOASLink": {
+                "properties": {
+                    "href": {
+                        "type": "string",
+                        "title": "Href"
+                    },
+                    "method": {
+                        "type": "string",
+                        "title": "Method",
+                        "default": "GET"
+                    },
+                    "rel": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Rel"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "href"
+                ],
+                "title": "HATEOASLink"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "ResponseMeta": {
+                "properties": {
+                    "request_id": {
+                        "type": "string",
+                        "title": "Request Id"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "title": "Timestamp"
+                    },
+                    "version": {
+                        "type": "string",
+                        "title": "Version",
+                        "default": "1"
+                    }
+                },
+                "type": "object",
+                "title": "ResponseMeta"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        }
+    }
+}

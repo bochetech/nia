@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "NIA Platform API",
-    "description": "Complete API collection for NIA conversational platform.\nGenerated automatically from live OpenAPI specs.\nServices: 10 | Endpoints: 63\n\n**Setup**: Import NIA-Environment-Development.json, set admin_token via POST /auth/token.",
+    "description": "Complete API collection for NIA conversational platform.\nGenerated automatically from live OpenAPI specs.\nServices: 10 | Endpoints: 69\n\n**Quick Start**:\n1. Import this collection into Postman\n2. Run 'Login — obtén un JWT de admin' to get admin_token (auto-saved)\n3. All URLs point to localhost — ready for local development\n\n**Default credentials**: admin@nia.local / changeme",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "nia-auto"
   },
@@ -24,9 +24,9 @@
               }
             ],
             "url": {
-              "raw": "{{orchestrator_url}}/health",
+              "raw": "http://localhost:8001/health",
               "host": [
-                "{{orchestrator_url}}"
+                "http://localhost:8001"
               ],
               "path": [
                 "health"
@@ -50,9 +50,9 @@
               }
             ],
             "url": {
-              "raw": "{{orchestrator_url}}/health/ready",
+              "raw": "http://localhost:8001/health/ready",
               "host": [
-                "{{orchestrator_url}}"
+                "http://localhost:8001"
               ],
               "path": [
                 "health",
@@ -77,9 +77,9 @@
               }
             ],
             "url": {
-              "raw": "{{orchestrator_url}}/v1/chat",
+              "raw": "http://localhost:8001/v1/chat",
               "host": [
-                "{{orchestrator_url}}"
+                "http://localhost:8001"
               ],
               "path": [
                 "v1",
@@ -123,9 +123,9 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{orchestrator_url}}/v1/chat",
+                  "raw": "http://localhost:8001/v1/chat",
                   "host": [
-                    "{{orchestrator_url}}"
+                    "http://localhost:8001"
                   ],
                   "path": [
                     "v1",
@@ -161,9 +161,9 @@
               }
             ],
             "url": {
-              "raw": "{{orchestrator_url}}/v1/chat/stream",
+              "raw": "http://localhost:8001/v1/chat/stream",
               "host": [
-                "{{orchestrator_url}}"
+                "http://localhost:8001"
               ],
               "path": [
                 "v1",
@@ -198,19 +198,20 @@
               }
             ],
             "url": {
-              "raw": "{{orchestrator_url}}/v1/sessions/:session_id",
+              "raw": "http://localhost:8001/v1/sessions/SESSION_ID",
               "host": [
-                "{{orchestrator_url}}"
+                "http://localhost:8001"
               ],
               "path": [
                 "v1",
                 "sessions",
-                ":session_id"
+                "SESSION_ID"
               ],
               "variable": [
                 {
                   "key": "session_id",
-                  "value": "{{session_id}}"
+                  "value": "SESSION_ID",
+                  "description": "Default: SESSION_ID"
                 }
               ]
             }
@@ -232,21 +233,15 @@
               }
             ],
             "url": {
-              "raw": "{{orchestrator_url}}/v1/sessions/{{session_id}}/lead",
+              "raw": "http://localhost:8001/v1/sessions/SESSION_ID/lead",
               "host": [
-                "{{orchestrator_url}}"
+                "http://localhost:8001"
               ],
               "path": [
                 "v1",
                 "sessions",
-                "{{session_id}}",
+                "SESSION_ID",
                 "lead"
-              ],
-              "variable": [
-                {
-                  "key": "session_id",
-                  "value": "{{session_id}}"
-                }
               ]
             },
             "body": {
@@ -283,9 +278,9 @@
               }
             ],
             "url": {
-              "raw": "{{rag_url}}/health",
+              "raw": "http://localhost:8002/health",
               "host": [
-                "{{rag_url}}"
+                "http://localhost:8002"
               ],
               "path": [
                 "health"
@@ -309,9 +304,9 @@
               }
             ],
             "url": {
-              "raw": "{{rag_url}}/health/ready",
+              "raw": "http://localhost:8002/health/ready",
               "host": [
-                "{{rag_url}}"
+                "http://localhost:8002"
               ],
               "path": [
                 "health",
@@ -336,20 +331,21 @@
               }
             ],
             "url": {
-              "raw": "{{rag_url}}/v1/rag/documents/:doc_id",
+              "raw": "http://localhost:8002/v1/rag/documents/DOC_ID",
               "host": [
-                "{{rag_url}}"
+                "http://localhost:8002"
               ],
               "path": [
                 "v1",
                 "rag",
                 "documents",
-                ":doc_id"
+                "DOC_ID"
               ],
               "variable": [
                 {
                   "key": "doc_id",
-                  "value": "{{doc_id}}"
+                  "value": "DOC_ID",
+                  "description": "Default: DOC_ID"
                 }
               ],
               "query": [
@@ -385,9 +381,9 @@
               }
             ],
             "url": {
-              "raw": "{{rag_url}}/v1/rag/ingest",
+              "raw": "http://localhost:8002/v1/rag/ingest",
               "host": [
-                "{{rag_url}}"
+                "http://localhost:8002"
               ],
               "path": [
                 "v1",
@@ -413,9 +409,9 @@
               }
             ],
             "url": {
-              "raw": "{{rag_url}}/v1/rag/ingest-json",
+              "raw": "http://localhost:8002/v1/rag/ingest-json",
               "host": [
-                "{{rag_url}}"
+                "http://localhost:8002"
               ],
               "path": [
                 "v1",
@@ -441,9 +437,9 @@
               }
             ],
             "url": {
-              "raw": "{{rag_url}}/v1/rag/query",
+              "raw": "http://localhost:8002/v1/rag/query",
               "host": [
-                "{{rag_url}}"
+                "http://localhost:8002"
               ],
               "path": [
                 "v1",
@@ -453,7 +449,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"query\": \"example_query\",\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"collection_name\": \"example_collection_name\",\n  \"tenant_name\": \"example_tenant_name\"\n}",
+              "raw": "{\n  \"query\": \"example_query\",\n  \"tenant_id\": \"demo_turismo\",\n  \"collection_name\": \"example_collection_name\",\n  \"tenant_name\": \"example_tenant_name\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -484,9 +480,9 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants",
+              "raw": "http://localhost:8003/api/tenants",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
@@ -525,9 +521,9 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants",
+              "raw": "http://localhost:8003/api/tenants",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
@@ -562,19 +558,20 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id"
+                "demo_turismo"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             }
@@ -596,19 +593,20 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id"
+                "demo_turismo"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             },
@@ -649,14 +647,21 @@
               "raw": "{\n  \"ui_config\": {\n    \"primary_color\": \"#0f766e\",\n    \"logo_url\": null,\n    \"chat_title\": \"Asistente de Viajes NIA\",\n    \"welcome_message\": \"¡Hola! Soy NIA, tu asistente de viajes. ¿A dónde quieres escaparte?\",\n    \"show_welcome_message\": true,\n    \"input_placeholder\": \"Ej: Quiero un tour de 3 días en la costa…\",\n    \"suggested_questions\": [\n      \"¿Cuál es el horario de la viña Concha y Toro?\",\n      \"¿Cómo puedo llegar hasta la viña?\",\n      \"¿Qué tours están disponibles hoy?\",\n      \"¿Cuánto cuesta la visita guiada?\"\n    ]\n  }\n}"
             },
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/{{tenant_id}}",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                "{{tenant_id}}"
+                "demo_turismo"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
+                }
               ]
             },
             "description": "Actualiza solo la configuración visual del widget.\n\n**`suggested_questions`**: array de strings con las preguntas sugeridas que aparecen como pills al abrir el chat. El widget las muestra mientras el usuario no ha enviado ningún mensaje. Para desactivarlas, envía `[]`.\n\nTras actualizar, el cambio se refleja en el widget en la próxima carga (el tenant-manager refresca Redis en cada GET /widget-config)."
@@ -678,20 +683,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/ai-config",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/ai-config",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "ai-config"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             },
@@ -722,20 +728,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/api-keys",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/api-keys",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "api-keys"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             }
@@ -757,20 +764,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/api-keys",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/api-keys",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "api-keys"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             },
@@ -801,20 +809,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/config",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/config",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "config"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             }
@@ -836,20 +845,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/email-config",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/email-config",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "email-config"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             },
@@ -880,20 +890,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/fsm-config",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/fsm-config",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "fsm-config"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             },
@@ -924,20 +935,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/intents",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/intents",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "intents"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             }
@@ -959,20 +971,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/intents",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/intents",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "intents"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             },
@@ -1003,25 +1016,27 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/intents/:intent_key",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/intents/faq_query",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "intents",
-                ":intent_key"
+                "faq_query"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 },
                 {
                   "key": "intent_key",
-                  "value": "menu_question"
+                  "value": "faq_query",
+                  "description": "Default: faq_query"
                 }
               ]
             },
@@ -1052,25 +1067,27 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/intents/:intent_key",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/intents/faq_query",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "intents",
-                ":intent_key"
+                "faq_query"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 },
                 {
                   "key": "intent_key",
-                  "value": "menu_question"
+                  "value": "faq_query",
+                  "description": "Default: faq_query"
                 }
               ]
             }
@@ -1092,20 +1109,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/actions",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/actions",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "actions"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             }
@@ -1127,20 +1145,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/transitions",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/transitions",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "transitions"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             }
@@ -1162,20 +1181,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/transitions",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/transitions",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "transitions"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             },
@@ -1203,15 +1223,22 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/tenants/{{tenant_id}}/skills",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/skills",
               "host": [
-                "{{base_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                "{{tenant_id}}",
+                "demo_turismo",
                 "skills"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
+                }
               ]
             },
             "description": "List all skill configurations for the tenant. Returns defaults if none are custom-configured."
@@ -1229,16 +1256,23 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/tenants/{{tenant_id}}/skills/recommend",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/skills/recommend",
               "host": [
-                "{{base_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                "{{tenant_id}}",
+                "demo_turismo",
                 "skills",
                 "recommend"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
+                }
               ]
             },
             "description": "Get the skill configuration for a specific action (e.g., recommend, faq, handoff)."
@@ -1261,16 +1295,23 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/tenants/{{tenant_id}}/skills/recommend",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/skills/recommend",
               "host": [
-                "{{base_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                "{{tenant_id}}",
+                "demo_turismo",
                 "skills",
                 "recommend"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
+                }
               ]
             },
             "description": "Create or fully replace the skill config for a specific action. Use this to customize entity extraction, AI instructions, and response templates per tenant.",
@@ -1302,16 +1343,23 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/tenants/{{tenant_id}}/skills/recommend",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/skills/recommend",
               "host": [
-                "{{base_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                "{{tenant_id}}",
+                "demo_turismo",
                 "skills",
                 "recommend"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
+                }
               ]
             },
             "description": "Partially update a skill config. Only the provided fields are changed.",
@@ -1338,16 +1386,23 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/api/tenants/{{tenant_id}}/skills/recommend",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/skills/recommend",
               "host": [
-                "{{base_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                "{{tenant_id}}",
+                "demo_turismo",
                 "skills",
                 "recommend"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
+                }
               ]
             },
             "description": "Remove the custom skill configuration for an action, reverting to NIA defaults."
@@ -1368,20 +1423,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/payment-config",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/payment-config",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "payment-config"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             },
@@ -1412,20 +1468,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/suspend",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/suspend",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "suspend"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             }
@@ -1447,20 +1504,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/teams-config",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/teams-config",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "teams-config"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             },
@@ -1491,20 +1549,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/telegram-config",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/telegram-config",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "telegram-config"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             },
@@ -1535,20 +1594,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/widget-config",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/widget-config",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "widget-config"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             },
@@ -1580,20 +1640,21 @@
                   }
                 ],
                 "url": {
-                  "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/widget-config",
+                  "raw": "http://localhost:8003/api/tenants/demo_turismo/widget-config",
                   "host": [
-                    "{{tenant_manager_url}}"
+                    "http://localhost:8003"
                   ],
                   "path": [
                     "api",
                     "tenants",
-                    ":tenant_id",
+                    "demo_turismo",
                     "widget-config"
                   ],
                   "variable": [
                     {
                       "key": "tenant_id",
-                      "value": "{{tenant_id}}"
+                      "value": "demo_turismo",
+                      "description": "Default: demo_turismo"
                     }
                   ]
                 },
@@ -1617,20 +1678,21 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/api/tenants/:tenant_id/widget-token",
+              "raw": "http://localhost:8003/api/tenants/demo_turismo/widget-token",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "api",
                 "tenants",
-                ":tenant_id",
+                "demo_turismo",
                 "widget-token"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             },
@@ -1661,9 +1723,9 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/auth/refresh",
+              "raw": "http://localhost:8003/auth/refresh",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "auth",
@@ -1697,9 +1759,9 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/auth/token",
+              "raw": "http://localhost:8003/auth/token",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "auth",
@@ -1708,7 +1770,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@nia.local\",\n  \"password\": \"changeme\",\n  \"ttl_minutes\": 1\n}",
+              "raw": "{\n  \"email\": \"admin@nia.local\",\n  \"password\": \"changeme\",\n  \"ttl_minutes\": 1440\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1716,7 +1778,25 @@
               }
             }
           },
-          "response": []
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    var jsonData = pm.response.json();",
+                  "    var token = jsonData.data ? jsonData.data.token : jsonData.token;",
+                  "    if (token) {",
+                  "        pm.collectionVariables.set('admin_token', token);",
+                  "        console.log('✅ admin_token saved');",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
         },
         {
           "name": "Health",
@@ -1733,9 +1813,9 @@
               }
             ],
             "url": {
-              "raw": "{{tenant_manager_url}}/health",
+              "raw": "http://localhost:8003/health",
               "host": [
-                "{{tenant_manager_url}}"
+                "http://localhost:8003"
               ],
               "path": [
                 "health"
@@ -1765,9 +1845,9 @@
               }
             ],
             "url": {
-              "raw": "{{recommender_url}}/health",
+              "raw": "http://localhost:8004/health",
               "host": [
-                "{{recommender_url}}"
+                "http://localhost:8004"
               ],
               "path": [
                 "health"
@@ -1791,9 +1871,9 @@
               }
             ],
             "url": {
-              "raw": "{{recommender_url}}/v1/recommendations",
+              "raw": "http://localhost:8004/v1/recommendations",
               "host": [
-                "{{recommender_url}}"
+                "http://localhost:8004"
               ],
               "path": [
                 "v1",
@@ -1802,7 +1882,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"tenant_schema\": \"example_tenant_schema\",\n  \"entities\": {\n    \"activity_type\": \"example_activity_type\",\n    \"date\": \"example_date\",\n    \"pax_count\": \"example_pax_count\",\n    \"language_preference\": \"example_language_preference\",\n    \"budget_max\": \"example_budget_max\",\n    \"physical_level\": \"example_physical_level\",\n    \"duration_preference_hours\": \"example_duration_preference_hours\",\n    \"time_of_day\": \"example_time_of_day\"\n  },\n  \"top_k\": 1\n}",
+              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"tenant_schema\": \"example_tenant_schema\",\n  \"entities\": {\n    \"activity_type\": \"example_activity_type\",\n    \"date\": \"example_date\",\n    \"pax_count\": \"example_pax_count\",\n    \"language_preference\": \"example_language_preference\",\n    \"budget_max\": \"example_budget_max\",\n    \"physical_level\": \"example_physical_level\",\n    \"duration_preference_hours\": \"example_duration_preference_hours\",\n    \"time_of_day\": \"example_time_of_day\"\n  },\n  \"top_k\": 1\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1833,9 +1913,9 @@
               }
             ],
             "url": {
-              "raw": "{{model_adapter_url}}/health",
+              "raw": "http://localhost:8005/health",
               "host": [
-                "{{model_adapter_url}}"
+                "http://localhost:8005"
               ],
               "path": [
                 "health"
@@ -1859,9 +1939,9 @@
               }
             ],
             "url": {
-              "raw": "{{model_adapter_url}}/v1/chat/completions",
+              "raw": "http://localhost:8005/v1/chat/completions",
               "host": [
-                "{{model_adapter_url}}"
+                "http://localhost:8005"
               ],
               "path": [
                 "v1",
@@ -1871,7 +1951,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"messages\": [],\n  \"temperature\": 1.0,\n  \"max_tokens\": 1,\n  \"stream\": true,\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"session_id\": \"demo-tenant\"\n}",
+              "raw": "{\n  \"messages\": [],\n  \"temperature\": 1.0,\n  \"max_tokens\": 1,\n  \"stream\": true,\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1896,9 +1976,9 @@
               }
             ],
             "url": {
-              "raw": "{{model_adapter_url}}/v1/chat/stream",
+              "raw": "http://localhost:8005/v1/chat/stream",
               "host": [
-                "{{model_adapter_url}}"
+                "http://localhost:8005"
               ],
               "path": [
                 "v1",
@@ -1908,7 +1988,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"messages\": [],\n  \"temperature\": 1.0,\n  \"max_tokens\": 1,\n  \"stream\": true,\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"session_id\": \"demo-tenant\"\n}",
+              "raw": "{\n  \"messages\": [],\n  \"temperature\": 1.0,\n  \"max_tokens\": 1,\n  \"stream\": true,\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1933,9 +2013,9 @@
               }
             ],
             "url": {
-              "raw": "{{model_adapter_url}}/v1/embed",
+              "raw": "http://localhost:8005/v1/embed",
               "host": [
-                "{{model_adapter_url}}"
+                "http://localhost:8005"
               ],
               "path": [
                 "v1",
@@ -1944,7 +2024,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"texts\": [],\n  \"tenant_id\": \"{{tenant_id}}\"\n}",
+              "raw": "{\n  \"texts\": [],\n  \"tenant_id\": \"demo_turismo\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1975,9 +2055,9 @@
               }
             ],
             "url": {
-              "raw": "{{checkout_url}}/health",
+              "raw": "http://localhost:8006/health",
               "host": [
-                "{{checkout_url}}"
+                "http://localhost:8006"
               ],
               "path": [
                 "health"
@@ -2001,9 +2081,9 @@
               }
             ],
             "url": {
-              "raw": "{{checkout_url}}/v1/checkout/booking-intents",
+              "raw": "http://localhost:8006/v1/checkout/booking-intents",
               "host": [
-                "{{checkout_url}}"
+                "http://localhost:8006"
               ],
               "path": [
                 "v1",
@@ -2013,7 +2093,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"session_id\": \"demo-tenant\",\n  \"product_id\": \"demo-tenant\",\n  \"selected_date\": \"example_selected_date\",\n  \"selected_time\": \"example_selected_time\",\n  \"pax_count\": 1,\n  \"contact\": {\n    \"name\": \"example_name\",\n    \"email\": \"admin@nia.local\",\n    \"phone\": \"example_phone\",\n    \"special_requests\": \"example_special_requests\"\n  },\n  \"total_amount\": 1.0,\n  \"currency\": \"example_currency\"\n}",
+              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"product_id\": \"demo-tenant\",\n  \"selected_date\": \"example_selected_date\",\n  \"selected_time\": \"example_selected_time\",\n  \"pax_count\": 1,\n  \"contact\": {\n    \"name\": \"example_name\",\n    \"email\": \"admin@nia.local\",\n    \"phone\": \"example_phone\",\n    \"special_requests\": \"example_special_requests\"\n  },\n  \"total_amount\": 1.0,\n  \"currency\": \"example_currency\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2038,9 +2118,9 @@
               }
             ],
             "url": {
-              "raw": "{{checkout_url}}/v1/checkout/sessions",
+              "raw": "http://localhost:8006/v1/checkout/sessions",
               "host": [
-                "{{checkout_url}}"
+                "http://localhost:8006"
               ],
               "path": [
                 "v1",
@@ -2050,7 +2130,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"booking_intent_id\": \"demo-tenant\",\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"session_id\": \"demo-tenant\",\n  \"success_url\": \"https://example.com\",\n  \"cancel_url\": \"https://example.com\"\n}",
+              "raw": "{\n  \"booking_intent_id\": \"demo-tenant\",\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"success_url\": \"https://example.com\",\n  \"cancel_url\": \"https://example.com\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2075,9 +2155,9 @@
               }
             ],
             "url": {
-              "raw": "{{checkout_url}}/v1/checkout/webhook",
+              "raw": "http://localhost:8006/v1/checkout/webhook",
               "host": [
-                "{{checkout_url}}"
+                "http://localhost:8006"
               ],
               "path": [
                 "v1",
@@ -2109,9 +2189,9 @@
               }
             ],
             "url": {
-              "raw": "{{handoff_url}}/health",
+              "raw": "http://localhost:8007/health",
               "host": [
-                "{{handoff_url}}"
+                "http://localhost:8007"
               ],
               "path": [
                 "health"
@@ -2135,9 +2215,9 @@
               }
             ],
             "url": {
-              "raw": "{{handoff_url}}/v1/handoff/cases",
+              "raw": "http://localhost:8007/v1/handoff/cases",
               "host": [
-                "{{handoff_url}}"
+                "http://localhost:8007"
               ],
               "path": [
                 "v1",
@@ -2147,7 +2227,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"session_id\": \"demo-tenant\",\n  \"trigger_type\": \"example_trigger_type\",\n  \"trigger_reason\": \"example_trigger_reason\",\n  \"context_summary\": \"example_context_summary\"\n}",
+              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"trigger_type\": \"example_trigger_type\",\n  \"trigger_reason\": \"example_trigger_reason\",\n  \"context_summary\": \"example_context_summary\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2172,20 +2252,21 @@
               }
             ],
             "url": {
-              "raw": "{{handoff_url}}/v1/handoff/cases/:case_id",
+              "raw": "http://localhost:8007/v1/handoff/cases/CASE_ID",
               "host": [
-                "{{handoff_url}}"
+                "http://localhost:8007"
               ],
               "path": [
                 "v1",
                 "handoff",
                 "cases",
-                ":case_id"
+                "CASE_ID"
               ],
               "variable": [
                 {
                   "key": "case_id",
-                  "value": "{{case_id}}"
+                  "value": "CASE_ID",
+                  "description": "Default: CASE_ID"
                 }
               ]
             }
@@ -2207,21 +2288,22 @@
               }
             ],
             "url": {
-              "raw": "{{handoff_url}}/v1/handoff/cases/:case_id/resolve",
+              "raw": "http://localhost:8007/v1/handoff/cases/CASE_ID/resolve",
               "host": [
-                "{{handoff_url}}"
+                "http://localhost:8007"
               ],
               "path": [
                 "v1",
                 "handoff",
                 "cases",
-                ":case_id",
+                "CASE_ID",
                 "resolve"
               ],
               "variable": [
                 {
                   "key": "case_id",
-                  "value": "{{case_id}}"
+                  "value": "CASE_ID",
+                  "description": "Default: CASE_ID"
                 }
               ],
               "query": [
@@ -2257,9 +2339,9 @@
               }
             ],
             "url": {
-              "raw": "{{transcript_url}}/health",
+              "raw": "http://localhost:8008/health",
               "host": [
-                "{{transcript_url}}"
+                "http://localhost:8008"
               ],
               "path": [
                 "health"
@@ -2283,9 +2365,9 @@
               }
             ],
             "url": {
-              "raw": "{{transcript_url}}/health/ready",
+              "raw": "http://localhost:8008/health/ready",
               "host": [
-                "{{transcript_url}}"
+                "http://localhost:8008"
               ],
               "path": [
                 "health",
@@ -2310,9 +2392,9 @@
               }
             ],
             "url": {
-              "raw": "{{transcript_url}}/v1/leads",
+              "raw": "http://localhost:8008/v1/leads",
               "host": [
-                "{{transcript_url}}"
+                "http://localhost:8008"
               ],
               "path": [
                 "v1",
@@ -2321,7 +2403,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"session_id\": \"demo-tenant\",\n  \"name\": \"example_name\",\n  \"email\": \"admin@nia.local\",\n  \"phone\": \"example_phone\",\n  \"intent_data\": {},\n  \"gdpr_consent\": true\n}",
+              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"name\": \"example_name\",\n  \"email\": \"admin@nia.local\",\n  \"phone\": \"example_phone\",\n  \"intent_data\": {},\n  \"gdpr_consent\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2346,9 +2428,9 @@
               }
             ],
             "url": {
-              "raw": "{{transcript_url}}/v1/transcripts/messages",
+              "raw": "http://localhost:8008/v1/transcripts/messages",
               "host": [
-                "{{transcript_url}}"
+                "http://localhost:8008"
               ],
               "path": [
                 "v1",
@@ -2358,7 +2440,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"tenant_id\": \"{{tenant_id}}\",\n  \"session_id\": \"demo-tenant\",\n  \"role\": \"example_role\",\n  \"content\": \"example_content\",\n  \"tokens\": 1,\n  \"intent\": \"example_intent\",\n  \"confidence\": \"demo-tenant\",\n  \"rag_sources\": [],\n  \"metadata\": {}\n}",
+              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"role\": \"example_role\",\n  \"content\": \"example_content\",\n  \"tokens\": 1,\n  \"intent\": \"example_intent\",\n  \"confidence\": \"demo-tenant\",\n  \"rag_sources\": [],\n  \"metadata\": {}\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -2383,24 +2465,26 @@
               }
             ],
             "url": {
-              "raw": "{{transcript_url}}/v1/transcripts/:tenant_id/:session_id",
+              "raw": "http://localhost:8008/v1/transcripts/demo_turismo/SESSION_ID",
               "host": [
-                "{{transcript_url}}"
+                "http://localhost:8008"
               ],
               "path": [
                 "v1",
                 "transcripts",
-                ":tenant_id",
-                ":session_id"
+                "demo_turismo",
+                "SESSION_ID"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 },
                 {
                   "key": "session_id",
-                  "value": "{{session_id}}"
+                  "value": "SESSION_ID",
+                  "description": "Default: SESSION_ID"
                 }
               ]
             }
@@ -2422,25 +2506,27 @@
               }
             ],
             "url": {
-              "raw": "{{transcript_url}}/v1/transcripts/:tenant_id/:session_id/email",
+              "raw": "http://localhost:8008/v1/transcripts/demo_turismo/SESSION_ID/email",
               "host": [
-                "{{transcript_url}}"
+                "http://localhost:8008"
               ],
               "path": [
                 "v1",
                 "transcripts",
-                ":tenant_id",
-                ":session_id",
+                "demo_turismo",
+                "SESSION_ID",
                 "email"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 },
                 {
                   "key": "session_id",
-                  "value": "{{session_id}}"
+                  "value": "SESSION_ID",
+                  "description": "Default: SESSION_ID"
                 }
               ]
             },
@@ -2477,9 +2563,9 @@
               }
             ],
             "url": {
-              "raw": "{{fallback_url}}/health",
+              "raw": "http://localhost:8009/health",
               "host": [
-                "{{fallback_url}}"
+                "http://localhost:8009"
               ],
               "path": [
                 "health"
@@ -2503,9 +2589,9 @@
               }
             ],
             "url": {
-              "raw": "{{fallback_url}}/v1/fallback/message",
+              "raw": "http://localhost:8009/v1/fallback/message",
               "host": [
-                "{{fallback_url}}"
+                "http://localhost:8009"
               ],
               "path": [
                 "v1",
@@ -2545,9 +2631,9 @@
               }
             ],
             "url": {
-              "raw": "{{telegram_gateway_url}}/health/ready",
+              "raw": "http://localhost:8010/health/ready",
               "host": [
-                "{{telegram_gateway_url}}"
+                "http://localhost:8010"
               ],
               "path": [
                 "health",
@@ -2572,18 +2658,19 @@
               }
             ],
             "url": {
-              "raw": "{{telegram_gateway_url}}/setup/:tenant_id",
+              "raw": "http://localhost:8010/setup/demo_turismo",
               "host": [
-                "{{telegram_gateway_url}}"
+                "http://localhost:8010"
               ],
               "path": [
                 "setup",
-                ":tenant_id"
+                "demo_turismo"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             }
@@ -2605,18 +2692,19 @@
               }
             ],
             "url": {
-              "raw": "{{telegram_gateway_url}}/webhook/:tenant_id",
+              "raw": "http://localhost:8010/webhook/demo_turismo",
               "host": [
-                "{{telegram_gateway_url}}"
+                "http://localhost:8010"
               ],
               "path": [
                 "webhook",
-                ":tenant_id"
+                "demo_turismo"
               ],
               "variable": [
                 {
                   "key": "tenant_id",
-                  "value": "{{tenant_id}}"
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
                 }
               ]
             }
@@ -2630,59 +2718,98 @@
   "variable": [
     {
       "key": "orchestrator_url",
-      "value": "http://localhost:8001"
+      "value": "http://localhost:8001",
+      "type": "string"
     },
     {
       "key": "rag_url",
-      "value": "http://localhost:8002"
+      "value": "http://localhost:8002",
+      "type": "string"
     },
     {
       "key": "tenant_manager_url",
-      "value": "http://localhost:8003"
+      "value": "http://localhost:8003",
+      "type": "string"
     },
     {
       "key": "recommender_url",
-      "value": "http://localhost:8004"
+      "value": "http://localhost:8004",
+      "type": "string"
     },
     {
       "key": "model_adapter_url",
-      "value": "http://localhost:8005"
+      "value": "http://localhost:8005",
+      "type": "string"
     },
     {
       "key": "checkout_url",
-      "value": "http://localhost:8006"
+      "value": "http://localhost:8006",
+      "type": "string"
     },
     {
       "key": "handoff_url",
-      "value": "http://localhost:8007"
+      "value": "http://localhost:8007",
+      "type": "string"
     },
     {
       "key": "transcript_url",
-      "value": "http://localhost:8008"
+      "value": "http://localhost:8008",
+      "type": "string"
     },
     {
       "key": "fallback_url",
-      "value": "http://localhost:8009"
+      "value": "http://localhost:8009",
+      "type": "string"
     },
     {
       "key": "telegram_gateway_url",
-      "value": "http://localhost:8010"
+      "value": "http://localhost:8010",
+      "type": "string"
     },
     {
       "key": "demo_url",
-      "value": "http://localhost:8088"
+      "value": "http://localhost:8088",
+      "type": "string"
     },
     {
       "key": "tenant_id",
-      "value": "demo_turismo"
+      "value": "demo_turismo",
+      "type": "string"
     },
     {
       "key": "admin_token",
-      "value": ""
+      "value": "",
+      "type": "string"
     },
     {
       "key": "widget_token",
-      "value": ""
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "session_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "case_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "doc_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_email",
+      "value": "admin@nia.local",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "changeme",
+      "type": "string"
     }
   ]
 }

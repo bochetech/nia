@@ -1,0 +1,427 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "NIA Transcript Service",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/health/ready": {
+            "get": {
+                "tags": [
+                    "ops"
+                ],
+                "summary": "Readiness",
+                "operationId": "readiness_health_ready_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/transcripts/messages": {
+            "post": {
+                "summary": "Save Message",
+                "description": "Persiste un mensaje en la tabla de mensajes del tenant.",
+                "operationId": "save_message_v1_transcripts_messages_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveMessageRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "title": "Response Save Message V1 Transcripts Messages Post"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/transcripts/{tenant_id}/{session_id}": {
+            "get": {
+                "summary": "Get Transcript",
+                "description": "Obtiene el historial completo de una sesi\u00f3n.",
+                "operationId": "get_transcript_v1_transcripts__tenant_id___session_id__get",
+                "parameters": [
+                    {
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Tenant Id"
+                        }
+                    },
+                    {
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Session Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "title": "Response Get Transcript V1 Transcripts  Tenant Id   Session Id  Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/transcripts/{tenant_id}/{session_id}/email": {
+            "post": {
+                "summary": "Export Transcript Email",
+                "description": "Genera HTML con la transcripci\u00f3n y lo env\u00eda por email.\nSin SMTP configurado, devuelve el HTML en la respuesta (dev mode).",
+                "operationId": "export_transcript_email_v1_transcripts__tenant_id___session_id__email_post",
+                "parameters": [
+                    {
+                        "name": "tenant_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Tenant Id"
+                        }
+                    },
+                    {
+                        "name": "session_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Session Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/EmailExportRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "title": "Response Export Transcript Email V1 Transcripts  Tenant Id   Session Id  Email Post"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/leads": {
+            "post": {
+                "summary": "Create Lead",
+                "description": "Persiste un lead capturado en el formulario pre-chat.",
+                "operationId": "create_lead_v1_leads_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LeadCreateRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "title": "Response Create Lead V1 Leads Post"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "tags": [
+                    "ops"
+                ],
+                "summary": "Health",
+                "operationId": "health_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "EmailExportRequest": {
+                "properties": {
+                    "to_email": {
+                        "type": "string",
+                        "format": "email",
+                        "title": "To Email"
+                    },
+                    "subject": {
+                        "type": "string",
+                        "title": "Subject",
+                        "default": "Tu conversaci\u00f3n con NIA"
+                    },
+                    "tenant_name": {
+                        "type": "string",
+                        "title": "Tenant Name",
+                        "default": "NIA"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "to_email"
+                ],
+                "title": "EmailExportRequest"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "LeadCreateRequest": {
+                "properties": {
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "title": "Session Id"
+                    },
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "title": "Email"
+                    },
+                    "phone": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Phone"
+                    },
+                    "intent_data": {
+                        "type": "object",
+                        "title": "Intent Data",
+                        "default": {}
+                    },
+                    "gdpr_consent": {
+                        "type": "boolean",
+                        "title": "Gdpr Consent",
+                        "default": false
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "tenant_id",
+                    "session_id",
+                    "name",
+                    "email"
+                ],
+                "title": "LeadCreateRequest"
+            },
+            "SaveMessageRequest": {
+                "properties": {
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "session_id": {
+                        "type": "string",
+                        "title": "Session Id"
+                    },
+                    "role": {
+                        "type": "string",
+                        "title": "Role"
+                    },
+                    "content": {
+                        "type": "string",
+                        "title": "Content"
+                    },
+                    "tokens": {
+                        "type": "integer",
+                        "title": "Tokens",
+                        "default": 0
+                    },
+                    "intent": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Intent"
+                    },
+                    "confidence": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Confidence"
+                    },
+                    "rag_sources": {
+                        "items": {},
+                        "type": "array",
+                        "title": "Rag Sources",
+                        "default": []
+                    },
+                    "metadata": {
+                        "type": "object",
+                        "title": "Metadata",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "tenant_id",
+                    "session_id",
+                    "role",
+                    "content"
+                ],
+                "title": "SaveMessageRequest"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        }
+    }
+}

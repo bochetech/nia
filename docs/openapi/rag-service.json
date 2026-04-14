@@ -1,0 +1,582 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "NIA RAG Service",
+        "description": "Ingestion and retrieval-augmented generation for tourism knowledge bases",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/health/ready": {
+            "get": {
+                "tags": [
+                    "ops"
+                ],
+                "summary": "Readiness",
+                "operationId": "readiness_health_ready_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/rag/query": {
+            "post": {
+                "summary": "Query the RAG knowledge base",
+                "operationId": "rag_query_v1_rag_query_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/QueryRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_RAGQueryResult_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/rag/ingest": {
+            "post": {
+                "summary": "Ingest a document into the knowledge base",
+                "operationId": "ingest_v1_rag_ingest_post",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Body_ingest_v1_rag_ingest_post"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_IngestResponse_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/rag/ingest-json": {
+            "post": {
+                "summary": "Ingest a JSON knowledge base (array of activity/knowledge objects)",
+                "description": "Acepta un JSON cuya ra\u00edz es una lista de objetos. Cada objeto se convierte\nen un chunk de texto incluyendo todos sus campos key-value.\n\nEjemplo de estructura soportada (demo_knowledge.json):\n  [{\"id\": \"1\", \"name\": \"Tour del Valle\", \"description\": \"...\", ...}, ...]",
+                "operationId": "ingest_json_v1_rag_ingest_json_post",
+                "requestBody": {
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Body_ingest_json_v1_rag_ingest_json_post"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_IngestResponse_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/rag/documents/{doc_id}": {
+            "delete": {
+                "summary": "Delete all chunks for a document",
+                "operationId": "delete_document_v1_rag_documents__doc_id__delete",
+                "parameters": [
+                    {
+                        "name": "doc_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Doc Id"
+                        }
+                    },
+                    {
+                        "name": "tenant_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Tenant Id"
+                        }
+                    },
+                    {
+                        "name": "collection_name",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "title": "Collection Name"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "tags": [
+                    "ops"
+                ],
+                "summary": "Health",
+                "operationId": "health_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "APIResponse_IngestResponse_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/IngestResponse"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[IngestResponse]"
+            },
+            "APIResponse_RAGQueryResult_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/RAGQueryResult"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[RAGQueryResult]"
+            },
+            "Body_ingest_json_v1_rag_ingest_json_post": {
+                "properties": {
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "collection_name": {
+                        "type": "string",
+                        "title": "Collection Name"
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "binary",
+                        "title": "File"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "tenant_id",
+                    "collection_name",
+                    "file"
+                ],
+                "title": "Body_ingest_json_v1_rag_ingest_json_post"
+            },
+            "Body_ingest_v1_rag_ingest_post": {
+                "properties": {
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "collection_name": {
+                        "type": "string",
+                        "title": "Collection Name"
+                    },
+                    "file": {
+                        "type": "string",
+                        "format": "binary",
+                        "title": "File"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "tenant_id",
+                    "collection_name",
+                    "file"
+                ],
+                "title": "Body_ingest_v1_rag_ingest_post"
+            },
+            "HATEOASLink": {
+                "properties": {
+                    "href": {
+                        "type": "string",
+                        "title": "Href"
+                    },
+                    "method": {
+                        "type": "string",
+                        "title": "Method",
+                        "default": "GET"
+                    },
+                    "rel": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Rel"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "href"
+                ],
+                "title": "HATEOASLink"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "IngestResponse": {
+                "properties": {
+                    "doc_id": {
+                        "type": "string",
+                        "title": "Doc Id"
+                    },
+                    "filename": {
+                        "type": "string",
+                        "title": "Filename"
+                    },
+                    "chunks_created": {
+                        "type": "integer",
+                        "title": "Chunks Created"
+                    },
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "doc_id",
+                    "filename",
+                    "chunks_created",
+                    "tenant_id"
+                ],
+                "title": "IngestResponse"
+            },
+            "QueryRequest": {
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "title": "Query"
+                    },
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "collection_name": {
+                        "type": "string",
+                        "title": "Collection Name"
+                    },
+                    "tenant_name": {
+                        "type": "string",
+                        "title": "Tenant Name",
+                        "default": "el centro de turismo"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "query",
+                    "tenant_id",
+                    "collection_name"
+                ],
+                "title": "QueryRequest"
+            },
+            "RAGChunkSource": {
+                "properties": {
+                    "doc_id": {
+                        "type": "string",
+                        "title": "Doc Id"
+                    },
+                    "doc_name": {
+                        "type": "string",
+                        "title": "Doc Name"
+                    },
+                    "chunk_index": {
+                        "type": "integer",
+                        "title": "Chunk Index"
+                    },
+                    "section": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Section"
+                    },
+                    "retrieval_score": {
+                        "type": "number",
+                        "title": "Retrieval Score"
+                    },
+                    "rerank_score": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Rerank Score"
+                    },
+                    "text_excerpt": {
+                        "type": "string",
+                        "title": "Text Excerpt"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "doc_id",
+                    "doc_name",
+                    "chunk_index",
+                    "retrieval_score",
+                    "text_excerpt"
+                ],
+                "title": "RAGChunkSource"
+            },
+            "RAGQueryResult": {
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "title": "Query"
+                    },
+                    "answer": {
+                        "type": "string",
+                        "title": "Answer"
+                    },
+                    "confidence_score": {
+                        "type": "number",
+                        "title": "Confidence Score"
+                    },
+                    "chunks_used": {
+                        "items": {
+                            "$ref": "#/components/schemas/RAGChunkSource"
+                        },
+                        "type": "array",
+                        "title": "Chunks Used"
+                    },
+                    "groundedness_check": {
+                        "type": "string",
+                        "title": "Groundedness Check",
+                        "default": "passed"
+                    },
+                    "retrieval_model": {
+                        "type": "string",
+                        "title": "Retrieval Model"
+                    },
+                    "generation_model": {
+                        "type": "string",
+                        "title": "Generation Model"
+                    },
+                    "latency_retrieval_ms": {
+                        "type": "number",
+                        "title": "Latency Retrieval Ms"
+                    },
+                    "latency_generation_ms": {
+                        "type": "number",
+                        "title": "Latency Generation Ms"
+                    },
+                    "is_fallback": {
+                        "type": "boolean",
+                        "title": "Is Fallback",
+                        "default": false
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "query",
+                    "answer",
+                    "confidence_score",
+                    "chunks_used",
+                    "retrieval_model",
+                    "generation_model",
+                    "latency_retrieval_ms",
+                    "latency_generation_ms"
+                ],
+                "title": "RAGQueryResult"
+            },
+            "ResponseMeta": {
+                "properties": {
+                    "request_id": {
+                        "type": "string",
+                        "title": "Request Id"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "title": "Timestamp"
+                    },
+                    "version": {
+                        "type": "string",
+                        "title": "Version",
+                        "default": "1"
+                    }
+                },
+                "type": "object",
+                "title": "ResponseMeta"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        }
+    }
+}

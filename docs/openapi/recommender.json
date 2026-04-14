@@ -1,0 +1,466 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "NIA Recommender",
+        "version": "1.0.0"
+    },
+    "paths": {
+        "/v1/recommendations": {
+            "post": {
+                "summary": "Get product recommendations based on user intent entities",
+                "operationId": "recommend_v1_recommendations_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RecommendRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/APIResponse_RecommendationResult_"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "tags": [
+                    "ops"
+                ],
+                "summary": "Health",
+                "operationId": "health_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "APIResponse_RecommendationResult_": {
+                "properties": {
+                    "data": {
+                        "$ref": "#/components/schemas/RecommendationResult"
+                    },
+                    "meta": {
+                        "$ref": "#/components/schemas/ResponseMeta"
+                    },
+                    "_links": {
+                        "additionalProperties": {
+                            "$ref": "#/components/schemas/HATEOASLink"
+                        },
+                        "type": "object",
+                        "title": " Links",
+                        "default": {}
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "data"
+                ],
+                "title": "APIResponse[RecommendationResult]"
+            },
+            "AvailabilitySlot": {
+                "properties": {
+                    "time": {
+                        "type": "string",
+                        "title": "Time"
+                    },
+                    "spots_left": {
+                        "type": "integer",
+                        "title": "Spots Left"
+                    },
+                    "guide_language": {
+                        "type": "string",
+                        "title": "Guide Language"
+                    },
+                    "guide_name": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Guide Name"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "time",
+                    "spots_left",
+                    "guide_language"
+                ],
+                "title": "AvailabilitySlot"
+            },
+            "HATEOASLink": {
+                "properties": {
+                    "href": {
+                        "type": "string",
+                        "title": "Href"
+                    },
+                    "method": {
+                        "type": "string",
+                        "title": "Method",
+                        "default": "GET"
+                    },
+                    "rel": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Rel"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "href"
+                ],
+                "title": "HATEOASLink"
+            },
+            "HTTPValidationError": {
+                "properties": {
+                    "detail": {
+                        "items": {
+                            "$ref": "#/components/schemas/ValidationError"
+                        },
+                        "type": "array",
+                        "title": "Detail"
+                    }
+                },
+                "type": "object",
+                "title": "HTTPValidationError"
+            },
+            "IntentEntities": {
+                "properties": {
+                    "activity_type": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Activity Type"
+                    },
+                    "date": {
+                        "type": "null",
+                        "title": "Date"
+                    },
+                    "pax_count": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Pax Count"
+                    },
+                    "language_preference": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Language Preference"
+                    },
+                    "budget_max": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Budget Max"
+                    },
+                    "physical_level": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Physical Level"
+                    },
+                    "duration_preference_hours": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Duration Preference Hours"
+                    },
+                    "time_of_day": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Time Of Day"
+                    }
+                },
+                "type": "object",
+                "title": "IntentEntities"
+            },
+            "RecommendRequest": {
+                "properties": {
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "tenant_schema": {
+                        "type": "string",
+                        "title": "Tenant Schema"
+                    },
+                    "entities": {
+                        "$ref": "#/components/schemas/IntentEntities"
+                    },
+                    "top_k": {
+                        "type": "integer",
+                        "title": "Top K",
+                        "default": 5
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "tenant_id",
+                    "tenant_schema",
+                    "entities"
+                ],
+                "title": "RecommendRequest"
+            },
+            "RecommendationItem": {
+                "properties": {
+                    "product_id": {
+                        "type": "string",
+                        "title": "Product Id"
+                    },
+                    "tenant_id": {
+                        "type": "string",
+                        "title": "Tenant Id"
+                    },
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "category": {
+                        "type": "string",
+                        "title": "Category"
+                    },
+                    "base_price": {
+                        "type": "number",
+                        "title": "Base Price"
+                    },
+                    "currency": {
+                        "type": "string",
+                        "title": "Currency",
+                        "default": "CLP"
+                    },
+                    "duration_minutes": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Duration Minutes"
+                    },
+                    "languages": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Languages"
+                    },
+                    "score": {
+                        "type": "number",
+                        "title": "Score"
+                    },
+                    "rank": {
+                        "type": "integer",
+                        "title": "Rank"
+                    },
+                    "availability_status": {
+                        "type": "string",
+                        "title": "Availability Status",
+                        "default": "available"
+                    },
+                    "available_slots": {
+                        "items": {
+                            "$ref": "#/components/schemas/AvailabilitySlot"
+                        },
+                        "type": "array",
+                        "title": "Available Slots"
+                    },
+                    "rank_reason": {
+                        "type": "string",
+                        "title": "Rank Reason",
+                        "default": ""
+                    },
+                    "image_url": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Image Url"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "product_id",
+                    "tenant_id",
+                    "name",
+                    "category",
+                    "base_price",
+                    "score",
+                    "rank"
+                ],
+                "title": "RecommendationItem"
+            },
+            "RecommendationResult": {
+                "properties": {
+                    "recommendations": {
+                        "items": {
+                            "$ref": "#/components/schemas/RecommendationItem"
+                        },
+                        "type": "array",
+                        "title": "Recommendations"
+                    },
+                    "availability_checked_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Availability Checked At"
+                    },
+                    "total_candidates_evaluated": {
+                        "type": "integer",
+                        "title": "Total Candidates Evaluated",
+                        "default": 0
+                    },
+                    "reason": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Reason"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "recommendations"
+                ],
+                "title": "RecommendationResult"
+            },
+            "ResponseMeta": {
+                "properties": {
+                    "request_id": {
+                        "type": "string",
+                        "title": "Request Id"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "title": "Timestamp"
+                    },
+                    "version": {
+                        "type": "string",
+                        "title": "Version",
+                        "default": "1"
+                    }
+                },
+                "type": "object",
+                "title": "ResponseMeta"
+            },
+            "ValidationError": {
+                "properties": {
+                    "loc": {
+                        "items": {
+                            "anyOf": [
+                                {
+                                    "type": "string"
+                                },
+                                {
+                                    "type": "integer"
+                                }
+                            ]
+                        },
+                        "type": "array",
+                        "title": "Location"
+                    },
+                    "msg": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "type": {
+                        "type": "string",
+                        "title": "Error Type"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "loc",
+                    "msg",
+                    "type"
+                ],
+                "title": "ValidationError"
+            }
+        }
+    }
+}

@@ -10,7 +10,7 @@ from typing import Any
 import httpx
 
 from app.flow_defaults import DEFAULT_TRANSITIONS
-from app.intent import detect_intent
+from app.intent import detect_intent, get_skill_config
 from app.session import get_or_create_session, save_session, transition_state
 from app.settings import OrchestratorSettings
 from shared.models.domain import (
@@ -21,6 +21,7 @@ from shared.models.domain import (
     IntentType,
     RecommendationResult,
     SessionState,
+    SkillConfig,
 )
 from shared.utils.logging import get_logger
 from shared.utils.sanitizer import sanitize_user_message
@@ -106,7 +107,7 @@ async def process_message(
 
     # 5. Detectar intent usando historial real
     history = _build_history_for_intent(session)
-    intent, confidence, entities = await detect_intent(
+    intent, confidence, entities, raw_entities = await detect_intent(
         message=clean_message,
         conversation_history=history,
         settings=settings,
@@ -115,7 +116,7 @@ async def process_message(
     )
 
     session.last_intent = intent
-    session.last_entities = entities.model_dump(exclude_none=True)
+    session.last_entities = raw_entities or entities.model_dump(exclude_none=True)
     session.messages_count += 1
 
     # Helper to get intent as plain string
@@ -127,6 +128,7 @@ async def process_message(
         intent=intent,
         confidence=confidence,
         entities=entities,
+        raw_entities=raw_entities,
         session=session,
         tenant_config=tenant_config,
         settings=settings,
@@ -158,6 +160,7 @@ async def _route_by_intent(
     intent: IntentType | str,
     confidence: float,
     entities: IntentEntities,
+    raw_entities: dict[str, Any],
     session: SessionState,
     tenant_config: dict,
     settings: OrchestratorSettings,
@@ -179,7 +182,8 @@ async def _route_by_intent(
     # Caso especial: si el estado actual es POST_CHAT, cualquier mensaje se
     # interpreta como respuesta NPS independientemente del intent detectado.
     if session.fsm_state == ConversationFSMState.POST_CHAT:
-        return await _handle_nps(message=message, session=session)
+        skill = get_skill_config("nps", tenant_config)
+        return await _handle_nps(message=message, session=session, skill=skill)
 
     raw_transitions: list[dict] = (
         tenant_config.get("fsm_config", {}).get("transitions") or []
@@ -230,6 +234,9 @@ async def _route_by_intent(
     limits_config = tenant_config.get("limits_config", {})
     tenant_name = tenant_config.get("ui_config", {}).get("chat_title", "el centro de turismo")
 
+    # Resolve skill config for the matched action
+    skill = get_skill_config(matched.action, tenant_config)
+
     if matched.action == "handoff":
         if limits_config.get("handoff_enabled", True):
             return await _trigger_handoff(
@@ -237,18 +244,22 @@ async def _route_by_intent(
                 trigger_type="explicit_request",
                 reason=f"El usuario solicitó explícitamente hablar con un humano. Mensaje: {message[:200]}",
                 settings=settings,
+                skill=skill,
             )
+        unavailable_msg = (
+            skill.response_templates.get("unavailable") if skill else None
+        ) or "Entiendo que prefieres hablar con una persona, pero el servicio de atención humana no está disponible en este momento. ¿Puedo intentar ayudarte yo?"
         return FSMResult(
-            response_text="Entiendo que prefieres hablar con una persona, pero el servicio de atención humana no está disponible en este momento. ¿Puedo intentar ayudarte yo?",
+            response_text=unavailable_msg,
             new_state=session.fsm_state,
             session=session,
         )
 
     if matched.action == "nps":
-        return await _handle_nps(message=message, session=session)
+        return await _handle_nps(message=message, session=session, skill=skill)
 
     if matched.action == "complaint":
-        return await _handle_complaint(session, settings, message)
+        return await _handle_complaint(session, settings, message, skill=skill)
 
     if matched.action == "faq":
         return await _handle_faq(
@@ -257,15 +268,18 @@ async def _route_by_intent(
             tenant_config=tenant_config,
             settings=settings,
             tenant_name=tenant_name,
+            skill=skill,
         )
 
     if matched.action == "recommend":
         return await _handle_recommendation_flow(
             message=message,
             entities=entities,
+            raw_entities=raw_entities,
             session=session,
             tenant_config=tenant_config,
             settings=settings,
+            skill=skill,
         )
 
     if matched.action == "static_reply":
@@ -365,10 +379,17 @@ async def _handle_faq(
     tenant_config: dict,
     settings: OrchestratorSettings,
     tenant_name: str,
+    skill: SkillConfig | None = None,
 ) -> FSMResult:
     """Consulta al RAG service."""
     rag_config = tenant_config.get("rag_config", {})
     collection_name = f"{session.tenant_id}_docs"
+
+    error_msg = (
+        (skill.response_templates.get("error") if skill else None)
+        or rag_config.get("fallback_message")
+        or "No tengo información precisa sobre eso. ¿Te gustaría hablar con un asesor?"
+    )
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -386,7 +407,7 @@ async def _handle_faq(
     except Exception as exc:
         logger.error("rag_call_failed", error=str(exc))
         return FSMResult(
-            response_text=rag_config.get("fallback_message", "No tengo información precisa sobre eso. ¿Te gustaría hablar con un asesor?"),
+            response_text=error_msg,
             new_state=ConversationFSMState.FAQ_ANSWER,
             session=session,
         )
@@ -417,12 +438,25 @@ async def _handle_recommendation_flow(
     *,
     message: str,
     entities: IntentEntities,
+    raw_entities: dict[str, Any] | None = None,
     session: SessionState,
     tenant_config: dict,
     settings: OrchestratorSettings,
+    skill: SkillConfig | None = None,
 ) -> FSMResult:
     """Llama al recommender y construye respuesta con productos."""
     tenant_schema = f"tenant_{session.tenant_id}"
+
+    # Use raw_entities if available (includes custom fields from skill config),
+    # otherwise fall back to legacy IntentEntities model.
+    entities_payload = raw_entities if raw_entities else entities.model_dump(mode="json")
+
+    # Resolve response templates from skill config
+    tpl = skill.response_templates if skill else {}
+    error_msg = tpl.get("error", "Estoy teniendo dificultades para acceder al catálogo. ¿Puedes intentarlo de nuevo en un momento?")
+    empty_msg = tpl.get("empty", "En este momento no encontré actividades que coincidan exactamente con lo que buscas. ¿Te gustaría que amplíe la búsqueda?")
+    success_msg = tpl.get("success", "Te recomiendo estas opciones:")
+    followup_msg = tpl.get("followup", "¿Te interesa alguna de estas opciones? Puedo darte más detalles o ayudarte a reservar.")
 
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:
@@ -431,7 +465,7 @@ async def _handle_recommendation_flow(
                 json={
                     "tenant_id": session.tenant_id,
                     "tenant_schema": tenant_schema,
-                    "entities": entities.model_dump(mode="json"),
+                    "entities": entities_payload,
                     "top_k": 3,
                 },
             )
@@ -440,14 +474,14 @@ async def _handle_recommendation_flow(
     except Exception as exc:
         logger.error("recommender_call_failed", error=str(exc))
         return FSMResult(
-            response_text="Estoy teniendo dificultades para acceder al catálogo. ¿Puedes intentarlo de nuevo en un momento?",
+            response_text=error_msg,
             new_state=session.fsm_state,
             session=session,
         )
 
     if not rec_result.recommendations:
         return FSMResult(
-            response_text="En este momento no encontré actividades que coincidan exactamente con lo que buscas. ¿Te gustaría que amplíe la búsqueda?",
+            response_text=empty_msg,
             new_state=ConversationFSMState.DISCOVERY,
             session=session,
         )
@@ -457,17 +491,17 @@ async def _handle_recommendation_flow(
     await transition_state(session, ConversationFSMState.RECOMMENDING)
 
     # Construir texto de respuesta
-    lines = ["Te recomiendo estas opciones:"]
+    lines = [success_msg]
     for item in rec_result.recommendations:
         price_str = f"${item.base_price:,.0f} {item.currency}"
-        avail_str = f"✅ Disponible" if item.availability_status == "available" else "📅 Consultar disponibilidad"
+        avail_str = "✅ Disponible" if item.availability_status == "available" else "📅 Consultar disponibilidad"
         lines.append(f"\n**{item.rank}. {item.name}**")
         lines.append(f"   💰 {price_str} | ⏱ {item.duration_minutes or '?'} min | {avail_str}")
         if item.available_slots:
             times = ", ".join(s.time for s in item.available_slots[:2])
             lines.append(f"   🕐 Horarios: {times}")
 
-    lines.append("\n¿Te interesa alguna de estas opciones? Puedo darte más detalles o ayudarte a reservar.")
+    lines.append(f"\n{followup_msg}")
 
     return FSMResult(
         response_text="\n".join(lines),
@@ -481,6 +515,7 @@ async def _handle_complaint(
     session: SessionState,
     settings: OrchestratorSettings,
     message: str,
+    skill: SkillConfig | None = None,
 ) -> FSMResult:
     """Registra queja y evalúa si hacer handoff."""
     session.metadata = getattr(session, "metadata", {}) or {}
@@ -494,10 +529,15 @@ async def _handle_complaint(
             trigger_type="complaint",
             reason=f"Cliente expresó queja. Mensaje: {message[:200]}",
             settings=settings,
+            skill=get_skill_config("handoff"),
         )
 
+    ack_msg = (
+        (skill.response_templates.get("ack") if skill else None)
+        or "Lamento mucho la inconveniencia. ¿Puedes contarme más sobre lo que ocurrió para poder ayudarte mejor?"
+    )
     return FSMResult(
-        response_text="Lamento mucho la inconveniencia. ¿Puedes contarme más sobre lo que ocurrió para poder ayudarte mejor?",
+        response_text=ack_msg,
         new_state=session.fsm_state,
         session=session,
     )
@@ -508,6 +548,7 @@ async def _trigger_handoff(
     trigger_type: str,
     reason: str,
     settings: OrchestratorSettings,
+    skill: SkillConfig | None = None,
 ) -> FSMResult:
     """Inicia el handoff al servicio de handoff."""
     try:
@@ -528,20 +569,26 @@ async def _trigger_handoff(
     except Exception as exc:
         logger.error("handoff_trigger_failed", error=str(exc))
 
-    await transition_state(session, ConversationFSMState.HANDOFF_ACTIVE)
-    return FSMResult(
-        response_text=(
+    connecting_msg = (
+        (skill.response_templates.get("connecting") if skill else None)
+        or (
             "Te estoy conectando con uno de nuestros asesores que podrá ayudarte mejor. "
             "Por favor espera un momento mientras revisamos tu caso. 🙏"
-        ),
+        )
+    )
+    await transition_state(session, ConversationFSMState.HANDOFF_ACTIVE)
+    return FSMResult(
+        response_text=connecting_msg,
         new_state=ConversationFSMState.HANDOFF_ACTIVE,
         session=session,
         handoff_triggered=True,
     )
 
 
-async def _handle_nps(*, message: str, session: SessionState) -> FSMResult:
+async def _handle_nps(*, message: str, session: SessionState, skill: SkillConfig | None = None) -> FSMResult:
     """Captura la puntuación NPS (1-5) del usuario."""
+    tpl = skill.response_templates if skill else {}
+
     score = None
     for char in message:
         if char.isdigit() and 1 <= int(char) <= 5:
@@ -551,7 +598,10 @@ async def _handle_nps(*, message: str, session: SessionState) -> FSMResult:
     if score:
         session.nps_score = score
         await save_session(session)
-        thanks = "¡Muchas gracias por tu puntuación! 🙏" if score >= 4 else "Gracias por tu opinión, la tendremos muy en cuenta para mejorar."
+        if score >= 4:
+            thanks = tpl.get("thanks_high", "¡Muchas gracias por tu puntuación! 🙏")
+        else:
+            thanks = tpl.get("thanks_low", "Gracias por tu opinión, la tendremos muy en cuenta para mejorar.")
         await transition_state(session, ConversationFSMState.CLOSED)
         return FSMResult(
             response_text=f"{thanks} Ha sido un placer acompañarte. ¡Hasta pronto!",
@@ -559,8 +609,9 @@ async def _handle_nps(*, message: str, session: SessionState) -> FSMResult:
             session=session,
         )
 
+    invalid_msg = tpl.get("invalid", "Por favor, responde con un número del 1 al 5 para calificar tu experiencia. (1 = muy malo, 5 = excelente)")
     return FSMResult(
-        response_text="Por favor, responde con un número del 1 al 5 para calificar tu experiencia. (1 = muy malo, 5 = excelente)",
+        response_text=invalid_msg,
         new_state=ConversationFSMState.POST_CHAT,
         session=session,
     )

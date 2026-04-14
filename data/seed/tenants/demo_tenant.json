@@ -156,6 +156,80 @@
         "action": "discovery",
         "enabled": true
       }
+    ],
+    "skills": [
+      {
+        "action": "recommend",
+        "name": "Recomendador de experiencias",
+        "description": "Busca y recomienda actividades turísticas del catálogo según las preferencias del usuario.",
+        "entity_schema": [
+          {
+            "name": "activity_type",
+            "type": "string",
+            "description": "Tipo de actividad turística que busca el usuario",
+            "required": false,
+            "examples": ["tour de vinos", "excursión", "trekking", "visita guiada"]
+          },
+          {
+            "name": "date",
+            "type": "date",
+            "description": "Fecha deseada para la actividad en formato YYYY-MM-DD",
+            "required": false,
+            "examples": ["2025-03-15", "mañana"]
+          },
+          {
+            "name": "pax_count",
+            "type": "integer",
+            "description": "Número de personas que participarán",
+            "required": false,
+            "examples": ["2", "4"]
+          },
+          {
+            "name": "budget_max",
+            "type": "float",
+            "description": "Presupuesto máximo en la moneda local",
+            "required": false
+          },
+          {
+            "name": "time_of_day",
+            "type": "enum",
+            "description": "Momento del día preferido",
+            "required": false,
+            "enum_values": ["morning", "afternoon", "evening"]
+          }
+        ],
+        "preparation_prompt": "Extrae las preferencias del usuario para buscar actividades turísticas. Convierte fechas relativas a formato YYYY-MM-DD.",
+        "response_templates": {
+          "success": "Te recomiendo estas opciones:",
+          "empty": "No encontré actividades que coincidan. ¿Quieres ampliar la búsqueda?",
+          "error": "Estoy teniendo dificultades para acceder al catálogo. ¿Puedes intentarlo de nuevo?",
+          "followup": "¿Te interesa alguna de estas opciones? Puedo darte más detalles o ayudarte a reservar."
+        },
+        "enabled": true
+      },
+      {
+        "action": "faq",
+        "name": "Preguntas frecuentes (RAG)",
+        "description": "Consulta la base de conocimiento para responder preguntas informativas.",
+        "entity_schema": [],
+        "preparation_prompt": "",
+        "response_templates": {
+          "error": "No tengo información precisa sobre eso. ¿Te gustaría hablar con un asesor?"
+        },
+        "enabled": true
+      },
+      {
+        "action": "handoff",
+        "name": "Escalado a humano",
+        "description": "Transfiere la conversación a un asesor humano.",
+        "entity_schema": [],
+        "preparation_prompt": "",
+        "response_templates": {
+          "connecting": "Te estoy conectando con uno de nuestros asesores. Por favor espera un momento. 🙏",
+          "unavailable": "El servicio de atención humana no está disponible ahora. ¿Puedo intentar ayudarte yo?"
+        },
+        "enabled": true
+      }
     ]
   }
 }

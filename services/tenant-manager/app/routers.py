@@ -28,6 +28,7 @@ from shared.models.domain import (
     ActionType,
     FlowTransition,
     IntentDefinition,
+    SkillConfig,
     TenantConfigDTO,
     TeamsConfig,
     EmailConfig,
@@ -681,6 +682,259 @@ async def replace_transitions(
     await _save_fsm_config(tenant_id, fsm, db)
 
     return APIResponse(data=transitions)
+
+
+# ─────────────────────────────────────────────────────────────────
+# Skills / Action Configuration CRUD
+# ─────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/{tenant_id}/skills",
+    response_model=APIResponse[list[SkillConfig]],
+    summary="List skill configs for a tenant",
+)
+async def list_skills(
+    tenant_id: str,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Returns the skill configurations for this tenant.
+
+    Each skill config defines how the AI prepares to execute a particular action:
+    entity extraction schema, preparation prompt, and response templates.
+
+    If the tenant has no custom skill configs, returns the NIA defaults.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    raw_skills = fsm.get("skills", [])
+    if raw_skills:
+        skills = [SkillConfig(**s) if isinstance(s, dict) else s for s in raw_skills]
+    else:
+        from services.orchestrator.app.flow_defaults import DEFAULT_SKILLS
+        skills = DEFAULT_SKILLS
+
+    return APIResponse(data=skills)
+
+
+@router.get(
+    "/{tenant_id}/skills/{action_key}",
+    response_model=APIResponse[SkillConfig],
+    summary="Get skill config for a specific action",
+)
+async def get_skill(
+    tenant_id: str,
+    action_key: str,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Returns the skill configuration for a specific action.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    raw_skills = fsm.get("skills", [])
+    if raw_skills:
+        skills = [SkillConfig(**s) if isinstance(s, dict) else s for s in raw_skills]
+    else:
+        from services.orchestrator.app.flow_defaults import DEFAULT_SKILLS
+        skills = DEFAULT_SKILLS
+
+    for skill in skills:
+        if skill.action == action_key:
+            return APIResponse(data=skill)
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail=f"No skill config found for action '{action_key}'",
+    )
+
+
+@router.put(
+    "/{tenant_id}/skills/{action_key}",
+    response_model=APIResponse[SkillConfig],
+    summary="Create or replace skill config for an action",
+)
+async def upsert_skill(
+    tenant_id: str,
+    action_key: str,
+    skill: SkillConfig,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Create or replace the skill configuration for a specific action.
+
+    This endpoint lets you configure:
+    - **entity_schema**: What entities the AI should extract from user messages
+      for this action (e.g., date, number of guests, activity type).
+    - **preparation_prompt**: Instructions for the AI on how to extract entities.
+    - **response_templates**: Customizable response text patterns (success, error, empty, followup).
+
+    Example: For a hotel tenant's `recommend` skill, you might configure
+    entity_schema to extract check_in_date, check_out_date, room_type, and guests
+    instead of the default tourism entities (activity_type, date, pax_count).
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+        admin.require_admin()
+
+    # Validate action_key matches body
+    if skill.action != action_key:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"URL action_key '{action_key}' does not match body action '{skill.action}'",
+        )
+
+    # Validate action is a known ActionType
+    valid_actions = {a.value for a in ActionType}
+    if action_key not in valid_actions:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Action '{action_key}' is not a valid skill. Valid: {sorted(valid_actions)}",
+        )
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    raw_skills = fsm.get("skills", [])
+
+    # If empty, bootstrap from defaults
+    if not raw_skills:
+        from services.orchestrator.app.flow_defaults import DEFAULT_SKILLS
+        raw_skills = [s.model_dump() for s in DEFAULT_SKILLS]
+
+    # Upsert: replace if exists, append if new
+    found = False
+    for i, s in enumerate(raw_skills):
+        s_action = s.get("action") if isinstance(s, dict) else s.action
+        if s_action == action_key:
+            raw_skills[i] = skill.model_dump()
+            found = True
+            break
+    if not found:
+        raw_skills.append(skill.model_dump())
+
+    fsm["skills"] = raw_skills
+    await _save_fsm_config(tenant_id, fsm, db)
+
+    return APIResponse(data=skill)
+
+
+@router.patch(
+    "/{tenant_id}/skills/{action_key}",
+    response_model=APIResponse[SkillConfig],
+    summary="Partially update skill config for an action",
+)
+async def patch_skill(
+    tenant_id: str,
+    action_key: str,
+    updates: dict,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Partially update the skill configuration for a specific action.
+    Only the provided fields will be updated.
+
+    Useful for updating just the entity_schema or response_templates
+    without replacing the entire skill config.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+        admin.require_admin()
+
+    # Cannot change the action key
+    if "action" in updates and updates["action"] != action_key:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cannot change the action key via PATCH. Use PUT to replace the entire skill.",
+        )
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    raw_skills = fsm.get("skills", [])
+
+    # If empty, bootstrap from defaults
+    if not raw_skills:
+        from services.orchestrator.app.flow_defaults import DEFAULT_SKILLS
+        raw_skills = [s.model_dump() for s in DEFAULT_SKILLS]
+
+    # Find and update
+    found = False
+    for i, s in enumerate(raw_skills):
+        s_dict = s if isinstance(s, dict) else s.model_dump()
+        if s_dict.get("action") == action_key:
+            s_dict.update(updates)
+            # Validate the merged result
+            try:
+                validated = SkillConfig(**s_dict)
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=f"Invalid skill config after merge: {exc}",
+                )
+            raw_skills[i] = validated.model_dump()
+            found = True
+            break
+
+    if not found:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No skill config found for action '{action_key}'",
+        )
+
+    fsm["skills"] = raw_skills
+    await _save_fsm_config(tenant_id, fsm, db)
+
+    return APIResponse(data=SkillConfig(**raw_skills[i]))
+
+
+@router.delete(
+    "/{tenant_id}/skills/{action_key}",
+    summary="Reset skill config for an action to defaults",
+)
+async def delete_skill(
+    tenant_id: str,
+    action_key: str,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Remove the custom skill configuration for a specific action,
+    reverting it to NIA defaults.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+        admin.require_admin()
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    raw_skills = fsm.get("skills", [])
+
+    if not raw_skills:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No custom skill configs configured. Already using defaults.",
+        )
+
+    original_len = len(raw_skills)
+    raw_skills = [
+        s for s in raw_skills
+        if (s.get("action") if isinstance(s, dict) else s.action) != action_key
+    ]
+
+    if len(raw_skills) == original_len:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No skill config found for action '{action_key}'",
+        )
+
+    fsm["skills"] = raw_skills
+    await _save_fsm_config(tenant_id, fsm, db)
+
+    return APIResponse(data={"message": f"Skill config for '{action_key}' removed. Will use NIA defaults."})
 
 
 # ─────────────────────────────────────────────────────────────────

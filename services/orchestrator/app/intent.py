@@ -14,9 +14,15 @@ from typing import Any
 
 import httpx
 
-from app.flow_defaults import DEFAULT_INTENTS
+from app.flow_defaults import DEFAULT_INTENTS, DEFAULT_SKILLS
 from app.settings import OrchestratorSettings
-from shared.models.domain import IntentDefinition, IntentEntities, IntentType
+from shared.models.domain import (
+    EntityField,
+    IntentDefinition,
+    IntentEntities,
+    IntentType,
+    SkillConfig,
+)
 from shared.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -55,13 +61,78 @@ Responde ÚNICAMENTE el JSON, sin explicaciones adicionales."""
 
 # ── Dynamic prompt builder ────────────────────────────────────────────────────
 
-def build_intent_prompt(intents: list[IntentDefinition]) -> str:
+def _build_entity_schema_block(skills: list[SkillConfig]) -> str:
+    """
+    Build the JSON entities block for the LLM prompt from the skill configs.
+    Merges all entity fields from all skills into a single flat schema.
+    If no skills have entity schemas, falls back to the legacy hardcoded fields.
+    """
+    # Collect all unique entity fields across all skills
+    fields: dict[str, EntityField] = {}
+    for skill in skills:
+        if skill.enabled:
+            for field in skill.entity_schema:
+                if field.name not in fields:
+                    fields[field.name] = field
+
+    if not fields:
+        # Fallback to legacy hardcoded entities
+        return """{
+    "activity_type": "<tipo de actividad o null>",
+    "date": "<fecha en formato YYYY-MM-DD o null>",
+    "pax_count": <número de personas o null>,
+    "language_preference": "<idioma preferido o null>",
+    "budget_max": <presupuesto máximo en la moneda local o null>,
+    "physical_level": "<low|moderate|high o null>",
+    "duration_preference_hours": <horas preferidas o null>,
+    "time_of_day": "<morning|afternoon|evening o null>"
+  }"""
+
+    # Build dynamic schema from entity fields
+    lines = []
+    for name, field in fields.items():
+        type_hint = field.type
+        if field.type == "enum" and field.enum_values:
+            type_hint = "|".join(field.enum_values)
+
+        desc = field.description
+        if field.examples:
+            examples_hint = ", ".join(f'"{e}"' for e in field.examples[:2])
+            desc += f" (ej: {examples_hint})"
+
+        null_or_type = f"<{type_hint} o null>"
+        if field.type in ("integer", "float"):
+            lines.append(f'    "{name}": {null_or_type}')
+        else:
+            lines.append(f'    "{name}": "{null_or_type}"')
+
+    return "{\n" + ",\n".join(lines) + "\n  }"
+
+
+def _build_preparation_hints(skills: list[SkillConfig]) -> str:
+    """
+    Build additional preparation instructions from skill configs.
+    Returns a block of text with instructions for entity extraction.
+    """
+    hints = []
+    for skill in skills:
+        if skill.enabled and skill.preparation_prompt:
+            hints.append(f"- Para {skill.action}: {skill.preparation_prompt}")
+    if not hints:
+        return ""
+    return "\n\nInstrucciones de extracción de entidades:\n" + "\n".join(hints)
+
+
+def build_intent_prompt(
+    intents: list[IntentDefinition],
+    skills: list[SkillConfig] | None = None,
+) -> str:
     """
     Construye el system prompt para el LLM a partir de las IntentDefinitions
     configuradas por el tenant.  Genera un prompt estructurado con:
       - lista de intent keys válidos
       - guía de clasificación con descripción y ejemplos
-      - formato JSON de salida
+      - formato JSON de salida con entidades dinámicas desde skill configs
     """
     # Solo intents habilitados, ordenados por prioridad (mayor primero)
     active = sorted(
@@ -86,25 +157,21 @@ def build_intent_prompt(intents: list[IntentDefinition]) -> str:
 
     guide_block = "\n".join(guide_lines)
 
+    # Build entity schema from skill configs
+    skill_list = skills or []
+    entity_block = _build_entity_schema_block(skill_list)
+    preparation_hints = _build_preparation_hints(skill_list)
+
     return f"""Eres un clasificador de intenciones para un asistente virtual.
 Analiza el mensaje del usuario y responde SOLO con un objeto JSON válido con esta estructura exacta:
 {{
   "intent": "<uno de: {keys_str}>",
   "confidence": <número entre 0.0 y 1.0>,
-  "entities": {{
-    "activity_type": "<tipo de actividad o null>",
-    "date": "<fecha en formato YYYY-MM-DD o null>",
-    "pax_count": <número de personas o null>,
-    "language_preference": "<idioma preferido o null>",
-    "budget_max": <presupuesto máximo en la moneda local o null>",
-    "physical_level": "<low|moderate|high o null>",
-    "duration_preference_hours": <horas preferidas o null>,
-    "time_of_day": "<morning|afternoon|evening o null>"
-  }}
+  "entities": {entity_block}
 }}
 
 Guía de clasificación (evalúa en este orden de prioridad):
-{guide_block}
+{guide_block}{preparation_hints}
 
 Responde ÚNICAMENTE el JSON, sin explicaciones adicionales."""
 
@@ -126,29 +193,62 @@ def _resolve_intents(tenant_config: dict | None) -> list[IntentDefinition]:
     return DEFAULT_INTENTS
 
 
+def _resolve_skills(tenant_config: dict | None) -> list[SkillConfig]:
+    """
+    Resolve the skill configs to use for entity extraction.
+    Priority: tenant fsm_config.skills → DEFAULT_SKILLS.
+    """
+    if tenant_config:
+        raw_skills = tenant_config.get("fsm_config", {}).get("skills", [])
+        if raw_skills:
+            return [
+                SkillConfig(**s) if isinstance(s, dict) else s
+                for s in raw_skills
+            ]
+    return DEFAULT_SKILLS
+
+
+def get_skill_config(action: str, tenant_config: dict | None = None) -> SkillConfig | None:
+    """
+    Get the SkillConfig for a specific action, for the given tenant.
+    Returns None if no config found for that action.
+    Used by FSM handlers to access response_templates and entity_schema.
+    """
+    skills = _resolve_skills(tenant_config)
+    for skill in skills:
+        if skill.action == action and skill.enabled:
+            return skill
+    return None
+
+
 async def detect_intent(
     message: str,
     conversation_history: list[dict],
     settings: OrchestratorSettings,
     tenant_id: str | None = None,
     tenant_config: dict | None = None,
-) -> tuple[IntentType | str, float, IntentEntities]:
+) -> tuple[IntentType | str, float, IntentEntities, dict[str, Any]]:
     """
     Detecta intent y extrae entidades del mensaje.
-    Retorna (intent_key, confidence, entities).
+    Retorna (intent_key, confidence, legacy_entities, raw_entities).
+
+    - legacy_entities: IntentEntities with known fields (backwards compat)
+    - raw_entities: dict with ALL extracted fields (including custom ones from skill configs)
 
     intent_key is str (the IntentDefinition.key) when using dynamic intents,
     or IntentType when using legacy mode.  The FSM handles both cases.
     """
     # ── Build the prompt ──────────────────────────────────────────────────
     intent_defs = _resolve_intents(tenant_config)
+    skill_defs = _resolve_skills(tenant_config)
     valid_keys = {i.key for i in intent_defs if i.enabled}
 
-    system_prompt = build_intent_prompt(intent_defs)
+    system_prompt = build_intent_prompt(intent_defs, skill_defs)
     logger.debug(
         "intent_prompt_built",
         tenant_id=tenant_id,
         intent_count=len(valid_keys),
+        skill_count=len([s for s in skill_defs if s.enabled]),
         mode="dynamic" if tenant_config and tenant_config.get("fsm_config", {}).get("intents") else "default",
     )
 
@@ -196,22 +296,28 @@ async def detect_intent(
             # Custom intent — return as plain string
             intent_typed = intent_str  # type: ignore[assignment]
 
-        entities = IntentEntities(**{k: v for k, v in entities_raw.items() if v is not None})
+        # Build legacy IntentEntities (only known fields) for backwards compat
+        known_fields = set(IntentEntities.model_fields.keys())
+        legacy_data = {k: v for k, v in entities_raw.items() if v is not None and k in known_fields}
+        entities = IntentEntities(**legacy_data)
+
+        # Raw entities dict keeps ALL extracted fields (including custom ones)
+        raw_entities = {k: v for k, v in entities_raw.items() if v is not None}
 
         logger.debug(
             "intent_detected",
             intent=intent_str,
             confidence=confidence,
-            entities=entities.model_dump(exclude_none=True),
+            entities=raw_entities,
         )
-        return intent_typed, confidence, entities
+        return intent_typed, confidence, entities, raw_entities
 
     except Exception as exc:
         logger.warning("intent_detection_failed", error=str(exc))
         try:
-            return IntentType.UNCLEAR, 0.0, IntentEntities()
+            return IntentType.UNCLEAR, 0.0, IntentEntities(), {}
         except Exception:
-            return "unclear", 0.0, IntentEntities()  # type: ignore[return-value]
+            return "unclear", 0.0, IntentEntities(), {}  # type: ignore[return-value]
 
 
 def _parse_intent_response(content: str) -> dict:

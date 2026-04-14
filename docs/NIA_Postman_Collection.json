@@ -1192,6 +1192,168 @@
           "response": []
         },
         {
+          "name": "List skill configs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/tenants/{{tenant_id}}/skills",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                "{{tenant_id}}",
+                "skills"
+              ]
+            },
+            "description": "List all skill configurations for the tenant. Returns defaults if none are custom-configured."
+          }
+        },
+        {
+          "name": "Get skill config",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/tenants/{{tenant_id}}/skills/recommend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                "{{tenant_id}}",
+                "skills",
+                "recommend"
+              ]
+            },
+            "description": "Get the skill configuration for a specific action (e.g., recommend, faq, handoff)."
+          }
+        },
+        {
+          "name": "Create/replace skill config",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/tenants/{{tenant_id}}/skills/recommend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                "{{tenant_id}}",
+                "skills",
+                "recommend"
+              ]
+            },
+            "description": "Create or fully replace the skill config for a specific action. Use this to customize entity extraction, AI instructions, and response templates per tenant.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"recommend\",\n  \"name\": \"Buscador de habitaciones\",\n  \"description\": \"Busca y recomienda habitaciones según preferencias del huésped.\",\n  \"entity_schema\": [\n    {\n      \"name\": \"check_in_date\",\n      \"type\": \"date\",\n      \"description\": \"Fecha de ingreso al hotel en formato YYYY-MM-DD\",\n      \"required\": true,\n      \"examples\": [\n        \"2025-03-15\",\n        \"mañana\"\n      ]\n    },\n    {\n      \"name\": \"check_out_date\",\n      \"type\": \"date\",\n      \"description\": \"Fecha de salida del hotel en formato YYYY-MM-DD\",\n      \"required\": true,\n      \"examples\": [\n        \"2025-03-18\"\n      ]\n    },\n    {\n      \"name\": \"guests\",\n      \"type\": \"integer\",\n      \"description\": \"Número de huéspedes\",\n      \"required\": false,\n      \"examples\": [\n        \"2\",\n        \"4\"\n      ]\n    },\n    {\n      \"name\": \"room_type\",\n      \"type\": \"enum\",\n      \"description\": \"Tipo de habitación preferida\",\n      \"required\": false,\n      \"enum_values\": [\n        \"single\",\n        \"double\",\n        \"suite\",\n        \"family\"\n      ]\n    }\n  ],\n  \"preparation_prompt\": \"Extrae las preferencias de hospedaje del usuario. Convierte fechas relativas a YYYY-MM-DD. Si no especifica tipo de habitación, deja null.\",\n  \"response_templates\": {\n    \"success\": \"Encontré estas habitaciones disponibles:\",\n    \"empty\": \"No hay habitaciones disponibles para esas fechas. ¿Quieres probar otras fechas?\",\n    \"error\": \"No pude consultar la disponibilidad. ¿Puedes intentar de nuevo?\",\n    \"followup\": \"¿Te interesa alguna opción? Puedo reservar al instante.\"\n  },\n  \"enabled\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Update skill config (partial)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/tenants/{{tenant_id}}/skills/recommend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                "{{tenant_id}}",
+                "skills",
+                "recommend"
+              ]
+            },
+            "description": "Partially update a skill config. Only the provided fields are changed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"response_templates\": {\n    \"success\": \"¡Estas son las mejores opciones para ti!\",\n    \"followup\": \"¿Reservamos alguna de estas?\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Reset skill config to defaults",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/tenants/{{tenant_id}}/skills/recommend",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                "{{tenant_id}}",
+                "skills",
+                "recommend"
+              ]
+            },
+            "description": "Remove the custom skill configuration for an action, reverting to NIA defaults."
+          }
+        },
+        {
           "name": "Update payment/checkout configuration",
           "request": {
             "method": "PATCH",

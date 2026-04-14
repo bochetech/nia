@@ -696,6 +696,143 @@ class IntentDefinition(BaseModel):
     )
 
 
+# ──────────────────────────────────────────────────────────────────
+# Skill / Action Configuration (per-tenant)
+# ──────────────────────────────────────────────────────────────────
+
+class EntityField(BaseModel):
+    """
+    Defines a single entity that the LLM should extract from the user message
+    when preparing to execute a skill/action.
+
+    The field name becomes the JSON key in the extraction output.
+    The LLM uses `description` and `examples` to understand what to extract.
+
+    Example:
+        EntityField(
+            name="check_in_date",
+            type="date",
+            description="Fecha de ingreso al hotel en formato YYYY-MM-DD",
+            required=True,
+            examples=["2025-03-15", "mañana", "el próximo viernes"],
+        )
+    """
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        pattern=r"^[a-z][a-z0-9_]*$",
+        description="Nombre del campo (snake_case). Se usa como clave JSON en el resultado de extracción.",
+    )
+    type: str = Field(
+        default="string",
+        description=(
+            "Tipo de dato esperado: string, integer, float, date, boolean, enum. "
+            "El LLM lo usa como hint para el formato de la respuesta."
+        ),
+    )
+    description: str = Field(
+        ...,
+        min_length=5,
+        max_length=300,
+        description="Descripción del campo para el LLM. Explica qué dato extraer y en qué formato.",
+    )
+    required: bool = Field(
+        default=False,
+        description="Si true, el LLM intentará siempre extraer este campo. Si no puede, devuelve null.",
+    )
+    default: Any = Field(
+        default=None,
+        description="Valor por defecto si el LLM no puede extraer el campo del mensaje.",
+    )
+    enum_values: list[str] = Field(
+        default_factory=list,
+        description="Valores permitidos cuando type='enum'. Ej: ['morning', 'afternoon', 'evening'].",
+    )
+    examples: list[str] = Field(
+        default_factory=list,
+        description="Ejemplos de valores válidos para este campo. Ayudan al LLM con few-shot extraction.",
+    )
+
+
+class SkillConfig(BaseModel):
+    """
+    Configuración de un skill/action para un tenant.
+
+    Cada tenant puede personalizar cómo la IA prepara y ejecuta cada skill.
+    Esto incluye:
+      - Qué entidades extraer del mensaje del usuario (entity_schema)
+      - Instrucciones específicas para la IA (preparation_prompt)
+      - Plantillas de respuesta personalizables (response_templates)
+
+    Example:
+        SkillConfig(
+            action="recommend",
+            name="Recomendador de experiencias",
+            entity_schema=[
+                EntityField(name="activity_type", type="string", description="Tipo de actividad turística"),
+                EntityField(name="date", type="date", description="Fecha deseada en formato YYYY-MM-DD"),
+                EntityField(name="pax_count", type="integer", description="Número de personas"),
+            ],
+            preparation_prompt="Extrae las preferencias del usuario para buscar actividades turísticas.",
+            response_templates={
+                "success": "Te recomiendo estas opciones:",
+                "empty": "No encontré actividades que coincidan. ¿Quieres ampliar la búsqueda?",
+                "error": "Estoy teniendo dificultades. ¿Puedes intentarlo de nuevo?",
+            },
+        )
+    """
+    action: str = Field(
+        ...,
+        description=(
+            "Clave del ActionType al que aplica esta configuración. "
+            "Debe coincidir con uno de los valores del enum ActionType "
+            "(faq, recommend, handoff, nps, complaint, static_reply, discovery)."
+        ),
+    )
+    name: str = Field(
+        default="",
+        max_length=100,
+        description="Nombre legible del skill. Se muestra en dashboards.",
+    )
+    description: str = Field(
+        default="",
+        max_length=500,
+        description="Descripción de lo que hace este skill para el tenant.",
+    )
+    entity_schema: list[EntityField] = Field(
+        default_factory=list,
+        description=(
+            "Schema de entidades que la IA debe extraer del mensaje del usuario "
+            "antes de ejecutar este skill. Se inyecta en el prompt de detección de intents. "
+            "Si está vacío, se usan los campos por defecto (IntentEntities)."
+        ),
+    )
+    preparation_prompt: str = Field(
+        default="",
+        max_length=1000,
+        description=(
+            "Instrucciones adicionales para la IA al preparar la ejecución de este skill. "
+            "Se agrega al system prompt del clasificador de intents cuando la acción "
+            "detectada requiere extracción de entidades. Ej: 'Extrae preferencias de habitación: "
+            "tipo, fecha check-in/check-out y número de huéspedes'."
+        ),
+    )
+    response_templates: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Plantillas de texto para las respuestas del skill. Claves estándar: "
+            "'success' (resultado exitoso), 'empty' (sin resultados), 'error' (fallo), "
+            "'followup' (pregunta de seguimiento). El handler puede usar str.format() "
+            "con variables de contexto."
+        ),
+    )
+    enabled: bool = Field(
+        default=True,
+        description="Si false, el skill está desactivado para este tenant.",
+    )
+
+
 class FlowTransition(BaseModel):
     """
     Define una transición de estado en el FSM.
@@ -777,16 +914,15 @@ class FSMConfig(BaseModel):
         default=60,
         description="Minutos tras los que una sesión en estado HANDOFF_ACTIVE sin actividad se cierra automáticamente.",
     )
-    transitions: list[FlowTransition] = Field(
+    skills: list[SkillConfig] = Field(
         default_factory=list,
         description=(
-            "Tabla de transiciones personalizada del flujo de conversación. "
-            "Cada entrada define qué hace el bot cuando detecta un intent desde un estado dado. "
-            "Si está vacía, el orquestador usa el flujo NIA por defecto (DEFAULT_TRANSITIONS)."
+            "Configuración de skills/acciones para este tenant. Cada entrada define "
+            "qué entidades extraer, qué instrucciones darle a la IA y qué plantillas "
+            "de respuesta usar para cada acción. Si está vacía, el orquestador usa "
+            "los skills NIA por defecto (DEFAULT_SKILLS)."
         ),
     )
-
-
 
 
 class TelegramConfig(BaseModel):

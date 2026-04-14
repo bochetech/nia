@@ -111,11 +111,15 @@ async def process_message(
         conversation_history=history,
         settings=settings,
         tenant_id=tenant_id,
+        tenant_config=tenant_config,
     )
 
     session.last_intent = intent
     session.last_entities = entities.model_dump(exclude_none=True)
     session.messages_count += 1
+
+    # Helper to get intent as plain string
+    intent_value = intent.value if isinstance(intent, IntentType) else str(intent)
 
     # 6. Routing por intent
     result = await _route_by_intent(
@@ -129,7 +133,7 @@ async def process_message(
     )
 
     # 7. Guardar turno en historial de la sesión (en Redis)
-    _append_turn(session, user_msg=clean_message, assistant_msg=result.response_text, intent=intent)
+    _append_turn(session, user_msg=clean_message, assistant_msg=result.response_text, intent=intent_value)
     await save_session(session)
 
     # 8. Fire-and-forget: persistir mensajes en transcript service
@@ -139,7 +143,7 @@ async def process_message(
             session_id=session_id,
             user_message=clean_message,
             assistant_message=result.response_text,
-            intent=intent.value,
+            intent=intent_value,
             confidence=confidence,
             settings=settings,
         )
@@ -151,7 +155,7 @@ async def process_message(
 async def _route_by_intent(
     *,
     message: str,
-    intent: IntentType,
+    intent: IntentType | str,
     confidence: float,
     entities: IntentEntities,
     session: SessionState,
@@ -191,13 +195,14 @@ async def _route_by_intent(
         transitions = DEFAULT_TRANSITIONS
 
     current_state = session.fsm_state.value if isinstance(session.fsm_state, ConversationFSMState) else session.fsm_state
+    intent_value = intent.value if isinstance(intent, IntentType) else str(intent)
 
     # ── Buscar la primera transición que aplica ───────────────────────────────
     matched: FlowTransition | None = None
     for t in transitions:
         if not t.enabled:
             continue
-        if t.intent != intent.value:
+        if t.intent != intent_value:
             continue
         if t.from_states and current_state not in t.from_states:
             continue
@@ -209,7 +214,7 @@ async def _route_by_intent(
         logger.warning(
             "fsm_no_transition_matched",
             tenant_id=session.tenant_id,
-            intent=intent.value,
+            intent=intent_value,
             state=current_state,
         )
         tenant_name = tenant_config.get("ui_config", {}).get("chat_title", "el centro de turismo")
@@ -289,7 +294,7 @@ async def _route_by_intent(
         "fsm_unknown_action",
         tenant_id=session.tenant_id,
         action=matched.action,
-        intent=intent.value,
+        intent=intent_value,
     )
     return FSMResult(
         response_text="Ha ocurrido un error al procesar tu solicitud. Por favor, intenta de nuevo.",
@@ -574,9 +579,9 @@ def _trigger_post_chat(session: SessionState) -> FSMResult:
     )
 
 
-def _append_turn(session: SessionState, *, user_msg: str, assistant_msg: str, intent: IntentType) -> None:
+def _append_turn(session: SessionState, *, user_msg: str, assistant_msg: str, intent: str) -> None:
     """Añade el par user/assistant al historial de la sesión (limitado a MAX_HISTORY_TURNS)."""
-    session.conversation_history.append(ConversationTurn(role="user", content=user_msg, intent=intent.value))
+    session.conversation_history.append(ConversationTurn(role="user", content=user_msg, intent=intent))
     session.conversation_history.append(ConversationTurn(role="assistant", content=assistant_msg))
     # Mantener solo los últimos MAX_HISTORY_TURNS * 2 mensajes
     max_msgs = MAX_HISTORY_TURNS * 2

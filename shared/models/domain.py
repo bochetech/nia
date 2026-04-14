@@ -53,6 +53,12 @@ class MessageRole(str, Enum):
 
 
 class IntentType(str, Enum):
+    """
+    Legacy enum — kept for backwards compatibility.
+    New tenants should use IntentDefinition objects in fsm_config.intents.
+    The orchestrator checks fsm_config.intents first; if empty, falls back
+    to this enum + INTENT_SYSTEM_PROMPT.
+    """
     BOOKING_INTENT = "booking_intent"
     FAQ_QUERY = "faq_query"
     COMPLAINT = "complaint"
@@ -61,6 +67,23 @@ class IntentType(str, Enum):
     PRODUCT_INQUIRY = "product_inquiry"
     HUMAN_REQUEST = "human_request"   # "quiero hablar con un humano"
     NPS_RESPONSE = "nps_response"     # respuesta a encuesta post-chat
+
+
+class ActionType(str, Enum):
+    """
+    Predefined bot skills (actions).  Each value maps to a handler function
+    in the orchestrator's FSM — they are NOT configurable because they
+    represent compiled code, not data.
+
+    To add a new action you must write the handler in fsm.py first.
+    """
+    FAQ = "faq"                    # consulta al RAG service
+    RECOMMEND = "recommend"        # consulta al Recommender service
+    HANDOFF = "handoff"            # escala a asesor humano
+    NPS = "nps"                    # captura puntuación NPS
+    COMPLAINT = "complaint"        # registra queja y evalúa escalación
+    STATIC_REPLY = "static_reply"  # responde con un mensaje fijo
+    DISCOVERY = "discovery"        # pide más detalles al usuario
 
 
 class HandoffTrigger(str, Enum):
@@ -290,7 +313,7 @@ class SessionState(BaseModel):
     messages_count: int = 0
     tokens_used: int = 0
     estimated_cost_usd: float = 0.0
-    last_intent: Union[IntentType, None] = None
+    last_intent: Union[IntentType, str, None] = None
     last_entities: dict[str, Any] = Field(default_factory=dict)
     last_recommendations: list[str] = Field(default_factory=list)
     recommendation_context_id: Union[str, None] = None
@@ -613,6 +636,66 @@ class PaymentConfig(BaseModel):
     )
 
 
+class IntentDefinition(BaseModel):
+    """
+    Defines a configurable intent for a tenant.
+
+    Each tenant can have its own set of intents tailored to its business domain.
+    The LLM prompt is built dynamically from these definitions at runtime.
+
+    Example:
+        IntentDefinition(
+            key="room_inquiry",
+            name="Consulta de habitación",
+            description="El usuario pregunta sobre tipos de habitación, tarifas o disponibilidad.",
+            examples=["¿Tienen habitación doble?", "¿Cuánto cuesta la suite?"],
+        )
+    """
+    key: str = Field(
+        ...,
+        min_length=2,
+        max_length=50,
+        pattern=r"^[a-z][a-z0-9_]*$",
+        description=(
+            "Identificador único del intent (snake_case). Se usa como referencia "
+            "en las transiciones del FSM. Ej: 'booking_intent', 'room_inquiry'."
+        ),
+    )
+    name: str = Field(
+        ...,
+        min_length=2,
+        max_length=100,
+        description="Nombre legible del intent. Se muestra en dashboards y logs.",
+    )
+    description: str = Field(
+        ...,
+        min_length=10,
+        max_length=500,
+        description=(
+            "Instrucción de clasificación para el LLM. Explica cuándo debe asignarse "
+            "este intent. Esta descripción se inyecta directamente en el system prompt."
+        ),
+    )
+    examples: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Frases de ejemplo del usuario que corresponden a este intent. "
+            "Se incluyen en el prompt del LLM como few-shot examples."
+        ),
+    )
+    enabled: bool = Field(
+        default=True,
+        description="Si false, el intent no se incluye en el prompt del LLM y no puede ser detectado.",
+    )
+    priority: int = Field(
+        default=0,
+        description=(
+            "Prioridad de evaluación (mayor = se evalúa primero). "
+            "Útil cuando un mensaje podría encajar en varios intents."
+        ),
+    )
+
+
 class FlowTransition(BaseModel):
     """
     Define una transición de estado en el FSM.
@@ -646,6 +729,23 @@ class FlowTransition(BaseModel):
 class FSMConfig(BaseModel):
     """Configuración de la máquina de estados de la conversación (FSM)."""
 
+    intents: list[IntentDefinition] = Field(
+        default_factory=list,
+        description=(
+            "Lista de intents configurados para este tenant. Cada intent define una "
+            "intención del usuario que el LLM puede detectar. Si está vacía, el "
+            "orquestador usa los 8 intents NIA por defecto (booking_intent, faq_query, "
+            "complaint, out_of_scope, unclear, product_inquiry, human_request, nps_response)."
+        ),
+    )
+    transitions: list[FlowTransition] = Field(
+        default_factory=list,
+        description=(
+            "Tabla de transiciones personalizada del flujo de conversación. "
+            "Cada entrada define qué hace el bot cuando detecta un intent desde un estado dado. "
+            "Si está vacía, el orquestador usa el flujo NIA por defecto (DEFAULT_TRANSITIONS)."
+        ),
+    )
     states_enabled: list[str] = Field(
         default_factory=lambda: ["idle", "greeting", "discovery", "recommending", "checkout_init"],
         description="Estados FSM activos para este tenant. Desactivar un estado lo excluye del flujo posible.",

@@ -32,6 +32,72 @@
     "nps_enabled": true,
     "max_conversation_turns": 50,
     "session_timeout_minutes": 480,
+    "intents": [
+      {
+        "key": "human_request",
+        "name": "Solicitud de agente humano",
+        "description": "El usuario pide explícitamente hablar con una persona, agente o asesor humano.",
+        "examples": ["Quiero hablar con alguien", "¿Puedo hablar con un humano?", "Necesito un asesor"],
+        "priority": 10,
+        "enabled": true
+      },
+      {
+        "key": "nps_response",
+        "name": "Respuesta NPS",
+        "description": "El usuario responde con un número (1-5) o calificación a una encuesta de satisfacción.",
+        "examples": ["5", "3 estrellas", "Le doy un 4"],
+        "priority": 9,
+        "enabled": true
+      },
+      {
+        "key": "complaint",
+        "name": "Queja",
+        "description": "El usuario expresa queja, frustración o insatisfacción con el servicio.",
+        "examples": ["Esto es inaceptable", "Estoy muy molesto", "Quiero hacer un reclamo"],
+        "priority": 8,
+        "enabled": true
+      },
+      {
+        "key": "booking_intent",
+        "name": "Intención de reserva",
+        "description": "Intención clara de reservar, comprar o confirmar una actividad turística.",
+        "examples": ["Quiero reservar un tour", "Reserva para 4 personas", "Me gustaría comprar entradas"],
+        "priority": 5,
+        "enabled": true
+      },
+      {
+        "key": "product_inquiry",
+        "name": "Consulta de producto",
+        "description": "Preguntas sobre qué actividades o productos turísticos existen, recomendaciones o precios.",
+        "examples": ["¿Qué actividades tienen?", "¿Cuáles son sus mejores tours?", "Recomiéndame algo"],
+        "priority": 4,
+        "enabled": true
+      },
+      {
+        "key": "faq_query",
+        "name": "Pregunta frecuente",
+        "description": "Preguntas sobre horarios, ubicación, políticas, qué incluye un tour o cómo llegar.",
+        "examples": ["¿Cuál es el horario?", "¿Dónde están ubicados?", "¿Qué incluye el tour?"],
+        "priority": 3,
+        "enabled": true
+      },
+      {
+        "key": "out_of_scope",
+        "name": "Fuera de dominio",
+        "description": "Temas no relacionados con turismo, actividades o el negocio del tenant.",
+        "examples": ["¿Quién ganó el partido?", "Ayúdame con mi tarea de matemáticas"],
+        "priority": 1,
+        "enabled": true
+      },
+      {
+        "key": "unclear",
+        "name": "Intención ambigua",
+        "description": "Mensaje ambiguo que no encaja claramente en ninguna otra categoría. Incluye saludos simples.",
+        "examples": ["Hola", "hmm no sé", "ok"],
+        "priority": 0,
+        "enabled": true
+      }
+    ],
     "transitions": [
       {
         "intent": "human_request",

@@ -25,6 +25,9 @@ from shared.security.tenant import AdminCtx, require_same_tenant
 from shared.security.jwt import create_widget_token
 from shared.db.redis_client import RedisKeys, get_redis
 from shared.models.domain import (
+    ActionType,
+    FlowTransition,
+    IntentDefinition,
     TenantConfigDTO,
     TeamsConfig,
     EmailConfig,
@@ -355,6 +358,329 @@ def require_same_tenant_admin(admin, tenant_id: str) -> None:
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cross-tenant access denied",
         )
+
+
+async def _get_fsm_config(tenant_id: str, db: AsyncSession) -> tuple:
+    """Helper: load tenant + fsm_config dict from DB. Returns (tenant, fsm_dict)."""
+    tenant = await crud.get_tenant(tenant_id, db)
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Tenant '{tenant_id}' not found")
+    fsm = dict(tenant.fsm_config or {})
+    return tenant, fsm
+
+
+async def _save_fsm_config(tenant_id: str, fsm: dict, db: AsyncSession):
+    """Helper: persist updated fsm_config dict directly via SQL to avoid JSONB mutation issues."""
+    from sqlalchemy import text
+
+    fsm_config = FSMConfig(**fsm)
+    fsm_json = fsm_config.model_dump()
+
+    await db.execute(
+        text(
+            "UPDATE tenants SET fsm_config = CAST(:fsm AS jsonb), "
+            "config_version = config_version + 1, "
+            "updated_at = NOW() "
+            "WHERE id = :tid"
+        ),
+        {"fsm": __import__("json").dumps(fsm_json), "tid": tenant_id},
+    )
+    await db.commit()
+
+    # Refresh Redis cache
+    from app.provisioning import _cache_tenant_config
+    from app import crud as _crud
+    tenant = await _crud.get_tenant(tenant_id, db)
+    if tenant:
+        await _cache_tenant_config(tenant)
+
+    logger.info("fsm_config_saved", tenant_id=tenant_id)
+
+
+# ─────────────────────────────────────────────────────────────────
+# Intents CRUD  (per-tenant configurable intents)
+# ─────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/{tenant_id}/intents",
+    response_model=APIResponse[list[IntentDefinition]],
+    summary="List configured intents for a tenant",
+)
+async def list_intents(
+    tenant_id: str,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Returns the intents configured for this tenant.
+    If the tenant has no custom intents, returns the 8 NIA default intents.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    raw_intents = fsm.get("intents", [])
+    if raw_intents:
+        intents = [IntentDefinition(**i) if isinstance(i, dict) else i for i in raw_intents]
+    else:
+        # Return defaults so the caller can see what's active
+        from services.orchestrator.app.flow_defaults import DEFAULT_INTENTS
+        intents = DEFAULT_INTENTS
+
+    return APIResponse(data=intents)
+
+
+@router.post(
+    "/{tenant_id}/intents",
+    response_model=APIResponse[IntentDefinition],
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a new intent to the tenant",
+)
+async def create_intent(
+    tenant_id: str,
+    intent: IntentDefinition,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Add a custom intent to the tenant's FSM configuration.
+    If the tenant has no custom intents yet, the 8 defaults are copied first,
+    then the new intent is appended.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+        admin.require_admin()
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    raw_intents: list[dict] = fsm.get("intents", [])
+
+    # If empty, bootstrap with defaults so we don't lose the base intents
+    if not raw_intents:
+        from services.orchestrator.app.flow_defaults import DEFAULT_INTENTS
+        raw_intents = [i.model_dump() for i in DEFAULT_INTENTS]
+
+    # Check for duplicate key
+    existing_keys = {i["key"] for i in raw_intents}
+    if intent.key in existing_keys:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Intent '{intent.key}' already exists. Use PATCH to update it.",
+        )
+
+    raw_intents.append(intent.model_dump())
+    fsm["intents"] = raw_intents
+    await _save_fsm_config(tenant_id, fsm, db)
+
+    return APIResponse(data=intent)
+
+
+@router.patch(
+    "/{tenant_id}/intents/{intent_key}",
+    response_model=APIResponse[IntentDefinition],
+    summary="Update an existing intent",
+)
+async def update_intent(
+    tenant_id: str,
+    intent_key: str,
+    updates: dict,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Partially update an intent's fields (name, description, examples, enabled, priority).
+    The `key` field cannot be changed — delete and recreate if you need a new key.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+        admin.require_admin()
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    raw_intents: list[dict] = fsm.get("intents", [])
+
+    # If no custom intents, bootstrap with defaults
+    if not raw_intents:
+        from services.orchestrator.app.flow_defaults import DEFAULT_INTENTS
+        raw_intents = [i.model_dump() for i in DEFAULT_INTENTS]
+
+    # Find the intent
+    found = False
+    for i, entry in enumerate(raw_intents):
+        if entry["key"] == intent_key:
+            # Don't allow changing the key
+            updates.pop("key", None)
+            raw_intents[i] = {**entry, **updates}
+            # Validate
+            IntentDefinition(**raw_intents[i])
+            found = True
+            break
+
+    if not found:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Intent '{intent_key}' not found")
+
+    fsm["intents"] = raw_intents
+    await _save_fsm_config(tenant_id, fsm, db)
+
+    return APIResponse(data=IntentDefinition(**raw_intents[i]))
+
+
+@router.delete(
+    "/{tenant_id}/intents/{intent_key}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete an intent",
+)
+async def delete_intent(
+    tenant_id: str,
+    intent_key: str,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Remove an intent from the tenant's configuration.
+    Also removes any transitions that reference this intent.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+        admin.require_admin()
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    raw_intents: list[dict] = fsm.get("intents", [])
+
+    if not raw_intents:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Intent '{intent_key}' not found")
+
+    original_len = len(raw_intents)
+    raw_intents = [i for i in raw_intents if i["key"] != intent_key]
+    if len(raw_intents) == original_len:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Intent '{intent_key}' not found")
+
+    # Also clean up transitions referencing this intent
+    raw_transitions: list[dict] = fsm.get("transitions", [])
+    raw_transitions = [t for t in raw_transitions if t.get("intent") != intent_key]
+
+    fsm["intents"] = raw_intents
+    fsm["transitions"] = raw_transitions
+    await _save_fsm_config(tenant_id, fsm, db)
+
+
+# ─────────────────────────────────────────────────────────────────
+# Actions (read-only — predefined skills)
+# ─────────────────────────────────────────────────────────────────
+
+ACTIONS_CATALOG = [
+    {"key": a.value, "name": a.name.replace("_", " ").title(), "description": desc}
+    for a, desc in [
+        (ActionType.FAQ, "Consulta la base de conocimiento (RAG service) y responde con información del tenant."),
+        (ActionType.RECOMMEND, "Consulta el Recommender service y presenta productos/actividades al usuario."),
+        (ActionType.HANDOFF, "Escala la conversación a un asesor humano (Teams, email, etc.)."),
+        (ActionType.NPS, "Captura la puntuación de satisfacción del usuario (1-5)."),
+        (ActionType.COMPLAINT, "Registra la queja del usuario y evalúa si necesita escalación a humano."),
+        (ActionType.STATIC_REPLY, "Responde con un mensaje fijo predefinido, sin llamar a ningún servicio externo."),
+        (ActionType.DISCOVERY, "Pide más detalles al usuario para entender mejor su necesidad."),
+    ]
+]
+
+
+@router.get(
+    "/{tenant_id}/actions",
+    summary="List available bot actions (skills)",
+)
+async def list_actions(
+    tenant_id: str,
+    admin: AdminCtx,
+):
+    """
+    Returns the catalog of predefined actions (skills) available to connect
+    with intents via transitions.  Actions are NOT configurable — they are
+    compiled handler functions in the orchestrator.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+
+    return APIResponse(data=ACTIONS_CATALOG)
+
+
+# ─────────────────────────────────────────────────────────────────
+# Transitions CRUD
+# ─────────────────────────────────────────────────────────────────
+
+@router.get(
+    "/{tenant_id}/transitions",
+    response_model=APIResponse[list[FlowTransition]],
+    summary="List FSM transitions for a tenant",
+)
+async def list_transitions(
+    tenant_id: str,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Returns the FSM transitions configured for this tenant.
+    If the tenant has no custom transitions, returns the NIA defaults.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    raw_transitions = fsm.get("transitions", [])
+    if raw_transitions:
+        transitions = [FlowTransition(**t) if isinstance(t, dict) else t for t in raw_transitions]
+    else:
+        from services.orchestrator.app.flow_defaults import DEFAULT_TRANSITIONS
+        transitions = DEFAULT_TRANSITIONS
+
+    return APIResponse(data=transitions)
+
+
+@router.put(
+    "/{tenant_id}/transitions",
+    response_model=APIResponse[list[FlowTransition]],
+    summary="Replace all FSM transitions",
+)
+async def replace_transitions(
+    tenant_id: str,
+    transitions: list[FlowTransition],
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Replace the entire transitions table for a tenant.
+    Validates that every transition.intent references a configured intent key.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+        admin.require_admin()
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+
+    # Validate intents exist
+    raw_intents = fsm.get("intents", [])
+    if raw_intents:
+        valid_keys = {i["key"] for i in raw_intents}
+    else:
+        # Use default intent keys
+        from services.orchestrator.app.flow_defaults import DEFAULT_INTENTS
+        valid_keys = {i.key for i in DEFAULT_INTENTS}
+
+    # Validate all actions are known
+    valid_actions = {a.value for a in ActionType}
+
+    errors = []
+    for t in transitions:
+        if t.intent not in valid_keys:
+            errors.append(f"Intent '{t.intent}' not found in configured intents. Valid: {sorted(valid_keys)}")
+        if t.action not in valid_actions:
+            errors.append(f"Action '{t.action}' is not a valid skill. Valid: {sorted(valid_actions)}")
+
+    if errors:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"errors": errors},
+        )
+
+    fsm["transitions"] = [t.model_dump() for t in transitions]
+    await _save_fsm_config(tenant_id, fsm, db)
+
+    return APIResponse(data=transitions)
 
 
 # ─────────────────────────────────────────────────────────────────

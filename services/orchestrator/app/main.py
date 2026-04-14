@@ -33,8 +33,21 @@ limiter = Limiter(key_func=get_remote_address)
 
 app = FastAPI(
     title="NIA Orchestrator",
-    description="Central conversation orchestrator: intent detection, FSM routing, RAG, recommendations and handoff.",
+    description=(
+        "**[Core]** Central conversation engine — intent detection, FSM state management, "
+        "session handling and skill routing. Every user message enters the system here."
+    ),
     version="1.0.0",
+    openapi_tags=[
+        {
+            "name": "chat",
+            "description": "Real-time conversation endpoints consumed by channel adapters (widget, Telegram, etc.).",
+        },
+        {
+            "name": "ops",
+            "description": "Health and readiness probes for orchestration and monitoring.",
+        },
+    ],
 )
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

@@ -26,10 +26,28 @@ logger = get_logger(__name__)
 
 app = FastAPI(
     title="NIA Tenant Manager",
-    description="Multi-tenant provisioning, configuration and authentication service",
+    description=(
+        "**[Core]** Multi-tenant provisioning and configuration service. "
+        "Manages tenant lifecycle, per-tenant AI/FSM/channel configuration, "
+        "intents, skills, transitions, JWT issuance and Redis config cache."
+    ),
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    openapi_tags=[
+        {
+            "name": "auth",
+            "description": "Admin authentication — login and token refresh.",
+        },
+        {
+            "name": "tenants",
+            "description": "Tenant CRUD, configuration, intents, transitions and skill configs.",
+        },
+        {
+            "name": "ops",
+            "description": "Health and readiness probes.",
+        },
+    ],
 )
 
 app.add_middleware(

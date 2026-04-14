@@ -45,7 +45,26 @@ settings = get_settings()
 setup_logging(service_name=settings.service_name, log_level=settings.log_level, json_logs=settings.json_logs)
 logger = get_logger(__name__)
 
-app = FastAPI(title="NIA Checkout", version="1.0.0")
+app = FastAPI(
+    title="NIA Checkout",
+    description=(
+        "**[Skill]** Booking intent and payment session management. "
+        "Creates booking intents in PostgreSQL, generates Stripe Checkout sessions "
+        "(or mock payment links in development), and processes Stripe webhooks. "
+        "Invoked by the orchestrator when the FSM routes to the `checkout` action."
+    ),
+    version="1.0.0",
+    openapi_tags=[
+        {
+            "name": "checkout",
+            "description": "Booking intent creation, Stripe session management and webhook handling.",
+        },
+        {
+            "name": "ops",
+            "description": "Health and readiness probes.",
+        },
+    ],
+)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
@@ -91,6 +110,8 @@ class CreateCheckoutSessionRequest(BaseModel):
     "/v1/checkout/booking-intents",
     response_model=APIResponse[BookingIntentDTO],
     status_code=status.HTTP_201_CREATED,
+    summary="Create a booking intent",
+    tags=["checkout"],
 )
 async def create_booking_intent(body: CreateBookingIntentRequest) -> APIResponse[BookingIntentDTO]:
     import json as _json
@@ -152,6 +173,8 @@ async def create_booking_intent(body: CreateBookingIntentRequest) -> APIResponse
     "/v1/checkout/sessions",
     response_model=APIResponse[CheckoutSessionDTO],
     status_code=status.HTTP_201_CREATED,
+    summary="Create a Stripe checkout session",
+    tags=["checkout"],
 )
 async def create_checkout_session(body: CreateCheckoutSessionRequest) -> APIResponse[CheckoutSessionDTO]:
     """Crea una sesión de Stripe Checkout (o mock en dev)."""
@@ -225,7 +248,11 @@ async def mock_payment_confirm(checkout_id: str):
     return JSONResponse(content={"status": "paid", "checkout_id": checkout_id})
 
 
-@app.post("/v1/checkout/webhook")
+@app.post(
+    "/v1/checkout/webhook",
+    summary="Receive Stripe payment webhook",
+    tags=["checkout"],
+)
 async def stripe_webhook(request: Request):
     """Recibe webhooks de Stripe."""
     payload = await request.body()
@@ -258,6 +285,6 @@ async def on_shutdown():
     await close_redis()
 
 
-@app.get("/health")
+@app.get("/health", tags=["ops"])
 async def health():
     return {"status": "healthy", "service": settings.service_name}

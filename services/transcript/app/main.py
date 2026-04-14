@@ -54,7 +54,29 @@ settings = get_settings()
 setup_logging(service_name=settings.service_name, log_level=settings.log_level, json_logs=settings.json_logs)
 logger = get_logger(__name__)
 
-app = FastAPI(title="NIA Transcript Service", version="1.0.0")
+app = FastAPI(
+    title="NIA Transcript Service",
+    description=(
+        "**[Essential Infrastructure]** Persists every conversation message and lead capture "
+        "to PostgreSQL for audit, analytics and GDPR compliance. "
+        "Also provides transcript export via email."
+    ),
+    version="1.0.0",
+    openapi_tags=[
+        {
+            "name": "transcripts",
+            "description": "Message persistence, conversation history retrieval and email export.",
+        },
+        {
+            "name": "leads",
+            "description": "Lead capture storage from the pre-chat widget form.",
+        },
+        {
+            "name": "ops",
+            "description": "Health and readiness probes.",
+        },
+    ],
+)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 app.include_router(build_health_router(
     service_name=settings.service_name,
@@ -109,7 +131,12 @@ class LeadCreateRequest(BaseModel):
 # Routes — Messages
 # ─────────────────────────────────────────────────────────────────
 
-@app.post("/v1/transcripts/messages", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/v1/transcripts/messages",
+    status_code=status.HTTP_201_CREATED,
+    summary="Persist a conversation message",
+    tags=["transcripts"],
+)
 async def save_message(body: SaveMessageRequest) -> dict:
     """Persiste un mensaje en la tabla de mensajes del tenant."""
     schema = f"tenant_{body.tenant_id}"
@@ -157,7 +184,11 @@ async def save_message(body: SaveMessageRequest) -> dict:
     return {"id": msg_id, "session_id": body.session_id}
 
 
-@app.get("/v1/transcripts/{tenant_id}/{session_id}")
+@app.get(
+    "/v1/transcripts/{tenant_id}/{session_id}",
+    summary="Get full conversation history for a session",
+    tags=["transcripts"],
+)
 async def get_transcript(tenant_id: str, session_id: str) -> dict:
     """Obtiene el historial completo de una sesión."""
     schema = f"tenant_{tenant_id}"
@@ -183,7 +214,11 @@ async def get_transcript(tenant_id: str, session_id: str) -> dict:
 # Routes — Email export
 # ─────────────────────────────────────────────────────────────────
 
-@app.post("/v1/transcripts/{tenant_id}/{session_id}/email")
+@app.post(
+    "/v1/transcripts/{tenant_id}/{session_id}/email",
+    summary="Export transcript to email",
+    tags=["transcripts"],
+)
 async def export_transcript_email(
     tenant_id: str,
     session_id: str,
@@ -231,7 +266,12 @@ async def export_transcript_email(
 # Routes — Leads
 # ─────────────────────────────────────────────────────────────────
 
-@app.post("/v1/leads", status_code=status.HTTP_201_CREATED)
+@app.post(
+    "/v1/leads",
+    status_code=status.HTTP_201_CREATED,
+    summary="Persist a captured lead",
+    tags=["leads"],
+)
 async def create_lead(body: LeadCreateRequest) -> dict:
     """Persiste un lead capturado en el formulario pre-chat."""
     import json as _json

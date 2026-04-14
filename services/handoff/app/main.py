@@ -45,7 +45,25 @@ settings = get_settings()
 setup_logging(service_name=settings.service_name, log_level=settings.log_level, json_logs=settings.json_logs)
 logger = get_logger(__name__)
 
-app = FastAPI(title="NIA Handoff Service", version="1.0.0")
+app = FastAPI(
+    title="NIA Handoff Service",
+    description=(
+        "**[Essential Infrastructure]** Manages bot-to-human handoff — creates cases, "
+        "notifies agents via Microsoft Teams Adaptive Cards, pauses the bot, and "
+        "resumes conversation once the agent resolves the case."
+    ),
+    version="1.0.0",
+    openapi_tags=[
+        {
+            "name": "handoff",
+            "description": "Handoff case lifecycle: create, status and resolve.",
+        },
+        {
+            "name": "ops",
+            "description": "Health and readiness probes.",
+        },
+    ],
+)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
@@ -142,6 +160,8 @@ def _build_teams_adaptive_card(case: HandoffCaseDTO, context: str | None) -> dic
     "/v1/handoff/cases",
     response_model=APIResponse[HandoffCaseDTO],
     status_code=status.HTTP_201_CREATED,
+    summary="Create a new handoff case",
+    tags=["handoff"],
 )
 async def create_handoff_case(body: CreateHandoffRequest) -> APIResponse[HandoffCaseDTO]:
     case_id = str(uuid.uuid4())
@@ -197,7 +217,12 @@ async def create_handoff_case(body: CreateHandoffRequest) -> APIResponse[Handoff
     return APIResponse(data=case)
 
 
-@app.get("/v1/handoff/cases/{case_id}", response_model=APIResponse[HandoffStatusResponse])
+@app.get(
+    "/v1/handoff/cases/{case_id}",
+    response_model=APIResponse[HandoffStatusResponse],
+    summary="Get handoff case status",
+    tags=["handoff"],
+)
 async def get_handoff_status(case_id: str) -> APIResponse[HandoffStatusResponse]:
     # En producción: buscar en DB. Por ahora: leer de Redis.
     redis = await get_redis()
@@ -211,7 +236,11 @@ async def get_handoff_status(case_id: str) -> APIResponse[HandoffStatusResponse]
     ))
 
 
-@app.post("/v1/handoff/cases/{case_id}/resolve")
+@app.post(
+    "/v1/handoff/cases/{case_id}/resolve",
+    summary="Resolve a handoff case and resume the bot",
+    tags=["handoff"],
+)
 async def resolve_case(case_id: str, session_id: str) -> dict:
     """El agente resuelve el caso → reactivar bot."""
     redis = await get_redis()
@@ -232,6 +261,6 @@ async def on_shutdown():
     await close_redis()
 
 
-@app.get("/health")
+@app.get("/health", tags=["ops"])
 async def health():
     return {"status": "healthy", "service": settings.service_name}

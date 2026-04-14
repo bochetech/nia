@@ -90,7 +90,8 @@ services:
     restart: "no"
 
   # ─────────────────────────────────────────────────────────────────
-  # NIA Microservices
+  # NIA Services — Core
+  #   Orchestrator (8001) · Tenant Manager (8003) · Model Adapter (8005)
   # ─────────────────────────────────────────────────────────────────
 
   model-adapter:
@@ -242,6 +243,11 @@ services:
       - "traefik.http.routers.orchestrator.rule=PathPrefix(`/api/chat`) || PathPrefix(`/api/sessions`)"
       - "traefik.http.services.orchestrator.loadbalancer.server.port=8001"
 
+  # ─────────────────────────────────────────────────────────────────
+  # NIA Services — Skills (action handlers invoked by the orchestrator)
+  #   RAG Service (8002) · Recommender (8004) · Checkout (8006) · Fallback (8009)
+  # ─────────────────────────────────────────────────────────────────
+
   checkout:
     build:
       context: .
@@ -269,6 +275,11 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.checkout.rule=PathPrefix(`/api/checkout`)"
       - "traefik.http.services.checkout.loadbalancer.server.port=8006"
+
+  # ─────────────────────────────────────────────────────────────────
+  # NIA Services — Essential Infrastructure
+  #   Handoff (8007) · Transcript (8008)
+  # ─────────────────────────────────────────────────────────────────
 
   handoff:
     build:
@@ -347,6 +358,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  # ─────────────────────────────────────────────────────────────────
+  # NIA Services — Channels (user-facing adapters)
+  #   Telegram Gateway (8010) · Widget (JS, profile: dev, port 3000)
+  # ─────────────────────────────────────────────────────────────────
 
   telegram-gateway:
     build:

@@ -24,7 +24,26 @@ settings = get_settings()
 setup_logging(service_name=settings.service_name, log_level=settings.log_level, json_logs=settings.json_logs)
 logger = get_logger(__name__)
 
-app = FastAPI(title="NIA Recommender", version="1.0.0")
+app = FastAPI(
+    title="NIA Recommender",
+    description=(
+        "**[Skill]** Product recommendation engine. "
+        "Queries the tenant's PostgreSQL product catalogue using intent entities "
+        "(category, date, time, pax, price range) and returns ranked suggestions. "
+        "Invoked by the orchestrator when the FSM routes to the `recommend` action."
+    ),
+    version="1.0.0",
+    openapi_tags=[
+        {
+            "name": "recommendations",
+            "description": "Intent-driven product recommendation queries.",
+        },
+        {
+            "name": "ops",
+            "description": "Health and readiness probes.",
+        },
+    ],
+)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
@@ -49,6 +68,7 @@ class RecommendRequest(BaseModel):
     "/v1/recommendations",
     response_model=APIResponse[RecommendationResult],
     summary="Get product recommendations based on user intent entities",
+    tags=["recommendations"],
 )
 async def recommend(body: RecommendRequest) -> APIResponse[RecommendationResult]:
     async for db in get_db_session():

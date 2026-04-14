@@ -31,10 +31,22 @@ logger = get_logger(__name__)
 app = FastAPI(
     title="NIA RAG Service",
     description=(
-        "Ingestion and retrieval-augmented generation for tenant knowledge bases. "
-        "Supports plain text, Markdown and JSON documents."
+        "**[Skill]** Retrieval-Augmented Generation for tenant knowledge bases. "
+        "Ingest Markdown, plain text or JSON documents into Qdrant, "
+        "then answer questions grounded in the retrieved chunks via the configured LLM. "
+        "Invoked by the orchestrator when the FSM routes to the `faq` action."
     ),
     version="1.0.0",
+    openapi_tags=[
+        {
+            "name": "rag",
+            "description": "Document ingestion, vector search and LLM-grounded answers.",
+        },
+        {
+            "name": "ops",
+            "description": "Health and readiness probes.",
+        },
+    ],
 )
 
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])

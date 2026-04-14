@@ -50,8 +50,28 @@ logger = get_logger(__name__)
 
 app = FastAPI(
     title="NIA Telegram Gateway",
-    description="Canal Telegram para NIA — convierte mensajes de Telegram al formato interno del orchestrator.",
+    description=(
+        "**[Channel]** Telegram Bot API adapter for NIA. "
+        "Receives Telegram webhook events, translates them to the orchestrator's internal format, "
+        "and sends formatted replies back to users. "
+        "Supports multi-tenant switching (`/tenant`), session reset (`/reset`) and "
+        "persistent tenant preferences in Redis."
+    ),
     version="1.0.0",
+    openapi_tags=[
+        {
+            "name": "webhook",
+            "description": "Telegram update ingestion and message processing.",
+        },
+        {
+            "name": "setup",
+            "description": "Register and manage Telegram webhooks for tenants.",
+        },
+        {
+            "name": "ops",
+            "description": "Health and readiness probes.",
+        },
+    ],
 )
 app.add_middleware(
     CORSMiddleware,
@@ -430,6 +450,7 @@ async def _call_orchestrator(
     "/webhook/{tenant_id}",
     status_code=status.HTTP_200_OK,
     summary="Recibe actualizaciones de Telegram para un tenant",
+    tags=["webhook"],
 )
 async def telegram_webhook(tenant_id: str, request: Request):
     """
@@ -584,6 +605,7 @@ async def _process_message(tenant_id: str, chat_id: int, text: str, cfg: dict) -
 @app.post(
     "/setup/{tenant_id}",
     summary="Registra el webhook de este tenant en la API de Telegram",
+    tags=["setup"],
 )
 async def setup_webhook(tenant_id: str, request: Request):
     """

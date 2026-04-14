@@ -36,11 +36,33 @@ settings = get_settings()
 setup_logging(service_name=settings.service_name, log_level=settings.log_level, json_logs=settings.json_logs)
 logger = get_logger(__name__)
 
-app = FastAPI(title="NIA Fallback Service", version="1.0.0")
+app = FastAPI(
+    title="NIA Fallback Service",
+    description=(
+        "**[Skill]** Emergency fallback responses for when upstream services are unavailable. "
+        "Returns a randomly-selected graceful error message so the user always gets a reply. "
+        "Invoked by the orchestrator on timeout or critical skill failure."
+    ),
+    version="1.0.0",
+    openapi_tags=[
+        {
+            "name": "fallback",
+            "description": "Retrieve a fallback message when the system cannot process a request normally.",
+        },
+        {
+            "name": "ops",
+            "description": "Health and readiness probes.",
+        },
+    ],
+)
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 
-@app.get("/v1/fallback/message")
+@app.get(
+    "/v1/fallback/message",
+    summary="Get a fallback error message",
+    tags=["fallback"],
+)
 async def get_fallback_message(tenant_id: str | None = None) -> dict:
     message = random.choice(FALLBACK_RESPONSES)
     logger.warning("fallback_response_served", tenant_id=tenant_id)
@@ -57,6 +79,6 @@ async def on_shutdown():
     await close_redis()
 
 
-@app.get("/health")
+@app.get("/health", tags=["ops"])
 async def health():
     return {"status": "healthy", "service": settings.service_name}

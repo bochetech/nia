@@ -1,13 +1,13 @@
 {
   "info": {
     "name": "NIA Platform API",
-    "description": "NIA Platform — API completa de todos los servicios.\n\n**Variables de entorno:**\n- `admin_token`: JWT de administrador (POST /auth/token)\n- `widget_token`: JWT de widget (POST /api/tenants/{id}/widget-token)\n- `session_id`: ID de sesión activa\n\n**Credenciales por defecto (local):**\n- Email: `admin@nia.local`\n- Password: `changeme`\n- Tenant demo: `demo_turismo`\n- Tenant moda: `moda_imagen`\n\n_Actualizado: 2026-04-14_",
+    "description": "## NIA Platform — Complete API Collection\n\nMulti-tenant conversational AI platform. All services use `http://localhost` base URLs.\n\n### Architecture Taxonomy\n\n| Layer | Services |\n|---|---|\n| **🧠 Core** | Orchestrator (8001), Tenant Manager (8003), Model Adapter (8005) |\n| **🔧 Essential Infrastructure** | Handoff (8007), Transcript (8008) |\n| **⚡ Skills** | RAG Service (8002), Recommender (8004), Checkout (8006), Fallback (8009) |\n| **📡 Channels** | Telegram Gateway (8010), Widget (JS) |\n\n### Default Credentials\n- Admin: `admin@nia.local` / `changeme`\n- Demo tenants: `demo_turismo`, `moda_imagen`\n\nImport `NIA-Environment-Development.json` to set base URLs automatically.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "nia-auto"
   },
   "item": [
     {
-      "name": "🧠 Orchestrator",
+      "name": "🧠 Orchestrator  [Core]",
       "item": [
         {
           "name": "Health",
@@ -221,185 +221,10 @@
           "response": []
         }
       ],
-      "description": "Service: orchestrator | Base URL: http://localhost:8001"
+      "description": "**[Core]** Central FSM engine — send messages, manage sessions, capture leads.\nPort: **8001** · JWT required: widget token from Tenant Manager."
     },
     {
-      "name": "📚 RAG Service",
-      "item": [
-        {
-          "name": "Health",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8002/health",
-              "host": [
-                "http://localhost:8002"
-              ],
-              "path": [
-                "health"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Readiness",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8002/health/ready",
-              "host": [
-                "http://localhost:8002"
-              ],
-              "path": [
-                "health",
-                "ready"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete all chunks for a document",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8002/v1/rag/documents/DOC_ID",
-              "host": [
-                "http://localhost:8002"
-              ],
-              "path": [
-                "v1",
-                "rag",
-                "documents",
-                "DOC_ID"
-              ],
-              "variable": [
-                {
-                  "key": "doc_id",
-                  "value": "DOC_ID",
-                  "description": "Default: DOC_ID"
-                }
-              ],
-              "query": [
-                {
-                  "key": "tenant_id",
-                  "value": "",
-                  "disabled": true,
-                  "description": ""
-                },
-                {
-                  "key": "collection_name",
-                  "value": "",
-                  "disabled": true,
-                  "description": ""
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Ingest a document (text, Markdown or JSON)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8002/v1/rag/ingest",
-              "host": [
-                "http://localhost:8002"
-              ],
-              "path": [
-                "v1",
-                "rag",
-                "ingest"
-              ]
-            },
-            "description": "Upload a plain text, Markdown or JSON file. JSON files are auto-detected by extension and converted to text chunks automatically. `collection_name` is optional (defaults to {tenant_id}_docs)."
-          },
-          "response": []
-        },
-        {
-          "name": "Query the RAG knowledge base",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8002/v1/rag/query",
-              "host": [
-                "http://localhost:8002"
-              ],
-              "path": [
-                "v1",
-                "rag",
-                "query"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"query\": \"example_query\",\n  \"tenant_id\": \"demo_turismo\",\n  \"collection_name\": \"example_collection_name\",\n  \"tenant_name\": \"example_tenant_name\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        }
-      ],
-      "description": "Service: rag-service | Base URL: http://localhost:8002"
-    },
-    {
-      "name": "🏢 Tenant Manager",
+      "name": "🏢 Tenant Manager  [Core]",
       "item": [
         {
           "name": "List tenants (super_admin only)",
@@ -1761,11 +1586,1073 @@
           "response": []
         }
       ],
-      "description": "Service: tenant-manager | Base URL: http://localhost:8003"
+      "description": "**[Core]** Tenant provisioning, per-tenant configuration (AI, FSM, channels, skills), intent/transition management, JWT issuance.\nPort: **8003** · Admin JWT required for most write operations."
+    },
+    {
+      "name": "🤖 Model Adapter  [Core]",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8005/health",
+              "host": [
+                "http://localhost:8005"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Chat completion (non-streaming)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8005/v1/chat/completions",
+              "host": [
+                "http://localhost:8005"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "completions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [],\n  \"temperature\": 1.0,\n  \"max_tokens\": 1,\n  \"stream\": true,\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Chat completion (streaming SSE)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8005/v1/chat/stream",
+              "host": [
+                "http://localhost:8005"
+              ],
+              "path": [
+                "v1",
+                "chat",
+                "stream"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"messages\": [],\n  \"temperature\": 1.0,\n  \"max_tokens\": 1,\n  \"stream\": true,\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Generate text embeddings",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8005/v1/embed",
+              "host": [
+                "http://localhost:8005"
+              ],
+              "path": [
+                "v1",
+                "embed"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"texts\": [],\n  \"tenant_id\": \"demo_turismo\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "**[Core]** LLM provider abstraction — chat completions and text embeddings.\nPort: **8005** · No auth required (internal only)."
+    },
+    {
+      "name": "🤝 Handoff  [Essential Infrastructure]",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8007/health",
+              "host": [
+                "http://localhost:8007"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Handoff Case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8007/v1/handoff/cases",
+              "host": [
+                "http://localhost:8007"
+              ],
+              "path": [
+                "v1",
+                "handoff",
+                "cases"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"trigger_type\": \"example_trigger_type\",\n  \"trigger_reason\": \"example_trigger_reason\",\n  \"context_summary\": \"example_context_summary\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Handoff Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8007/v1/handoff/cases/CASE_ID",
+              "host": [
+                "http://localhost:8007"
+              ],
+              "path": [
+                "v1",
+                "handoff",
+                "cases",
+                "CASE_ID"
+              ],
+              "variable": [
+                {
+                  "key": "case_id",
+                  "value": "CASE_ID",
+                  "description": "Default: CASE_ID"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Resolve Case",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8007/v1/handoff/cases/CASE_ID/resolve",
+              "host": [
+                "http://localhost:8007"
+              ],
+              "path": [
+                "v1",
+                "handoff",
+                "cases",
+                "CASE_ID",
+                "resolve"
+              ],
+              "variable": [
+                {
+                  "key": "case_id",
+                  "value": "CASE_ID",
+                  "description": "Default: CASE_ID"
+                }
+              ],
+              "query": [
+                {
+                  "key": "session_id",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "**[Essential Infrastructure]** Bot-to-human handoff — creates cases, notifies Teams, pauses/resumes bot.\nPort: **8007** · Internal service."
+    },
+    {
+      "name": "📝 Transcript  [Essential Infrastructure]",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8008/health",
+              "host": [
+                "http://localhost:8008"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8008/health/ready",
+              "host": [
+                "http://localhost:8008"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Lead",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8008/v1/leads",
+              "host": [
+                "http://localhost:8008"
+              ],
+              "path": [
+                "v1",
+                "leads"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"name\": \"example_name\",\n  \"email\": \"admin@nia.local\",\n  \"phone\": \"example_phone\",\n  \"intent_data\": {},\n  \"gdpr_consent\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Save Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8008/v1/transcripts/messages",
+              "host": [
+                "http://localhost:8008"
+              ],
+              "path": [
+                "v1",
+                "transcripts",
+                "messages"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"role\": \"example_role\",\n  \"content\": \"example_content\",\n  \"tokens\": 1,\n  \"intent\": \"example_intent\",\n  \"confidence\": \"demo-tenant\",\n  \"rag_sources\": [],\n  \"metadata\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transcript",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8008/v1/transcripts/demo_turismo/SESSION_ID",
+              "host": [
+                "http://localhost:8008"
+              ],
+              "path": [
+                "v1",
+                "transcripts",
+                "demo_turismo",
+                "SESSION_ID"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
+                },
+                {
+                  "key": "session_id",
+                  "value": "SESSION_ID",
+                  "description": "Default: SESSION_ID"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Export Transcript Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8008/v1/transcripts/demo_turismo/SESSION_ID/email",
+              "host": [
+                "http://localhost:8008"
+              ],
+              "path": [
+                "v1",
+                "transcripts",
+                "demo_turismo",
+                "SESSION_ID",
+                "email"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
+                },
+                {
+                  "key": "session_id",
+                  "value": "SESSION_ID",
+                  "description": "Default: SESSION_ID"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_email\": \"admin@nia.local\",\n  \"subject\": \"example_subject\",\n  \"tenant_name\": \"example_tenant_name\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "**[Essential Infrastructure]** Message persistence, conversation history and lead storage in PostgreSQL.\nPort: **8008** · Internal service."
+    },
+    {
+      "name": "📚 RAG Service  [Skill]",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8002/health",
+              "host": [
+                "http://localhost:8002"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8002/health/ready",
+              "host": [
+                "http://localhost:8002"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete all chunks for a document",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8002/v1/rag/documents/DOC_ID",
+              "host": [
+                "http://localhost:8002"
+              ],
+              "path": [
+                "v1",
+                "rag",
+                "documents",
+                "DOC_ID"
+              ],
+              "variable": [
+                {
+                  "key": "doc_id",
+                  "value": "DOC_ID",
+                  "description": "Default: DOC_ID"
+                }
+              ],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                },
+                {
+                  "key": "collection_name",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest a document (text, Markdown or JSON)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8002/v1/rag/ingest",
+              "host": [
+                "http://localhost:8002"
+              ],
+              "path": [
+                "v1",
+                "rag",
+                "ingest"
+              ]
+            },
+            "description": "Upload a plain text, Markdown or JSON file. JSON files are auto-detected by extension and converted to text chunks automatically. `collection_name` is optional (defaults to {tenant_id}_docs)."
+          },
+          "response": []
+        },
+        {
+          "name": "Query the RAG knowledge base",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8002/v1/rag/query",
+              "host": [
+                "http://localhost:8002"
+              ],
+              "path": [
+                "v1",
+                "rag",
+                "query"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"example_query\",\n  \"tenant_id\": \"demo_turismo\",\n  \"collection_name\": \"example_collection_name\",\n  \"tenant_name\": \"example_tenant_name\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "**[Skill]** Retrieval-Augmented Generation — ingest documents and answer grounded questions.\nPort: **8002** · Invoked by orchestrator `faq` action."
+    },
+    {
+      "name": "🛍️ Recommender  [Skill]",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8004/health",
+              "host": [
+                "http://localhost:8004"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get product recommendations based on user intent entities",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8004/v1/recommendations",
+              "host": [
+                "http://localhost:8004"
+              ],
+              "path": [
+                "v1",
+                "recommendations"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"tenant_schema\": \"example_tenant_schema\",\n  \"entities\": {\n    \"activity_type\": \"example_activity_type\",\n    \"date\": \"example_date\",\n    \"pax_count\": \"example_pax_count\",\n    \"language_preference\": \"example_language_preference\",\n    \"budget_max\": \"example_budget_max\",\n    \"physical_level\": \"example_physical_level\",\n    \"duration_preference_hours\": \"example_duration_preference_hours\",\n    \"time_of_day\": \"example_time_of_day\"\n  },\n  \"top_k\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "**[Skill]** Intent-driven product recommendations from PostgreSQL catalogue.\nPort: **8004** · Invoked by orchestrator `recommend` action."
+    },
+    {
+      "name": "💳 Checkout  [Skill]",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8006/health",
+              "host": [
+                "http://localhost:8006"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Booking Intent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8006/v1/checkout/booking-intents",
+              "host": [
+                "http://localhost:8006"
+              ],
+              "path": [
+                "v1",
+                "checkout",
+                "booking-intents"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"product_id\": \"demo-tenant\",\n  \"selected_date\": \"example_selected_date\",\n  \"selected_time\": \"example_selected_time\",\n  \"pax_count\": 1,\n  \"contact\": {\n    \"name\": \"example_name\",\n    \"email\": \"admin@nia.local\",\n    \"phone\": \"example_phone\",\n    \"special_requests\": \"example_special_requests\"\n  },\n  \"total_amount\": 1.0,\n  \"currency\": \"example_currency\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Checkout Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8006/v1/checkout/sessions",
+              "host": [
+                "http://localhost:8006"
+              ],
+              "path": [
+                "v1",
+                "checkout",
+                "sessions"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"booking_intent_id\": \"demo-tenant\",\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"success_url\": \"https://example.com\",\n  \"cancel_url\": \"https://example.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Stripe Webhook",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8006/v1/checkout/webhook",
+              "host": [
+                "http://localhost:8006"
+              ],
+              "path": [
+                "v1",
+                "checkout",
+                "webhook"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "**[Skill]** Booking intent creation and Stripe payment session management.\nPort: **8006** · Invoked by orchestrator `checkout` action."
+    },
+    {
+      "name": "🔄 Fallback  [Skill]",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8009/health",
+              "host": [
+                "http://localhost:8009"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Fallback Message",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8009/v1/fallback/message",
+              "host": [
+                "http://localhost:8009"
+              ],
+              "path": [
+                "v1",
+                "fallback",
+                "message"
+              ],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "",
+                  "disabled": true,
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "**[Skill]** Emergency graceful-error responses when upstream services fail.\nPort: **8009** · Invoked by orchestrator on timeout/critical error."
+    },
+    {
+      "name": "✈️ Telegram Gateway  [Channel]",
+      "item": [
+        {
+          "name": "Readiness",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8010/health/ready",
+              "host": [
+                "http://localhost:8010"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registra el webhook de este tenant en la API de Telegram",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8010/setup/demo_turismo",
+              "host": [
+                "http://localhost:8010"
+              ],
+              "path": [
+                "setup",
+                "demo_turismo"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Recibe actualizaciones de Telegram para un tenant",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:8010/webhook/demo_turismo",
+              "host": [
+                "http://localhost:8010"
+              ],
+              "path": [
+                "webhook",
+                "demo_turismo"
+              ],
+              "variable": [
+                {
+                  "key": "tenant_id",
+                  "value": "demo_turismo",
+                  "description": "Default: demo_turismo"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "**[Channel]** Telegram Bot API adapter — webhook ingestion, multi-tenant switching (`/tenant`), session reset (`/reset`).\nPort: **8010** · Webhook secret required."
     },
     {
       "name": "👗 Demo: StyleSense (moda_imagen)",
-      "description": "Tenant de ejemplo para asesoría de imagen. Demuestra el flujo completo con RAG de moda.",
+      "description": "End-to-end demo for the `moda_imagen` (StyleSense) tenant — create, configure, ingest RAG docs, chat and handoff.",
       "item": [
         {
           "name": "Crear tenant StyleSense",
@@ -2071,893 +2958,6 @@
           "response": []
         }
       ]
-    },
-    {
-      "name": "🛍️ Recommender",
-      "item": [
-        {
-          "name": "Health",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8004/health",
-              "host": [
-                "http://localhost:8004"
-              ],
-              "path": [
-                "health"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get product recommendations based on user intent entities",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8004/v1/recommendations",
-              "host": [
-                "http://localhost:8004"
-              ],
-              "path": [
-                "v1",
-                "recommendations"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"tenant_schema\": \"example_tenant_schema\",\n  \"entities\": {\n    \"activity_type\": \"example_activity_type\",\n    \"date\": \"example_date\",\n    \"pax_count\": \"example_pax_count\",\n    \"language_preference\": \"example_language_preference\",\n    \"budget_max\": \"example_budget_max\",\n    \"physical_level\": \"example_physical_level\",\n    \"duration_preference_hours\": \"example_duration_preference_hours\",\n    \"time_of_day\": \"example_time_of_day\"\n  },\n  \"top_k\": 1\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        }
-      ],
-      "description": "Service: recommender | Base URL: http://localhost:8004"
-    },
-    {
-      "name": "🤖 Model Adapter",
-      "item": [
-        {
-          "name": "Health",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8005/health",
-              "host": [
-                "http://localhost:8005"
-              ],
-              "path": [
-                "health"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Chat completion (non-streaming)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8005/v1/chat/completions",
-              "host": [
-                "http://localhost:8005"
-              ],
-              "path": [
-                "v1",
-                "chat",
-                "completions"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"messages\": [],\n  \"temperature\": 1.0,\n  \"max_tokens\": 1,\n  \"stream\": true,\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Chat completion (streaming SSE)",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8005/v1/chat/stream",
-              "host": [
-                "http://localhost:8005"
-              ],
-              "path": [
-                "v1",
-                "chat",
-                "stream"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"messages\": [],\n  \"temperature\": 1.0,\n  \"max_tokens\": 1,\n  \"stream\": true,\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Generate text embeddings",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8005/v1/embed",
-              "host": [
-                "http://localhost:8005"
-              ],
-              "path": [
-                "v1",
-                "embed"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"texts\": [],\n  \"tenant_id\": \"demo_turismo\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        }
-      ],
-      "description": "Service: model-adapter | Base URL: http://localhost:8005"
-    },
-    {
-      "name": "💳 Checkout",
-      "item": [
-        {
-          "name": "Health",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8006/health",
-              "host": [
-                "http://localhost:8006"
-              ],
-              "path": [
-                "health"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Booking Intent",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8006/v1/checkout/booking-intents",
-              "host": [
-                "http://localhost:8006"
-              ],
-              "path": [
-                "v1",
-                "checkout",
-                "booking-intents"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"product_id\": \"demo-tenant\",\n  \"selected_date\": \"example_selected_date\",\n  \"selected_time\": \"example_selected_time\",\n  \"pax_count\": 1,\n  \"contact\": {\n    \"name\": \"example_name\",\n    \"email\": \"admin@nia.local\",\n    \"phone\": \"example_phone\",\n    \"special_requests\": \"example_special_requests\"\n  },\n  \"total_amount\": 1.0,\n  \"currency\": \"example_currency\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Checkout Session",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8006/v1/checkout/sessions",
-              "host": [
-                "http://localhost:8006"
-              ],
-              "path": [
-                "v1",
-                "checkout",
-                "sessions"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"booking_intent_id\": \"demo-tenant\",\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"success_url\": \"https://example.com\",\n  \"cancel_url\": \"https://example.com\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Stripe Webhook",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8006/v1/checkout/webhook",
-              "host": [
-                "http://localhost:8006"
-              ],
-              "path": [
-                "v1",
-                "checkout",
-                "webhook"
-              ]
-            }
-          },
-          "response": []
-        }
-      ],
-      "description": "Service: checkout | Base URL: http://localhost:8006"
-    },
-    {
-      "name": "🤝 Handoff",
-      "item": [
-        {
-          "name": "Health",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8007/health",
-              "host": [
-                "http://localhost:8007"
-              ],
-              "path": [
-                "health"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Handoff Case",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8007/v1/handoff/cases",
-              "host": [
-                "http://localhost:8007"
-              ],
-              "path": [
-                "v1",
-                "handoff",
-                "cases"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"trigger_type\": \"example_trigger_type\",\n  \"trigger_reason\": \"example_trigger_reason\",\n  \"context_summary\": \"example_context_summary\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Handoff Status",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8007/v1/handoff/cases/CASE_ID",
-              "host": [
-                "http://localhost:8007"
-              ],
-              "path": [
-                "v1",
-                "handoff",
-                "cases",
-                "CASE_ID"
-              ],
-              "variable": [
-                {
-                  "key": "case_id",
-                  "value": "CASE_ID",
-                  "description": "Default: CASE_ID"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Resolve Case",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8007/v1/handoff/cases/CASE_ID/resolve",
-              "host": [
-                "http://localhost:8007"
-              ],
-              "path": [
-                "v1",
-                "handoff",
-                "cases",
-                "CASE_ID",
-                "resolve"
-              ],
-              "variable": [
-                {
-                  "key": "case_id",
-                  "value": "CASE_ID",
-                  "description": "Default: CASE_ID"
-                }
-              ],
-              "query": [
-                {
-                  "key": "session_id",
-                  "value": "",
-                  "disabled": true,
-                  "description": ""
-                }
-              ]
-            }
-          },
-          "response": []
-        }
-      ],
-      "description": "Service: handoff | Base URL: http://localhost:8007"
-    },
-    {
-      "name": "📝 Transcript",
-      "item": [
-        {
-          "name": "Health",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8008/health",
-              "host": [
-                "http://localhost:8008"
-              ],
-              "path": [
-                "health"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Readiness",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8008/health/ready",
-              "host": [
-                "http://localhost:8008"
-              ],
-              "path": [
-                "health",
-                "ready"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Lead",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8008/v1/leads",
-              "host": [
-                "http://localhost:8008"
-              ],
-              "path": [
-                "v1",
-                "leads"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"name\": \"example_name\",\n  \"email\": \"admin@nia.local\",\n  \"phone\": \"example_phone\",\n  \"intent_data\": {},\n  \"gdpr_consent\": true\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Save Message",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8008/v1/transcripts/messages",
-              "host": [
-                "http://localhost:8008"
-              ],
-              "path": [
-                "v1",
-                "transcripts",
-                "messages"
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"tenant_id\": \"demo_turismo\",\n  \"session_id\": \"demo-tenant\",\n  \"role\": \"example_role\",\n  \"content\": \"example_content\",\n  \"tokens\": 1,\n  \"intent\": \"example_intent\",\n  \"confidence\": \"demo-tenant\",\n  \"rag_sources\": [],\n  \"metadata\": {}\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Transcript",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8008/v1/transcripts/demo_turismo/SESSION_ID",
-              "host": [
-                "http://localhost:8008"
-              ],
-              "path": [
-                "v1",
-                "transcripts",
-                "demo_turismo",
-                "SESSION_ID"
-              ],
-              "variable": [
-                {
-                  "key": "tenant_id",
-                  "value": "demo_turismo",
-                  "description": "Default: demo_turismo"
-                },
-                {
-                  "key": "session_id",
-                  "value": "SESSION_ID",
-                  "description": "Default: SESSION_ID"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Export Transcript Email",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8008/v1/transcripts/demo_turismo/SESSION_ID/email",
-              "host": [
-                "http://localhost:8008"
-              ],
-              "path": [
-                "v1",
-                "transcripts",
-                "demo_turismo",
-                "SESSION_ID",
-                "email"
-              ],
-              "variable": [
-                {
-                  "key": "tenant_id",
-                  "value": "demo_turismo",
-                  "description": "Default: demo_turismo"
-                },
-                {
-                  "key": "session_id",
-                  "value": "SESSION_ID",
-                  "description": "Default: SESSION_ID"
-                }
-              ]
-            },
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"to_email\": \"admin@nia.local\",\n  \"subject\": \"example_subject\",\n  \"tenant_name\": \"example_tenant_name\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "response": []
-        }
-      ],
-      "description": "Service: transcript | Base URL: http://localhost:8008"
-    },
-    {
-      "name": "🔄 Fallback",
-      "item": [
-        {
-          "name": "Health",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8009/health",
-              "host": [
-                "http://localhost:8009"
-              ],
-              "path": [
-                "health"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Fallback Message",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8009/v1/fallback/message",
-              "host": [
-                "http://localhost:8009"
-              ],
-              "path": [
-                "v1",
-                "fallback",
-                "message"
-              ],
-              "query": [
-                {
-                  "key": "tenant_id",
-                  "value": "",
-                  "disabled": true,
-                  "description": ""
-                }
-              ]
-            }
-          },
-          "response": []
-        }
-      ],
-      "description": "Service: fallback | Base URL: http://localhost:8009"
-    },
-    {
-      "name": "✈️ Telegram Gateway",
-      "item": [
-        {
-          "name": "Readiness",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8010/health/ready",
-              "host": [
-                "http://localhost:8010"
-              ],
-              "path": [
-                "health",
-                "ready"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Registra el webhook de este tenant en la API de Telegram",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8010/setup/demo_turismo",
-              "host": [
-                "http://localhost:8010"
-              ],
-              "path": [
-                "setup",
-                "demo_turismo"
-              ],
-              "variable": [
-                {
-                  "key": "tenant_id",
-                  "value": "demo_turismo",
-                  "description": "Default: demo_turismo"
-                }
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Recibe actualizaciones de Telegram para un tenant",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "Authorization",
-                "value": "Bearer {{admin_token}}"
-              }
-            ],
-            "url": {
-              "raw": "http://localhost:8010/webhook/demo_turismo",
-              "host": [
-                "http://localhost:8010"
-              ],
-              "path": [
-                "webhook",
-                "demo_turismo"
-              ],
-              "variable": [
-                {
-                  "key": "tenant_id",
-                  "value": "demo_turismo",
-                  "description": "Default: demo_turismo"
-                }
-              ]
-            }
-          },
-          "response": []
-        }
-      ],
-      "description": "Canal Telegram para NIA.\n\n**Comandos disponibles en el bot:**\n- `/start` — Bienvenida\n- `/tenant` — Lista tenants disponibles con botones inline\n- `/tenant <id>` — Cambia directamente al tenant especificado\n- `/reset` — Reinicia la conversación actual\n\nLa preferencia de tenant se guarda en Redis (TTL 30 días)."
     }
   ],
   "variable": [

@@ -26,10 +26,28 @@ logger = get_logger(__name__)
 
 app = FastAPI(
     title="NIA Model Adapter",
-    description="Abstraction layer for LLM providers (LM Studio, Vertex AI, OpenAI)",
+    description=(
+        "**[Core]** Abstraction layer for LLM providers (LM Studio, Vertex AI, OpenAI). "
+        "Provides a unified chat-completion and embedding API so the rest of the platform "
+        "remains provider-agnostic."
+    ),
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
+    openapi_tags=[
+        {
+            "name": "chat",
+            "description": "LLM chat completion — streaming and non-streaming.",
+        },
+        {
+            "name": "embeddings",
+            "description": "Text embedding generation for RAG ingestion and retrieval.",
+        },
+        {
+            "name": "ops",
+            "description": "Health and readiness probes.",
+        },
+    ],
 )
 
 app.add_middleware(

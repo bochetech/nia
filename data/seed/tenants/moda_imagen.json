@@ -1,0 +1,175 @@
+{
+  "id": "moda_imagen",
+  "name": "StyleSense — Asesora de Imagen",
+  "contact_email": "demo@stylesense.com",
+  "plan": "professional",
+  "ui_config": {
+    "primary_color": "#C2185B",
+    "secondary_color": "#F39C12",
+    "logo_url": null,
+    "font_family": "Inter",
+    "chat_title": "StyleSense",
+    "avatar_url": null,
+    "position": "bottom-right",
+    "welcome_message": "¡Hola! 👗 Soy StyleSense, tu asesora de imagen personal. ¿Qué look estás buscando hoy?",
+    "show_welcome_message": true,
+    "input_placeholder": "Ej: Busco un outfit para una boda de día…",
+    "suggested_questions": [
+      "¿Qué blazers tienen disponibles?",
+      "Busco un vestido para una boda",
+      "¿Cómo combino colores neutros?",
+      "¿Qué talla me queda si mido 1.65?"
+    ]
+  },
+  "rag_config": {
+    "confidence_threshold": 0.65,
+    "max_tokens_response": 500,
+    "fallback_message": "No tengo información precisa sobre eso. ¿Te gustaría hablar con un asesor?",
+    "top_k_retrieval": 8,
+    "top_k_rerank": 3
+  },
+  "ai_config": {
+    "primary_provider": "lmstudio",
+    "primary_model": "llama-3.2-3b-instruct",
+    "temperature": 0.75,
+    "max_tokens": 400,
+    "system_prompt_override": "Eres StyleSense, una asesora de imagen personal experta en moda y estilo para una tienda de ropa. Tu misión es ayudar a los clientes a encontrar outfits que los hagan sentir seguros y elegantes. Conoces tendencias de moda, combinación de colores, tipologías de cuerpo y ocasiones de uso. Siempre das consejos prácticos, personalizados y con referencias a productos de la tienda cuando sea posible. Respondes en español de forma cálida y entusiasta. Cuando el cliente busca productos específicos, usas la base de conocimiento para recomendar prendas concretas con precios."
+  },
+  "fsm_config": {
+    "nps_enabled": true,
+    "max_conversation_turns": 50,
+    "session_timeout_minutes": 480,
+    "intents": [
+      {
+        "key": "human_request",
+        "name": "Solicitud de agente humano",
+        "description": "El usuario pide explícitamente hablar con una persona, agente, asesor o estilista humano.",
+        "examples": ["Quiero hablar con alguien", "¿Puedo hablar con una estilista?", "Necesito un asesor"],
+        "priority": 10,
+        "enabled": true
+      },
+      {
+        "key": "nps_response",
+        "name": "Respuesta NPS",
+        "description": "El usuario responde con un número (1-5) o calificación a una encuesta de satisfacción.",
+        "examples": ["5", "3 estrellas", "Le doy un 4", "Mi puntuación es 2"],
+        "priority": 9,
+        "enabled": true
+      },
+      {
+        "key": "complaint",
+        "name": "Queja",
+        "description": "El usuario expresa queja, frustración o insatisfacción con el servicio.",
+        "examples": ["Esto es inaceptable", "Estoy muy molesto con el servicio", "Quiero hacer un reclamo"],
+        "priority": 8,
+        "enabled": true
+      },
+      {
+        "key": "booking_intent",
+        "name": "Intención de compra",
+        "description": "Intención clara de comprar una prenda, agregar al carrito, pagar o confirmar una compra.",
+        "examples": ["Quiero comprar el blazer negro", "¿Cómo pago?", "Quiero ese vestido en talla M", "Me llevo los dos"],
+        "priority": 5,
+        "enabled": true
+      },
+      {
+        "key": "product_inquiry",
+        "name": "Consulta de producto",
+        "description": "Preguntas sobre qué prendas, estilos u outfits recomiendas; solicita ver el catálogo o productos específicos.",
+        "examples": ["¿Qué blazers tienen?", "Busco un vestido para una boda", "¿Tienen pantalones wide leg?", "Muéstrame outfits casuales"],
+        "priority": 4,
+        "enabled": true
+      },
+      {
+        "key": "faq_query",
+        "name": "Pregunta frecuente",
+        "description": "Preguntas sobre tallas, combinación de colores, tipología de cuerpo, ocasiones de uso, cuidado de prendas, políticas de cambio.",
+        "examples": ["¿Cómo combino colores?", "¿Qué talla me queda si mido 1.65?", "¿Qué usar para una entrevista?", "¿Puedo devolver si no me queda?"],
+        "priority": 3,
+        "enabled": true
+      },
+      {
+        "key": "out_of_scope",
+        "name": "Fuera de dominio",
+        "description": "Temas no relacionados con moda, ropa, estilo o la tienda StyleSense.",
+        "examples": ["¿Cuál es la capital de Francia?", "Cuéntame un chiste", "¿Cómo se hace una tortilla?"],
+        "priority": 1,
+        "enabled": true
+      },
+      {
+        "key": "unclear",
+        "name": "Intención ambigua",
+        "description": "Mensaje ambiguo que no encaja claramente en ninguna otra categoría. Incluye saludos simples.",
+        "examples": ["Hola", "hmm no sé", "ok", "Sí"],
+        "priority": 0,
+        "enabled": true
+      }
+    ],
+    "transitions": [
+      {
+        "intent": "human_request",
+        "from_states": [],
+        "to_state": "handoff",
+        "action": "handoff",
+        "static_message": null,
+        "enabled": true
+      },
+      {
+        "intent": "nps_response",
+        "from_states": [],
+        "to_state": "nps",
+        "action": "nps",
+        "static_message": null,
+        "enabled": true
+      },
+      {
+        "intent": "complaint",
+        "from_states": [],
+        "to_state": "complaint",
+        "action": "complaint",
+        "static_message": null,
+        "enabled": true
+      },
+      {
+        "intent": "out_of_scope",
+        "from_states": [],
+        "to_state": "idle",
+        "action": "static_reply",
+        "static_message": "Solo puedo ayudarte con moda, estilo y el catálogo de StyleSense. ¿Buscas algo en particular para vestir?",
+        "enabled": true
+      },
+      {
+        "intent": "faq_query",
+        "from_states": [],
+        "to_state": "faq_answer",
+        "action": "faq",
+        "static_message": null,
+        "enabled": true
+      },
+      {
+        "intent": "booking_intent",
+        "from_states": [],
+        "to_state": "faq_answer",
+        "action": "faq",
+        "static_message": null,
+        "enabled": true
+      },
+      {
+        "intent": "product_inquiry",
+        "from_states": [],
+        "to_state": "faq_answer",
+        "action": "faq",
+        "static_message": null,
+        "enabled": true
+      },
+      {
+        "intent": "unclear",
+        "from_states": [],
+        "to_state": "discovery",
+        "action": "discovery",
+        "static_message": null,
+        "enabled": true
+      }
+    ]
+  }
+}

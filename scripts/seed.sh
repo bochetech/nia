@@ -171,6 +171,66 @@ PYEOF
 
 success "Products seeded: ${PRODUCT_COUNT} products into ${TENANT_SCHEMA}"
 
+# ── 5. Create / upsert moda_imagen tenant (StyleSense) ───────────
+MODA_FILE="data/seed/tenants/moda_imagen.json"
+MODA_TENANT_ID="moda_imagen"
+MODA_COLLECTION="moda_imagen_docs"
+
+info "Creating moda_imagen tenant (StyleSense)..."
+
+MODA_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" \
+  "${TENANT_MANAGER_URL}/api/tenants/${MODA_TENANT_ID}")
+
+if [ "$MODA_STATUS" -eq 200 ]; then
+  warn "Tenant '${MODA_TENANT_ID}' already exists — skipping creation"
+else
+  MODA_RESP=$(curl -sf -X POST \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -d @"$MODA_FILE" \
+    "${TENANT_MANAGER_URL}/api/tenants")
+  success "Tenant created: $(echo "$MODA_RESP" | jq -r '.data.id // "moda_imagen"')"
+fi
+
+# ── 6. Apply Telegram config to moda_imagen (same bot as demo_turismo) ──
+info "Enabling Telegram channel on moda_imagen..."
+
+# Read bot_token and webhook_secret from demo_turismo Redis config
+DEMO_BOT_TOKEN=$(docker exec nia_redis redis-cli GET "tenant:demo_turismo:config" \
+  | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d.get('telegram_config',{}).get('bot_token',''))")
+DEMO_WEBHOOK_SECRET=$(docker exec nia_redis redis-cli GET "tenant:demo_turismo:config" \
+  | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d.get('telegram_config',{}).get('webhook_secret',''))")
+DEMO_BOT_USERNAME=$(docker exec nia_redis redis-cli GET "tenant:demo_turismo:config" \
+  | python3 -c "import sys,json; d=json.loads(sys.stdin.read()); print(d.get('telegram_config',{}).get('bot_username',''))")
+
+if [ -n "$DEMO_BOT_TOKEN" ]; then
+  MODA_TELEGRAM_PATCH=$(cat <<JSONPATCH
+{
+  "telegram_config": {
+    "enabled": true,
+    "bot_token": "${DEMO_BOT_TOKEN}",
+    "bot_username": "${DEMO_BOT_USERNAME}",
+    "webhook_secret": "${DEMO_WEBHOOK_SECRET}",
+    "allowed_chat_ids": [],
+    "welcome_message": "¡Hola! 👗 Soy StyleSense, tu asesora de imagen personal. ¿Qué look estás buscando hoy?",
+    "parse_mode": "Markdown"
+  }
+}
+JSONPATCH
+)
+  curl -sf -X PATCH \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -d "$MODA_TELEGRAM_PATCH" \
+    "${TENANT_MANAGER_URL}/api/tenants/${MODA_TENANT_ID}/config" > /dev/null \
+    && success "Telegram enabled on moda_imagen (shared bot: @${DEMO_BOT_USERNAME})" \
+    || warn "Could not patch moda_imagen Telegram config via API — updating Redis directly"
+else
+  warn "demo_turismo bot_token not found — skipping Telegram config for moda_imagen"
+  warn "Run ./scripts/seed.sh after configuring Telegram on demo_turismo"
+fi
+
 # ── Done ──────────────────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}${BOLD}======================================${RESET}"

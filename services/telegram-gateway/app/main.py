@@ -545,7 +545,8 @@ async def telegram_webhook(tenant_id: str, request: Request):
         # Manejar selección de tenant desde el menú /tenant
         if data.startswith("switch_tenant:"):
             target = data.split(":", 1)[1]
-            await _switch_tenant(chat_id, tenant_id, target, cfg["bot_token"], cfg["parse_mode"])
+            current_tenant = await _get_preferred_tenant(chat_id, tenant_id)
+            await _switch_tenant(chat_id, current_tenant, target, cfg["bot_token"], cfg["parse_mode"])
             return JSONResponse({"ok": True})
 
         text = f"Seleccionaste: {data.split(':')[-1]}" if ":" in data else data

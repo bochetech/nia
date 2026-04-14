@@ -331,9 +331,18 @@ async def detect_intent(
 
 def _parse_intent_response(content: str) -> dict:
     """Extrae el JSON del response del LLM (puede tener texto extra)."""
+    content = content.strip()
+
+    # Eliminar markdown code fences que producen los modelos de razonamiento
+    # (Gemma 4, DeepSeek-R1, etc.): ```json\n{...}\n``` o ```\n{...}\n```
+    if content.startswith("```"):
+        content = re.sub(r"^```(?:json)?\s*\n?", "", content)
+        content = re.sub(r"\n?```\s*$", "", content)
+        content = content.strip()
+
     # Intentar parsear directo
     try:
-        return json.loads(content.strip())
+        return json.loads(content)
     except json.JSONDecodeError:
         pass
 

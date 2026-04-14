@@ -9,6 +9,12 @@ Flujo por mensaje entrante:
   4. Llama al orchestrator POST /v1/chat con el mensaje
   5. Formatea la respuesta y la envía de vuelta via Telegram Bot API
 
+Comandos especiales:
+  /start             — bienvenida y descripción del asistente
+  /tenant            — lista todos los tenants disponibles con botones inline
+  /tenant <id>       — cambia directamente al tenant especificado
+  /reset             — reinicia la conversación (nueva sesión)
+
 Endpoints:
   POST /webhook/{tenant_id}              — webhook de Telegram
   POST /setup/{tenant_id}               — registra el webhook en Telegram
@@ -47,7 +53,6 @@ app = FastAPI(
     description="Canal Telegram para NIA — convierte mensajes de Telegram al formato interno del orchestrator.",
     version="1.0.0",
 )
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -232,6 +237,172 @@ async def _ensure_lead_captured(tenant_id: str, session_id: str, chat_id: int) -
     )
 
 
+async def _get_available_tenants() -> list[dict]:
+    """
+    Obtiene la lista de tenants activos con Telegram habilitado desde Redis.
+    Busca todas las claves tenant:*:config y filtra los que tienen telegram_config.enabled=True.
+    """
+    redis = await get_redis()
+    keys = await redis.keys("tenant:*:config")
+    tenants = []
+    for key in keys:
+        try:
+            raw = await redis.get(key)
+            if not raw:
+                continue
+            data = json.loads(raw)
+            telegram_cfg = data.get("telegram_config", {})
+            if telegram_cfg.get("enabled"):
+                tenants.append({
+                    "id": data.get("id", ""),
+                    "name": data.get("name", ""),
+                    "title": data.get("ui_config", {}).get("header_title") or data.get("name", ""),
+                    "welcome": data.get("ui_config", {}).get("welcome_message", ""),
+                })
+        except Exception:
+            continue
+    return tenants
+
+
+async def _handle_tenant_command(
+    tenant_id: str,
+    chat_id: int,
+    text: str,
+    cfg: dict,
+) -> None:
+    """
+    Maneja el comando /tenant:
+    - /tenant          → muestra lista de tenants con botones inline
+    - /tenant <id>     → cambia al tenant especificado directamente
+    """
+    bot_token = cfg["bot_token"]
+    parse_mode = cfg["parse_mode"]
+
+    parts = text.strip().split(maxsplit=1)
+    target_id = parts[1].strip() if len(parts) > 1 else ""
+
+    if target_id:
+        # Cambio directo: /tenant moda_imagen
+        await _switch_tenant(chat_id, tenant_id, target_id, bot_token, parse_mode)
+        return
+
+    # Sin argumento → mostrar menú
+    tenants = await _get_available_tenants()
+
+    if not tenants:
+        await _send_telegram_message(bot_token, "sendMessage", {
+            "chat_id": chat_id,
+            "text": "⚠️ No hay asistentes disponibles en este momento.",
+            "parse_mode": parse_mode,
+        })
+        return
+
+    # Construir botones inline
+    buttons = []
+    for t in tenants:
+        mark = "✅ " if t["id"] == tenant_id else ""
+        buttons.append([{
+            "text": f"{mark}{t['title']}",
+            "callback_data": f"switch_tenant:{t['id']}",
+        }])
+
+    tenant_list = "\n".join(
+        f"{'▶️' if t['id'] == tenant_id else '·'} *{t['title']}* `{t['id']}`"
+        for t in tenants
+    )
+    msg = (
+        f"🤖 *Asistentes disponibles*\n\n"
+        f"{tenant_list}\n\n"
+        f"Selecciona uno para cambiar de asistente:"
+    )
+
+    await _send_telegram_message(bot_token, "sendMessage", {
+        "chat_id": chat_id,
+        "text": msg,
+        "parse_mode": parse_mode,
+        "reply_markup": {"inline_keyboard": buttons},
+    })
+    logger.info("tenant_menu_shown", chat_id=chat_id, current=tenant_id, options=len(tenants))
+
+
+async def _switch_tenant(
+    chat_id: int,
+    current_tenant_id: str,
+    target_tenant_id: str,
+    bot_token: str,
+    parse_mode: str,
+) -> None:
+    """
+    Cambia el tenant activo para un chat_id:
+    1. Guarda la preferencia en Redis (clave: tg_tenant:{chat_id})
+    2. Limpia la sesión anterior para empezar fresco
+    3. Envía mensaje de confirmación con el welcome del nuevo tenant
+    """
+    if target_tenant_id == current_tenant_id:
+        await _send_telegram_message(bot_token, "sendMessage", {
+            "chat_id": chat_id,
+            "text": f"✅ Ya estás usando *{target_tenant_id}*.",
+            "parse_mode": parse_mode,
+        })
+        return
+
+    # Verificar que el target tenant existe y tiene Telegram habilitado
+    redis = await get_redis()
+    raw = await redis.get(f"tenant:{target_tenant_id}:config")
+    if not raw:
+        await _send_telegram_message(bot_token, "sendMessage", {
+            "chat_id": chat_id,
+            "text": f"❌ El asistente `{target_tenant_id}` no existe o no está disponible.",
+            "parse_mode": parse_mode,
+        })
+        return
+
+    target_config = json.loads(raw)
+    telegram_cfg = target_config.get("telegram_config", {})
+    if not telegram_cfg.get("enabled"):
+        await _send_telegram_message(bot_token, "sendMessage", {
+            "chat_id": chat_id,
+            "text": f"❌ El asistente `{target_tenant_id}` no tiene Telegram habilitado.",
+            "parse_mode": parse_mode,
+        })
+        return
+
+    # Guardar preferencia de tenant en Redis (TTL: 30 días)
+    pref_key = f"tg_tenant_pref:{chat_id}"
+    await redis.setex(pref_key, 30 * 24 * 3600, target_tenant_id)
+
+    # Limpiar sesión anterior del tenant anterior
+    old_session_id = chat_id_to_session_id(chat_id, current_tenant_id)
+    old_session_key = RedisKeys.session(current_tenant_id, old_session_id)
+    await redis.delete(old_session_key)
+
+    # También limpiar lead lock si existe
+    old_lead_key = f"lead_lock:{current_tenant_id}:{old_session_id}"
+    await redis.delete(old_lead_key)
+
+    target_name = target_config.get("ui_config", {}).get("header_title") or target_config.get("name", target_tenant_id)
+    welcome = target_config.get("ui_config", {}).get("welcome_message", f"¡Hola! Soy el asistente de {target_name}.")
+
+    confirm_msg = (
+        f"🔄 *Cambiando a {target_name}*\n\n"
+        f"{welcome}\n\n"
+        f"_Conversación anterior cerrada. Empezamos de nuevo._"
+    )
+    await _send_telegram_message(bot_token, "sendMessage", {
+        "chat_id": chat_id,
+        "text": confirm_msg,
+        "parse_mode": parse_mode,
+    })
+    logger.info("tenant_switched", chat_id=chat_id, from_tenant=current_tenant_id, to_tenant=target_tenant_id)
+
+
+async def _get_preferred_tenant(chat_id: int, default_tenant_id: str) -> str:
+    """Devuelve el tenant activo preferido para este chat_id, o el default."""
+    redis = await get_redis()
+    pref = await redis.get(f"tg_tenant_pref:{chat_id}")
+    return pref.decode() if pref else default_tenant_id
+
+
 async def _call_orchestrator(
     token: str,
     message: str,
@@ -289,8 +460,17 @@ async def telegram_webhook(tenant_id: str, request: Request):
         # Responder a botón inline pulsado
         chat_id = callback["message"]["chat"]["id"]
         data = callback.get("data", "")
+
+        # Manejar selección de tenant desde el menú /tenant
+        if data.startswith("switch_tenant:"):
+            target = data.split(":", 1)[1]
+            await _switch_tenant(chat_id, tenant_id, target, cfg["bot_token"], cfg["parse_mode"])
+            return JSONResponse({"ok": True})
+
         text = f"Seleccionaste: {data.split(':')[-1]}" if ":" in data else data
-        await _process_message(tenant_id, chat_id, text, cfg)
+        active_tenant = await _get_preferred_tenant(chat_id, tenant_id)
+        active_cfg = cfg if active_tenant == tenant_id else await _get_tenant_telegram_config(active_tenant)
+        await _process_message(active_tenant, chat_id, text, active_cfg)
         return JSONResponse({"ok": True})
 
     if not message:
@@ -305,6 +485,18 @@ async def telegram_webhook(tenant_id: str, request: Request):
         logger.info("chat_id_not_allowed", chat_id=chat_id, tenant_id=tenant_id)
         return JSONResponse({"ok": True})
 
+    # ── Determinar tenant activo (puede haber cambiado con /tenant) ──
+    active_tenant = await _get_preferred_tenant(chat_id, tenant_id)
+    if active_tenant != tenant_id:
+        try:
+            cfg = await _get_tenant_telegram_config(active_tenant)
+        except HTTPException:
+            # Si el tenant preferido ya no está disponible, limpiar preferencia
+            redis = await get_redis()
+            await redis.delete(f"tg_tenant_pref:{chat_id}")
+            active_tenant = tenant_id
+            logger.warning("preferred_tenant_unavailable", chat_id=chat_id, preferred=active_tenant)
+
     # ── Comando /start ──
     if text.strip() == "/start":
         await _send_telegram_message(cfg["bot_token"], "sendMessage", {
@@ -314,9 +506,26 @@ async def telegram_webhook(tenant_id: str, request: Request):
         })
         return JSONResponse({"ok": True})
 
+    # ── Comando /tenant ──
+    if text.strip().startswith("/tenant"):
+        await _handle_tenant_command(active_tenant, chat_id, text.strip(), cfg)
+        return JSONResponse({"ok": True})
+
+    # ── Comando /reset ──
+    if text.strip() == "/reset":
+        session_id = chat_id_to_session_id(chat_id, active_tenant)
+        redis = await get_redis()
+        await redis.delete(RedisKeys.session(active_tenant, session_id))
+        await _send_telegram_message(cfg["bot_token"], "sendMessage", {
+            "chat_id": chat_id,
+            "text": "🔄 Conversación reiniciada. " + cfg["welcome_message"],
+            "parse_mode": cfg["parse_mode"],
+        })
+        return JSONResponse({"ok": True})
+
     # ── Mensaje normal → orchestrator ──
     if text:
-        await _process_message(tenant_id, chat_id, text, cfg)
+        await _process_message(active_tenant, chat_id, text, cfg)
 
     return JSONResponse({"ok": True})
 

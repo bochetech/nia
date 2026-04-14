@@ -221,7 +221,7 @@ async def _route_by_intent(
             intent=intent_value,
             state=current_state,
         )
-        tenant_name = tenant_config.get("ui_config", {}).get("chat_title", "el centro de turismo")
+        tenant_name = tenant_config.get("ui_config", {}).get("chat_title", "el asistente")
         return await _handle_discovery(
             message=message,
             session=session,
@@ -232,7 +232,7 @@ async def _route_by_intent(
 
     # ── Ejecutar acción ───────────────────────────────────────────────────────
     limits_config = tenant_config.get("limits_config", {})
-    tenant_name = tenant_config.get("ui_config", {}).get("chat_title", "el centro de turismo")
+    tenant_name = tenant_config.get("ui_config", {}).get("chat_title", "el asistente")
 
     # Resolve skill config for the matched action
     skill = get_skill_config(matched.action, tenant_config)
@@ -359,8 +359,7 @@ async def _handle_discovery(
         # RAG no encontró contexto útil → respuesta de discovery del LLM
         answer = rag_config.get(
             "fallback_message",
-            f"Hola 👋 Soy el asistente de {tenant_name}. ¿Qué tipo de experiencia buscas? "
-            "Puedo recomendarte actividades, horarios y precios.",
+            f"Hola 👋 Soy el asistente de {tenant_name}. ¿En qué puedo ayudarte hoy?",
         )
 
     await transition_state(session, ConversationFSMState.DISCOVERY)
@@ -454,9 +453,9 @@ async def _handle_recommendation_flow(
     # Resolve response templates from skill config
     tpl = skill.response_templates if skill else {}
     error_msg = tpl.get("error", "Estoy teniendo dificultades para acceder al catálogo. ¿Puedes intentarlo de nuevo en un momento?")
-    empty_msg = tpl.get("empty", "En este momento no encontré actividades que coincidan exactamente con lo que buscas. ¿Te gustaría que amplíe la búsqueda?")
+    empty_msg = tpl.get("empty", "En este momento no encontré opciones que coincidan exactamente con lo que buscas. ¿Te gustaría que amplíe la búsqueda?")
     success_msg = tpl.get("success", "Te recomiendo estas opciones:")
-    followup_msg = tpl.get("followup", "¿Te interesa alguna de estas opciones? Puedo darte más detalles o ayudarte a reservar.")
+    followup_msg = tpl.get("followup", "¿Te interesa alguna de estas opciones? Puedo darte más detalles.")
 
     try:
         async with httpx.AsyncClient(timeout=20.0) as client:

@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "NIA Platform API",
-    "description": "Complete API collection for NIA conversational platform.\nGenerated automatically from live OpenAPI specs.\nServices: 10 | Endpoints: 69\n\n**Quick Start**:\n1. Import this collection into Postman\n2. Run 'Login — obtén un JWT de admin' to get admin_token (auto-saved)\n3. All URLs point to localhost — ready for local development\n\n**Default credentials**: admin@nia.local / changeme\n\n_Updated: 2026-04-14_",
+    "description": "NIA Platform — API completa de todos los servicios.\n\n**Variables de entorno:**\n- `admin_token`: JWT de administrador (POST /auth/token)\n- `widget_token`: JWT de widget (POST /api/tenants/{id}/widget-token)\n- `session_id`: ID de sesión activa\n\n**Credenciales por defecto (local):**\n- Email: `admin@nia.local`\n- Password: `changeme`\n- Tenant demo: `demo_turismo`\n- Tenant moda: `moda_imagen`\n\n_Actualizado: 2026-04-14_",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "nia-auto"
   },
@@ -1764,6 +1764,315 @@
       "description": "Service: tenant-manager | Base URL: http://localhost:8003"
     },
     {
+      "name": "👗 Demo: StyleSense (moda_imagen)",
+      "description": "Tenant de ejemplo para asesoría de imagen. Demuestra el flujo completo con RAG de moda.",
+      "item": [
+        {
+          "name": "Crear tenant StyleSense",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8003/api/tenants",
+              "protocol": "http",
+              "host": [
+                "localhost",
+                "8003"
+              ],
+              "path": [
+                "api",
+                "tenants"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "description": "Crea el tenant de ejemplo para asesoría de imagen.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"moda_imagen\",\n  \"name\": \"StyleSense — Asesoría de Imagen\",\n  \"contact_email\": \"admin@stylesense.com\",\n  \"plan\": \"professional\",\n  \"ui_config\": {\n    \"primary_color\": \"#C2185B\",\n    \"header_title\": \"StyleSense IA\",\n    \"welcome_message\": \"¡Hola! 👗 Soy tu asesora de imagen personal. ¿Qué look estás buscando hoy?\",\n    \"suggested_questions\": [\n      \"¿Qué me queda bien para una entrevista?\",\n      \"Busco outfits casuales chic\",\n      \"¿Cómo combinar colores?\",\n      \"Necesito ropa para una boda\"\n    ]\n  },\n  \"lead_config\": {\n    \"enabled\": true,\n    \"fields\": [\n      {\n        \"name\": \"full_name\",\n        \"label\": \"Tu nombre\",\n        \"type\": \"text\",\n        \"required\": true\n      },\n      {\n        \"name\": \"email\",\n        \"label\": \"Email\",\n        \"type\": \"email\",\n        \"required\": true\n      }\n    ],\n    \"gdpr_consent_text\": \"Acepto que StyleSense procese mis datos para personalizar recomendaciones\",\n    \"submit_label\": \"Comenzar mi asesoría ✨\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Configurar AI prompt moda",
+          "request": {
+            "method": "PATCH",
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/moda_imagen/ai-config",
+              "protocol": "http",
+              "host": [
+                "localhost",
+                "8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                "moda_imagen",
+                "ai-config"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "description": "Configura el system prompt personalizado para moda.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"system_prompt_override\": \"Eres StyleSense, una asesora de imagen personal experta en moda y estilo para una tienda de ropa. Respondes en español de forma cálida.\",\n  \"language\": \"es\",\n  \"max_tokens\": 400,\n  \"temperature\": 0.75\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Actualizar transiciones FSM moda",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/moda_imagen/transitions",
+              "protocol": "http",
+              "host": [
+                "localhost",
+                "8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                "moda_imagen",
+                "transitions"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "description": "Configura product_inquiry → faq para usar RAG en lugar del recommender.",
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"intent\": \"product_inquiry\",\n    \"action\": \"faq\",\n    \"to_state\": \"faq_answer\",\n    \"from_states\": []\n  },\n  {\n    \"intent\": \"booking_intent\",\n    \"action\": \"faq\",\n    \"to_state\": \"faq_answer\",\n    \"from_states\": []\n  },\n  {\n    \"intent\": \"faq_query\",\n    \"action\": \"faq\",\n    \"to_state\": \"faq_answer\",\n    \"from_states\": []\n  },\n  {\n    \"intent\": \"human_request\",\n    \"action\": \"handoff\",\n    \"to_state\": \"handoff\",\n    \"from_states\": []\n  },\n  {\n    \"intent\": \"out_of_scope\",\n    \"action\": \"static_reply\",\n    \"to_state\": \"idle\",\n    \"static_message\": \"Solo puedo ayudarte con moda, estilo y el catálogo de StyleSense.\",\n    \"from_states\": []\n  },\n  {\n    \"intent\": \"unclear\",\n    \"action\": \"discovery\",\n    \"to_state\": \"discovery\",\n    \"from_states\": []\n  }\n]",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ingestar catálogo prendas (form-data)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8002/v1/rag/ingest"
+            },
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "tenant_id",
+                  "value": "moda_imagen",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "data/seed/knowledge/moda_imagen/catalogo_prendas.md"
+                }
+              ]
+            },
+            "description": "Sube el catálogo de prendas al RAG de moda_imagen."
+          },
+          "response": []
+        },
+        {
+          "name": "Query RAG: blazer entrevista",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8002/v1/rag/query",
+              "protocol": "http",
+              "host": [
+                "localhost",
+                "8002"
+              ],
+              "path": [
+                "v1",
+                "rag",
+                "query"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "description": "Prueba directa del RAG sin pasar por el orchestrator.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"¿Qué blazer tienes para una entrevista de trabajo?\",\n  \"tenant_id\": \"moda_imagen\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener widget token moda",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8003/api/tenants/moda_imagen/widget-token",
+              "protocol": "http",
+              "host": [
+                "localhost",
+                "8003"
+              ],
+              "path": [
+                "api",
+                "tenants",
+                "moda_imagen",
+                "widget-token"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "description": "Obtiene un JWT de widget para iniciar conversación con StyleSense.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tenant_id\": \"moda_imagen\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Chat: consulta de moda",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8001/v1/chat",
+              "protocol": "http",
+              "host": [
+                "localhost",
+                "8001"
+              ],
+              "path": [
+                "v1",
+                "chat"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{widget_token}}"
+              }
+            ],
+            "description": "Envía un mensaje al asistente de moda. Usa widget_token, no admin_token.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"¿Qué me recomiendas para una boda de día?\",\n  \"tenant_id\": \"moda_imagen\",\n  \"session_id\": \"{{session_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Chat: handoff a estilista",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "http://localhost:8001/v1/chat",
+              "protocol": "http",
+              "host": [
+                "localhost",
+                "8001"
+              ],
+              "path": [
+                "v1",
+                "chat"
+              ]
+            },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{widget_token}}"
+              }
+            ],
+            "description": "Prueba el escalado a agente humano (handoff_triggered=true).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Quiero hablar con una estilista humana\",\n  \"tenant_id\": \"moda_imagen\",\n  \"session_id\": \"{{session_id}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "🛍️ Recommender",
       "item": [
         {
@@ -2648,7 +2957,7 @@
           "response": []
         }
       ],
-      "description": "Service: telegram-gateway | Base URL: http://localhost:8010"
+      "description": "Canal Telegram para NIA.\n\n**Comandos disponibles en el bot:**\n- `/start` — Bienvenida\n- `/tenant` — Lista tenants disponibles con botones inline\n- `/tenant <id>` — Cambia directamente al tenant especificado\n- `/reset` — Reinicia la conversación actual\n\nLa preferencia de tenant se guarda en Redis (TTL 30 días)."
     }
   ],
   "variable": [

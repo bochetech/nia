@@ -623,15 +623,18 @@ async def list_fsm_states(
     if not admin.is_super_admin:
         require_same_tenant_admin(admin, tenant_id)
 
-    # Default states from enum
+    # Default states from enum — exclude any the tenant has hidden
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    hidden_states: set = set(fsm.get("hidden_states", []))
+
     states = [
         {"key": s.value, "label": s.value.replace("_", " ").title(), "is_default": True}
         for s in ConversationFSMState
+        if s.value not in hidden_states
     ]
     default_keys = {s.value for s in ConversationFSMState}
 
     # Custom states from tenant config
-    _, fsm = await _get_fsm_config(tenant_id, db)
     custom_states = fsm.get("custom_states", [])
     for cs in custom_states:
         if cs.get("key") and cs["key"] not in default_keys:
@@ -699,23 +702,38 @@ async def delete_fsm_state(
     db: AsyncSession = Depends(get_db_session),
 ):
     """
-    Delete a custom FSM state. Cannot delete built-in states.
+    Delete an FSM state from the tenant's available states.
+    'idle' is the only immutable state and cannot be removed.
+    Built-in (enum) states are removed by recording them in a
+    'hidden_states' list in fsm_config rather than actually deleting
+    the enum value. Custom states are removed from custom_states.
     """
     if not admin.is_super_admin:
         require_same_tenant_admin(admin, tenant_id)
         admin.require_admin()
 
-    default_keys = {s.value for s in ConversationFSMState}
-    if state_key in default_keys:
-        raise HTTPException(status_code=400, detail=f"Cannot delete built-in state '{state_key}'")
+    if state_key == "idle":
+        raise HTTPException(status_code=400, detail="Cannot delete the 'idle' state — it is the initial state")
 
     _, fsm = await _get_fsm_config(tenant_id, db)
+
+    default_keys = {s.value for s in ConversationFSMState}
+
+    if state_key in default_keys:
+        # Hide built-in state by adding to hidden list
+        hidden = set(fsm.get("hidden_states", []))
+        hidden.add(state_key)
+        fsm["hidden_states"] = list(hidden)
+        await _save_fsm_config(tenant_id, fsm, db)
+        return APIResponse(data={"deleted": state_key, "type": "hidden"})
+
+    # Delete custom state
     custom_states = fsm.get("custom_states", [])
     original_len = len(custom_states)
     custom_states = [cs for cs in custom_states if cs.get("key") != state_key]
 
     if len(custom_states) == original_len:
-        raise HTTPException(status_code=404, detail=f"Custom state '{state_key}' not found")
+        raise HTTPException(status_code=404, detail=f"State '{state_key}' not found")
 
     fsm["custom_states"] = custom_states
     await _save_fsm_config(tenant_id, fsm, db)

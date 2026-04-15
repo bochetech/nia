@@ -8,6 +8,7 @@ import uuid
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from qdrant_client import AsyncQdrantClient
 
@@ -275,8 +276,21 @@ async def list_documents(
             with_payload=True,
             with_vectors=False,
         )
-    except Exception:
-        return APIResponse(data=[])
+    except Exception as exc:
+        exc_str = str(exc).lower()
+        # Qdrant returns a specific error when collection doesn't exist
+        if "not found" in exc_str or "doesn't exist" in exc_str:
+            logger.warning("collection_not_found", collection=effective_collection, tenant_id=tenant_id)
+            return JSONResponse(content={
+                "data": [],
+                "meta": {"collection_exists": False, "collection_name": effective_collection,
+                         "message": f"Collection '{effective_collection}' not found. Upload a document to create it."},
+            })
+        logger.error("list_documents_error", error=str(exc), collection=effective_collection, tenant_id=tenant_id)
+        return JSONResponse(status_code=500, content={
+            "data": [],
+            "meta": {"error": str(exc), "collection_name": effective_collection},
+        })
 
     # Group by doc_id
     docs: dict[str, dict] = {}
@@ -325,8 +339,9 @@ async def list_document_chunks(
             with_payload=True,
             with_vectors=False,
         )
-    except Exception:
-        return APIResponse(data=[])
+    except Exception as exc:
+        logger.error("list_chunks_error", error=str(exc), doc_id=doc_id, collection=effective_collection)
+        return JSONResponse(content={"data": [], "meta": {"error": str(exc)}})
 
     chunks = []
     for pt in points:

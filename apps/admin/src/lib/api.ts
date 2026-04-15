@@ -741,3 +741,54 @@ export function createTraceEventSource(
   const url = `${ORCHESTRATOR}/v1/sessions/${sessionId}/trace?token=${encodeURIComponent(token)}`;
   return new EventSource(url);
 }
+
+// ---------------------------------------------------------------------------
+// Debug Console API — widget token + chat via orchestrator
+// ---------------------------------------------------------------------------
+
+export interface WidgetSession {
+  token: string;
+  session_id: string;
+  tenant_id: string;
+  expires_in_seconds: number;
+}
+
+export interface ChatResult {
+  session_id: string;
+  tenant_id: string;
+  response: string;
+  fsm_state: string;
+  show_lead_form: boolean;
+  recommendations: unknown[] | null;
+  handoff_triggered: boolean;
+  checkout_url: string | null;
+  tokens_used: number;
+}
+
+export const debugApi = {
+  /** Issue a widget JWT for a debug session (public endpoint on tenant-manager). */
+  getWidgetToken: async (tenantId: string): Promise<APIResponse<WidgetSession>> => {
+    const res = await fetch(
+      `${TENANT_MANAGER}/api/tenants/${tenantId}/widget-token`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ page_url: "admin-debug-console", user_agent: "NIA Admin Debug" }),
+      }
+    );
+    return json<APIResponse<WidgetSession>>(res);
+  },
+
+  /** Send a chat message using the widget JWT (authenticates to orchestrator). */
+  sendMessage: async (widgetToken: string, message: string): Promise<APIResponse<ChatResult>> => {
+    const res = await fetch(`${ORCHESTRATOR}/v1/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${widgetToken}`,
+      },
+      body: JSON.stringify({ message }),
+    });
+    return json<APIResponse<ChatResult>>(res);
+  },
+};

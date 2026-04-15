@@ -68,6 +68,9 @@ export default function KnowledgePage({
 
   const stats = statsData?.data;
   const documents: RAGDocument[] = docsData?.data ?? [];
+  const collectionMeta = (docsData as any)?.meta;
+  const collectionMissing = collectionMeta?.collection_exists === false;
+  const collectionMessage = collectionMeta?.message as string | undefined;
 
   const handleFiles = useCallback(
     async (files: FileList | File[]) => {
@@ -184,13 +187,28 @@ export default function KnowledgePage({
             ) : documents.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-                  <div className="rounded-full bg-muted p-4 mb-4">
-                    <BookOpen className="h-7 w-7 text-muted-foreground" />
+                  <div className={cn("rounded-full p-4 mb-4", collectionMissing ? "bg-amber-50" : "bg-muted")}>
+                    {collectionMissing ? (
+                      <AlertCircle className="h-7 w-7 text-amber-500" />
+                    ) : (
+                      <BookOpen className="h-7 w-7 text-muted-foreground" />
+                    )}
                   </div>
-                  <h3 className="font-semibold mb-1">No documents yet</h3>
+                  <h3 className="font-semibold mb-1">
+                    {collectionMissing ? "Collection not found" : "No documents yet"}
+                  </h3>
                   <p className="text-sm text-muted-foreground max-w-sm">
-                    Upload .txt, .md, .json, .pdf, or .csv files to build your knowledge base.
-                    Documents are automatically chunked and embedded for semantic search.
+                    {collectionMissing ? (
+                      <>
+                        The Qdrant collection for this tenant doesn&apos;t exist yet.
+                        <br />
+                        <span className="text-xs text-amber-600 font-medium mt-1 inline-block">
+                          {collectionMessage ?? "Upload a document to automatically create it."}
+                        </span>
+                      </>
+                    ) : (
+                      "Upload .txt, .md, .json, .pdf, or .csv files to build your knowledge base. Documents are automatically chunked and embedded for semantic search."
+                    )}
                   </p>
                 </CardContent>
               </Card>

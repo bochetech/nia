@@ -31,7 +31,6 @@ import {
   useCreateFSMState,
   useDeleteFSMState,
 } from "@/hooks/use-api";
-import { createTraceEventSource } from "@/lib/api";
 import type { FlowTransition, IntentDefinition, ActionCatalogItem, SkillConfig } from "@/lib/api";
 import { ACTION_COLORS, ACTION_LABELS, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,64 +38,42 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   Save,
   Plus,
   Trash2,
-  Activity,
   GitBranch,
   Zap,
   Edit,
   Brain,
-  Radio,
   Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 
-// ─── FSM state node layout hints ──────────────────────────────
+// ─── FSM state layout ─────────────────────────────────────────
 //
-// This is ONLY a positional hint for the known default states.
-// The actual valid state list is fetched from GET /{tenant_id}/states
-// which reflects ConversationFSMState enum in shared/models/domain.py.
-// Any state returned by the API that is NOT in this map gets
-// auto-positioned in a grid below the last known row.
-const STATE_POSITIONS: Record<string, { x: number; y: number }> = {
-  idle:             { x: 400, y: 20  },
-  pre_chat:         { x: 400, y: 130 },
-  greeting:         { x: 400, y: 240 },
-  discovery:        { x: 100, y: 370 },
-  faq_answer:       { x: 400, y: 370 },
-  recommending:     { x: 700, y: 370 },
-  product_selected: { x: 700, y: 480 },
-  checkout_init:    { x: 700, y: 590 },
-  awaiting_payment: { x: 700, y: 700 },
-  payment_failed:   { x: 550, y: 810 },
-  confirmed:        { x: 700, y: 810 },
-  post_chat:        { x: 100, y: 480 },
-  handoff_active:   { x: 250, y: 590 },
-  closed:           { x: 400, y: 700 },
-};
+// ALL states are fetched dynamically from GET /{tenant_id}/states.
+// Positions are assigned automatically in a grid layout.
+// Only "idle" and the virtual "★ ANY" node are immutable.
 
-/** Returns a position for a state not in STATE_POSITIONS — laid out in a grid below row 900. */
+/** Virtual node ID used to represent wildcard "from any state" transitions. */
+const ANY_NODE_ID = "__any__";
+const ANY_NODE_POSITION = { x: 20, y: 20 };
+
+/** Auto-position states in a grid layout. */
 function autoPosition(index: number): { x: number; y: number } {
-  const col = index % 4;
-  const row = Math.floor(index / 4);
-  return { x: 100 + col * 200, y: 920 + row * 110 };
+  const cols = 4;
+  const col = index % cols;
+  const row = Math.floor(index / cols);
+  return { x: 80 + col * 220, y: 60 + row * 130 };
 }
 
 // Sentinel value used in the intent Select to represent "wildcard / no filter"
 const INTENT_WILDCARD = "__wildcard__";
 // Sentinel for "from any state" (from_states: [])
 const FROM_ANY = "__any__";
-
-/** Resolve an action key → hex color. Handles conversational__ sub-skills (always Apple pink). */
-function actionColor(action: string): string {
-  if (action.startsWith("conversational__")) return "#FF2D55";
-  return ACTION_COLORS[action] ?? "#8E8E93";
-}
 
 /** Resolve an action key → display label. Handles conversational__ sub-skills. */
 function actionLabel(action: string, customSkills?: { action: string; name?: string }[]): string {
@@ -118,6 +95,7 @@ function StateNode({
     state: string;
     isActive: boolean;
     transitionCount: number;
+    isGhost?: boolean;
   };
 }) {
   const handleStyle = { opacity: 0, width: 10, height: 10 };
@@ -125,9 +103,14 @@ function StateNode({
   return (
     <div
       className={cn(
-        "rounded-xl border-2 px-4 py-2.5 min-w-[148px] text-center transition-all duration-300 relative bg-white",
+        "rounded-xl border-2 px-4 py-2.5 min-w-[148px] text-center transition-all duration-300 relative",
+        data.isGhost
+          ? "bg-slate-50 border-dashed border-slate-300"
+          : "bg-white",
         data.isActive
           ? "border-violet-500 scale-105 shadow-[0_0_0_4px_rgba(124,58,237,0.15),0_4px_16px_rgba(124,58,237,0.1)]"
+          : data.isGhost
+          ? ""
           : "border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300"
       )}
     >
@@ -141,13 +124,15 @@ function StateNode({
       <Handle type="source" position={Position.Left}   id="s-left"   style={handleStyle} />
       <Handle type="source" position={Position.Right}  id="s-right"  style={handleStyle} />
 
-      <div className="font-semibold text-[11px] uppercase tracking-wide text-slate-700">
+      <div className={cn("font-semibold text-[11px] uppercase tracking-wide", data.isGhost ? "text-slate-400" : "text-slate-700")}>
         {data.label}
       </div>
 
-      {data.transitionCount > 0 && (
+      {data.isGhost ? (
+        <div className="text-[9px] text-slate-400 mt-0.5 italic">not in states list</div>
+      ) : data.transitionCount > 0 ? (
         <div className="text-[10px] text-slate-400 mt-0.5">{data.transitionCount} transitions</div>
-      )}
+      ) : null}
 
       {/* Active pulse indicator */}
       {data.isActive && (
@@ -157,7 +142,24 @@ function StateNode({
   );
 }
 
-const nodeTypes: NodeTypes = { stateNode: StateNode };
+const nodeTypes: NodeTypes = { stateNode: StateNode, anyNode: AnyStateNode };
+
+// ─── Virtual "★ Any State" node ────────────────────────────────
+
+function AnyStateNode() {
+  const handleStyle = { opacity: 0, width: 10, height: 10 };
+
+  return (
+    <div className="rounded-xl border-2 border-dashed border-amber-400 bg-amber-50/80 px-5 py-2.5 min-w-[120px] text-center shadow-sm">
+      <Handle type="source" position={Position.Top}    id="s-top"    style={handleStyle} />
+      <Handle type="source" position={Position.Bottom} id="s-bottom" style={handleStyle} />
+      <Handle type="source" position={Position.Left}   id="s-left"   style={handleStyle} />
+      <Handle type="source" position={Position.Right}  id="s-right"  style={handleStyle} />
+      <div className="font-semibold text-[12px] text-amber-700 tracking-wide">★ ANY STATE</div>
+      <div className="text-[9px] text-amber-500 mt-0.5">wildcard source</div>
+    </div>
+  );
+}
 
 // ─── Main page ─────────────────────────────────────────────────
 
@@ -186,44 +188,49 @@ export default function FSMPage({
     [skillsData]
   );
 
-  // Dynamic state list from backend — falls back to STATE_POSITIONS keys while loading
+  // Dynamic state list from backend — while loading, show just "idle"
   const fsmStateItems: { key: string; label: string; is_default?: boolean }[] = useMemo(() => {
     if (statesData?.data?.length) return statesData.data;
-    return Object.keys(STATE_POSITIONS).map((k) => ({
-      key: k,
-      label: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-    }));
+    return [{ key: "idle", label: "Idle" }];
   }, [statesData]);
 
-  // All state keys (for wildcard expansion)
-  const ALL_FSM_STATES: string[] = useMemo(
-    () => fsmStateItems.map((s) => s.key),
-    [fsmStateItems]
-  );
+  // Collect ALL states referenced in transitions (to auto-create ghost nodes for unknown ones)
+  const allReferencedStateKeys: string[] = useMemo(() => {
+    const knownKeys = new Set(fsmStateItems.map((s) => s.key));
+    const extra = new Set<string>();
+    transitions.forEach((t) => {
+      t.from_states.forEach((s) => { if (!knownKeys.has(s)) extra.add(s); });
+      if (t.to_state && t.to_state !== "__same__" && !knownKeys.has(t.to_state)) extra.add(t.to_state);
+    });
+    return [...extra];
+  }, [fsmStateItems, transitions]);
+
+  // Combined state list: known states + ghost states for orphaned transition targets
+  const allStateItems: { key: string; label: string; is_default?: boolean; isGhost?: boolean }[] = useMemo(() => {
+    const ghost = allReferencedStateKeys.map((k) => ({
+      key: k,
+      label: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+      is_default: false,
+      isGhost: true,
+    }));
+    return [...fsmStateItems, ...ghost];
+  }, [fsmStateItems, allReferencedStateKeys]);
 
   // State label lookup: key → display name
   const FSM_STATE_LABELS_DYNAMIC: Record<string, string> = useMemo(
-    () => Object.fromEntries(fsmStateItems.map((s) => [s.key, s.label])),
-    [fsmStateItems]
+    () => Object.fromEntries(allStateItems.map((s) => [s.key, s.label])),
+    [allStateItems]
   );
 
-  // Position lookup: merge known hints + auto-position unknown states
+  // Position lookup: auto-position ALL states in a grid
   const STATE_POSITIONS_DYNAMIC: Record<string, { x: number; y: number }> = useMemo(() => {
-    let autoIdx = 0;
     return Object.fromEntries(
-      fsmStateItems.map((s) => [
-        s.key,
-        STATE_POSITIONS[s.key] ?? autoPosition(autoIdx++),
-      ])
+      allStateItems.map((s, i) => [s.key, autoPosition(i)])
     );
-  }, [fsmStateItems]);
+  }, [allStateItems]);
 
-  // Live trace state
+  // Live trace state (active state highlight only — no SSE panel in this page)
   const [activeState, setActiveState] = useState<string | null>(null);
-  const [traceEvents, setTraceEvents] = useState<any[]>([]);
-  const [traceSessionId, setTraceSessionId] = useState("");
-  const [traceConnected, setTraceConnected] = useState(false);
-  const esRef = useRef<EventSource | null>(null);
 
   // Editor state
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
@@ -251,39 +258,51 @@ export default function FSMPage({
   );
 
   const initialNodes: Node[] = useMemo(() => {
-    return fsmStateItems.map((stateItem) => {
-      return {
-        id: stateItem.key,
-        type: "stateNode",
-        position: STATE_POSITIONS_DYNAMIC[stateItem.key],
-        data: {
-          label: stateItem.label,
-          state: stateItem.key,
-          isActive: false,
-          transitionCount: transitionCountMap[stateItem.key] ?? 0,
-        },
-      };
-    });
-  }, [fsmStateItems, transitionCountMap, STATE_POSITIONS_DYNAMIC]); // eslint-disable-line react-hooks/exhaustive-deps
+    const stateNodes = allStateItems.map((stateItem) => ({
+      id: stateItem.key,
+      type: "stateNode",
+      position: STATE_POSITIONS_DYNAMIC[stateItem.key],
+      data: {
+        label: stateItem.label,
+        state: stateItem.key,
+        isActive: false,
+        transitionCount: transitionCountMap[stateItem.key] ?? 0,
+        isGhost: stateItem.isGhost ?? false,
+      },
+    }));
+
+    // Add virtual ★ ANY node when there are wildcard transitions
+    if (hasWildcards) {
+      stateNodes.unshift({
+        id: ANY_NODE_ID,
+        type: "anyNode" as any,
+        position: ANY_NODE_POSITION,
+        data: { label: "★ Any State", state: ANY_NODE_ID, isActive: false, transitionCount: 0, isGhost: false },
+      });
+    }
+
+    return stateNodes;
+  }, [allStateItems, transitionCountMap, STATE_POSITIONS_DYNAMIC, hasWildcards]);
 
   const initialEdges: Edge[] = useMemo(
     () =>
       transitions.flatMap((t, ti) => {
-        // from_states: [] means "from every state" — expand to all FSM states
-        const sources: string[] = t.from_states.length > 0 ? t.from_states : ALL_FSM_STATES;
+        const isWildcard = t.from_states.length === 0;
+        const sources: string[] = isWildcard ? [ANY_NODE_ID] : t.from_states;
         return sources.flatMap((fromState: string, si: number) => {
-          // __same__ = self-loop back to source
-          const target = t.to_state === "__same__" ? fromState : t.to_state;
-          // Skip edges for states not in our layout
-          if (!STATE_POSITIONS_DYNAMIC[target] || !STATE_POSITIONS_DYNAMIC[fromState]) return [];
-          const edgeColor = actionColor(t.action);
+          const target = t.to_state === "__same__"
+            ? (isWildcard ? null : fromState)
+            : t.to_state;
+          if (!target) return []; // skip __same__ from ANY
+          if (!target.trim()) return [];
           const isSelf = target === fromState;
+          const edgeColor = isWildcard ? "#D1A23B" : "#636366";
           return [{
             id: `e-${ti}-${si}`,
             type: "straight",
             source: fromState,
             target,
-            label: `${t.intent} → ${actionLabel(t.action, customSkills)}`,
+            label: `${t.intent || "*"} → ${actionLabel(t.action, customSkills)}`,
             labelStyle: { fontSize: 10, fill: "#636366" },
             labelBgStyle: { fill: "white", fillOpacity: 0.9 },
             labelBgPadding: [4, 4] as [number, number],
@@ -291,15 +310,15 @@ export default function FSMPage({
             markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
             style: {
               stroke: edgeColor,
-              strokeWidth: isSelf ? 1.5 : 2,
-              strokeDasharray: isSelf ? "4 3" : undefined,
-              opacity: t.from_states.length === 0 ? 0.55 : 1,
+              strokeWidth: isWildcard ? 1.5 : 2,
+              strokeDasharray: isWildcard ? "6 3" : (isSelf ? "4 3" : undefined),
+              opacity: isWildcard ? 0.6 : 1,
             },
-            data: { transition: t, fromState, isWildcard: t.from_states.length === 0 },
+            data: { transition: t, fromState, isWildcard },
           }];
         });
       }),
-    [transitions, ALL_FSM_STATES, STATE_POSITIONS_DYNAMIC, customSkills] // eslint-disable-line react-hooks/exhaustive-deps
+    [transitions, customSkills] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -307,7 +326,7 @@ export default function FSMPage({
 
   // Track whether we've done the first load so we don't re-init on every render
   const loadedTransitionsRef = useRef<string>("");
-  const loadedNodesRef = useRef(false);
+  const loadedNodesRef = useRef<string>("");
 
   // Sync transitions → edges only when the server data actually changes
   useEffect(() => {
@@ -318,14 +337,13 @@ export default function FSMPage({
     setIsDirty(false);
   }, [transitions]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync initial nodes once after first load
+  // Sync nodes whenever the state list or transition counts change
   useEffect(() => {
-    if (loadedNodesRef.current) return;
-    if (Object.keys(transitionCountMap).length > 0) {
-      loadedNodesRef.current = true;
-      setNodes(initialNodes);
-    }
-  }, [transitionCountMap]); // eslint-disable-line react-hooks/exhaustive-deps
+    const key = JSON.stringify(allStateItems) + JSON.stringify(transitionCountMap) + String(hasWildcards);
+    if (key === loadedNodesRef.current) return;
+    loadedNodesRef.current = key;
+    setNodes(initialNodes);
+  }, [allStateItems, transitionCountMap, hasWildcards]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync active node highlight into node data
   useEffect(() => {
@@ -336,41 +354,6 @@ export default function FSMPage({
       }))
     );
   }, [activeState, setNodes]);
-
-  // ── Live trace ──────────────────────────────────────────────
-
-  const startTrace = useCallback(() => {
-    if (!traceSessionId.trim() || !token) return;
-    esRef.current?.close();
-    const es = createTraceEventSource(token, traceSessionId.trim());
-    esRef.current = es;
-
-    es.addEventListener("open", () => setTraceConnected(true));
-    es.addEventListener("error", () => {
-      setTraceConnected(false);
-    });
-    es.addEventListener("message", (evt) => {
-      try {
-        const event = JSON.parse(evt.data);
-        setTraceEvents((prev: any[]) => [event, ...prev].slice(0, 50));
-        if (event.type === "fsm_transition" && event.to) {
-          setActiveState(event.to);
-          setTimeout(() => setActiveState(null), 3000);
-        }
-        if (event.type === "intent_detected" && event.fsm_state) {
-          setActiveState(event.fsm_state);
-        }
-      } catch {}
-    });
-  }, [traceSessionId, token]);
-
-  const stopTrace = useCallback(() => {
-    esRef.current?.close();
-    setTraceConnected(false);
-    setActiveState(null);
-  }, []);
-
-  useEffect(() => () => esRef.current?.close(), []);
 
   // ── Edge click → edit transition ───────────────────────────
 
@@ -444,11 +427,13 @@ export default function FSMPage({
 
     if (!selectedEdge) {
       // ── New transition (created via button, not canvas drag) ──
-      const edgeColor = actionColor(flowT.action);
-      const sources = flowT.from_states.length > 0 ? flowT.from_states : ALL_FSM_STATES;
+      const isWildcard = flowT.from_states.length === 0;
+      const sources = isWildcard ? [ANY_NODE_ID] : flowT.from_states;
       const newEdges: Edge[] = sources.flatMap((src, si) => {
-        const target = flowT.to_state === "__same__" ? src : flowT.to_state;
+        const target = flowT.to_state === "__same__" ? (isWildcard ? flowT.to_state : src) : flowT.to_state;
+        if (target === "__same__" && isWildcard) return [];
         if (!target || !src) return [];
+        const edgeColor = isWildcard ? "#D1A23B" : "#636366";
         return [{
           id: `e-new-${Date.now()}-${si}`,
           type: "straight",
@@ -460,10 +445,22 @@ export default function FSMPage({
           labelBgPadding: [4, 4] as [number, number],
           labelBgBorderRadius: 4,
           markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
-          style: { stroke: edgeColor, strokeWidth: 2, opacity: flowT.from_states.length === 0 ? 0.55 : 1 },
-          data: { transition: flowT, fromState: src, isWildcard: flowT.from_states.length === 0 },
+          style: { stroke: edgeColor, strokeWidth: isWildcard ? 1.5 : 2, strokeDasharray: isWildcard ? "6 3" : undefined, opacity: isWildcard ? 0.55 : 1 },
+          data: { transition: flowT, fromState: src, isWildcard },
         }];
       });
+      // If adding a wildcard transition and no ANY node exists yet, add it
+      if (isWildcard) {
+        setNodes((ns) => {
+          if (ns.find((n) => n.id === ANY_NODE_ID)) return ns;
+          return [{
+            id: ANY_NODE_ID,
+            type: "anyNode" as any,
+            position: ANY_NODE_POSITION,
+            data: { label: "★ Any State", state: ANY_NODE_ID, isActive: false, transitionCount: 0 },
+          }, ...ns];
+        });
+      }
       setEdges((es) => [...es, ...newEdges]);
       setIsDirty(true);
       setEditingTransition(null);
@@ -475,13 +472,14 @@ export default function FSMPage({
     setEdges((es) =>
       es.map((e) => {
         if (e.id !== selectedEdge.id) return e;
-        const edgeColor = actionColor(flowT.action);
+        const isWild = e.data?.isWildcard;
+        const edgeColor = isWild ? "#D1A23B" : "#636366";
         return {
           ...e,
           label: `${flowT.intent || "*"} → ${actionLabel(flowT.action, customSkills)}`,
-          style: { stroke: edgeColor, strokeWidth: 2 },
+          style: { stroke: edgeColor, strokeWidth: isWild ? 1.5 : 2, strokeDasharray: isWild ? "6 3" : undefined, opacity: isWild ? 0.55 : 1 },
           markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
-          data: { transition: flowT, fromState: e.data?.fromState },
+          data: { transition: flowT, fromState: e.data?.fromState, isWildcard: isWild },
         };
       })
     );
@@ -512,243 +510,98 @@ export default function FSMPage({
   }, [edges, replaceTransitions]);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
-      {/* ── Main canvas ────────────────────────────────────── */}
-      <div className="flex-1 relative">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onEdgeClick={onEdgeClick}
-          nodeTypes={nodeTypes}
-          connectionMode={ConnectionMode.Loose}
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
-          defaultEdgeOptions={{ type: "straight", animated: false }}
+    <div className="relative h-[calc(100vh-4rem)] overflow-hidden">
+      {/* ── Full-canvas ReactFlow ──────────────────────── */}
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onEdgeClick={onEdgeClick}
+        nodeTypes={nodeTypes}
+        connectionMode={ConnectionMode.Loose}
+        fitView
+        fitViewOptions={{ padding: 0.18 }}
+        defaultEdgeOptions={{ type: "straight", animated: false }}
+        onPaneClick={() => { setSelectedEdge(null); setEditingTransition(null); }}
+      >
+        <Background gap={16} size={1} color="#e8e8ed" />
+        <Controls />
+        <MiniMap nodeColor={(n) => n.data?.isGhost ? "#e2e8f0" : "#c7d2fe"} />
+      </ReactFlow>
+
+      {/* ── Top toolbar ──────────────────────────────── */}
+      <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
+        <Button
+          size="sm"
+          variant={isDirty ? "default" : "outline"}
+          className="shadow-sm"
+          onClick={saveAll}
+          disabled={!isDirty}
         >
-          <Background gap={16} size={1} color="#e8e8ed" />
-          <Controls />
-          <MiniMap nodeColor={() => "#8E8E93"} />
-        </ReactFlow>
+          <Save className="h-3.5 w-3.5 mr-1.5" />
+          {isDirty ? "Save Changes" : "Saved"}
+        </Button>
 
-        {/* Canvas toolbar */}
-        <div className="absolute top-4 left-4 flex gap-2 z-10">
-          <Button
-            size="sm"
-            variant={isDirty ? "default" : "outline"}
-            onClick={saveAll}
-            loading={replaceTransitions.isPending}
-            disabled={!isDirty}
-          >
-            <Save className="h-3.5 w-3.5 mr-1" />
-            {isDirty ? "Save Changes" : "Saved"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowIntentDialog(true)}
-          >
-            <Brain className="h-3.5 w-3.5 mr-1" />
-            Intents
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => setShowStatesDialog(true)}
-          >
-            <Layers className="h-3.5 w-3.5 mr-1" />
-            States
-          </Button>
-        </div>
+        <div className="h-4 w-px bg-slate-200" />
 
-        {/* Canvas info bar */}
-        <div className="absolute bottom-12 left-4 right-84 text-[11px] text-muted-foreground bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border shadow-sm z-10 flex items-center gap-3">
-          <span><strong className="text-slate-600">Nodes</strong> = FSM states (where the conversation is)</span>
-          <span className="text-slate-300">|</span>
-          <span><strong className="text-slate-600">Arrow color</strong> = skill executed on that transition</span>
-          <span className="text-slate-300">|</span>
-          <span>Drag node edge · Click arrow to edit</span>
-        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="shadow-sm bg-white"
+          onClick={() => { setSelectedEdge(null); setEditingTransition({ intent: "", action: "faq", fromState: "", to_state: "", enabled: true }); }}
+        >
+          <Plus className="h-3.5 w-3.5 mr-1.5" />
+          New Transition
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="shadow-sm bg-white"
+          onClick={() => setShowIntentDialog(true)}
+        >
+          <Brain className="h-3.5 w-3.5 mr-1.5" />
+          Intents
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="shadow-sm bg-white"
+          onClick={() => setShowStatesDialog(true)}
+        >
+          <Layers className="h-3.5 w-3.5 mr-1.5" />
+          States
+        </Button>
       </div>
 
-      {/* ── Right panel ────────────────────────────────────── */}
-      <div className="w-80 border-l bg-background flex flex-col overflow-hidden">
-        <Tabs defaultValue="editor" className="flex flex-col h-full">
-          <TabsList className="m-3 mb-0">
-            <TabsTrigger value="editor" className="flex-1">
-              <GitBranch className="h-3.5 w-3.5 mr-1" />
-              Editor
-            </TabsTrigger>
-            <TabsTrigger value="trace" className="flex-1">
-              <Activity className="h-3.5 w-3.5 mr-1" />
-              Live Trace
-            </TabsTrigger>
-          </TabsList>
-
-          {/* ── Editor tab ─────────────────────────────────── */}
-          <TabsContent value="editor" className="flex-1 overflow-y-auto p-3 space-y-4">
-            {editingTransition ? (
-              <TransitionEditor
-                transition={editingTransition}
-                intents={intents}
-                actions={actions}
-                customSkills={customSkills}
-                allStates={fsmStateItems}
-                onChange={setEditingTransition}
-                onSave={saveEdgeTransition}
-                onDelete={deleteEdge}
-                onCancel={() => { setSelectedEdge(null); setEditingTransition(null); }}
-              />
-            ) : (
-              <div className="space-y-3">
-                {/* ── How it works ─── */}
-                <details className="group rounded-lg border bg-slate-50 text-xs">
-                  <summary className="px-3 py-2 cursor-pointer font-medium text-slate-600 flex items-center justify-between select-none">
-                    <span>How FSM works</span>
-                    <span className="text-slate-400 group-open:rotate-180 transition-transform">▾</span>
-                  </summary>
-                  <div className="px-3 pb-3 space-y-1.5 text-slate-600 leading-relaxed border-t pt-2">
-                    <p><strong>State</strong> (node) = where the conversation is right now, e.g. <em>FAQ Answer</em>, <em>Recommending</em>.</p>
-                    <p><strong>Skill</strong> (arrow color) = the action executed when a transition fires, e.g. <em>FAQ</em> queries the RAG knowledge base, <em>Handoff</em> connects to a human agent.</p>
-                    <p><strong>Transition</strong> (arrow) = a rule: <em>if intent X is detected (from state Y), run skill Z and move to state W</em>.</p>
-                    <p className="text-slate-400 pt-1">A node's border color shows the skill most associated with arriving at that state. Nodes with no border have no incoming transitions configured.</p>
-                  </div>
-                </details>
-
-                {/* ── New transition CTA ─── */}
-                <Button
-                  size="sm"
-                  className="w-full"
-                  onClick={() => {
-                    setSelectedEdge(null);
-                    setEditingTransition({ intent: "", action: "faq", fromState: "", to_state: "", enabled: true });
-                  }}
-                >
-                  <Plus className="h-3.5 w-3.5 mr-1.5" />
-                  New Transition
-                </Button>
-                <p className="text-[11px] text-muted-foreground leading-relaxed bg-slate-50 rounded-lg px-3 py-2 border">
-                  <strong className="text-slate-600">Tip:</strong> drag from any node's edge handle to another node to visually wire a transition, or click an existing arrow to edit it.
-                </p>
-
-                {/* ── Legend ─── */}
-                <div className="space-y-2">
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Skill Legend
-                  </div>
-                  {Object.entries(ACTION_LABELS).map(([action, label]) => (
-                    <div key={action} className="flex items-center gap-2 text-xs">
-                      <div
-                        className="h-2.5 w-2.5 rounded-full shrink-0"
-                        style={{ backgroundColor: ACTION_COLORS[action] }}
-                      />
-                      <span className="text-slate-700">{label}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* ── Transitions list ─── */}
-                <div className="pt-2 border-t space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                      Transitions ({transitions.length})
-                    </div>
-                  </div>
-                  {transitions.map((t, ti) => {
-                    const isWildcard = t.from_states.length === 0;
-                    const isSame = t.to_state === "__same__";
-                    // Find a matching edge to use for click-to-edit
-                    const matchEdge = edges.find((e) => e.data?.transition === t || (
-                      e.data?.transition?.intent === t.intent && e.data?.transition?.action === t.action
-                    ));
-                    return (
-                      <button
-                        key={ti}
-                        onClick={() => {
-                          const et: Partial<EditingTransition> = {
-                            fromState: t.from_states.length > 0 ? t.from_states[0] : "",
-                            to_state: t.to_state,
-                            intent: t.intent,
-                            action: t.action,
-                            static_message: t.static_message,
-                            enabled: t.enabled,
-                          };
-                          if (matchEdge) setSelectedEdge(matchEdge);
-                          setEditingTransition(et);
-                        }}
-                        className="w-full text-left rounded-md border p-2 text-xs hover:bg-accent transition-colors group"
-                      >
-                        <div className="flex items-center gap-1 font-medium">
-                          {isWildcard ? (
-                            <span className="text-slate-400 italic">any state</span>
-                          ) : (
-                            <span>{t.from_states.map((s) => FSM_STATE_LABELS_DYNAMIC[s] ?? s).join(", ")}</span>
-                          )}
-                          <span className="text-muted-foreground"> → </span>
-                          <span>{isSame ? <span className="italic text-slate-400">same</span> : (FSM_STATE_LABELS_DYNAMIC[t.to_state] ?? t.to_state)}</span>
-                        </div>
-                        <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5">
-                          <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: actionColor(t.action) }} />
-                          {t.intent || <span className="italic">wildcard</span>} · {actionLabel(t.action, customSkills)}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </TabsContent>
-
-          {/* ── Trace tab ──────────────────────────────────── */}
-          <TabsContent value="trace" className="flex-1 flex flex-col overflow-hidden p-3 space-y-3">
-            <div className="space-y-2">
-              <Label className="text-xs">Session ID to trace</Label>
-              <Input
-                placeholder="session_abc123"
-                value={traceSessionId}
-                onChange={(e) => setTraceSessionId(e.target.value)}
-                className="font-mono text-xs h-8"
-              />
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  className="flex-1"
-                  onClick={startTrace}
-                  disabled={traceConnected || !traceSessionId.trim()}
-                >
-                  <Radio className="h-3.5 w-3.5 mr-1" />
-                  {traceConnected ? "Connected" : "Connect"}
-                </Button>
-                {traceConnected && (
-                  <Button size="sm" variant="outline" onClick={stopTrace}>
-                    Stop
-                  </Button>
-                )}
-              </div>
-              {traceConnected && (
-                <div className="flex items-center gap-1.5 text-xs text-[#34C759]">
-                  <span className="h-2 w-2 rounded-full bg-[#34C759] animate-pulse" />
-                  Streaming live trace events
-                </div>
-              )}
-            </div>
-
-            <div className="flex-1 overflow-y-auto space-y-1.5 text-xs">
-              {traceEvents.length === 0 ? (
-                <p className="text-muted-foreground text-center py-4">
-                  No events yet. Connect to a live session to see execution trace.
-                </p>
-              ) : (
-                traceEvents.map((evt, i) => <TraceEventCard key={i} event={evt} stateLabels={FSM_STATE_LABELS_DYNAMIC} />)
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
+      {/* ── Info bar bottom ──────────────────────────── */}
+      <div className="absolute bottom-12 left-4 text-[11px] text-muted-foreground bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border shadow-sm z-10 flex items-center gap-3">
+        <span><strong className="text-amber-600">★ ANY</strong> = wildcard (all states)</span>
+        <span className="text-slate-300">|</span>
+        <span>Arrows show <em>intent → action</em></span>
+        <span className="text-slate-300">|</span>
+        <span className="text-slate-400">Click arrow to edit · Drag handle to connect</span>
       </div>
 
-      {/* ── Intent manager dialog ─────────────────────────── */}
+      {/* ── Transition editor overlay ─────────────────── */}
+      {editingTransition && (
+        <div className="absolute top-4 right-4 z-20 w-72 bg-white rounded-2xl border shadow-lg overflow-hidden">
+          <TransitionEditor
+            transition={editingTransition}
+            intents={intents}
+            actions={actions}
+            customSkills={customSkills}
+            allStates={fsmStateItems}
+            onChange={setEditingTransition}
+            onSave={saveEdgeTransition}
+            onDelete={deleteEdge}
+            onCancel={() => { setSelectedEdge(null); setEditingTransition(null); }}
+          />
+        </div>
+      )}
+
+      {/* ── Intent manager dialog ─────────────────────── */}
       <IntentManagerDialog
         tenantId={tenantId}
         open={showIntentDialog}
@@ -756,7 +609,7 @@ export default function FSMPage({
         intents={intents}
       />
 
-      {/* ── States manager dialog ─────────────────────────── */}
+      {/* ── States manager dialog ─────────────────────── */}
       <StatesManagerDialog
         tenantId={tenantId}
         open={showStatesDialog}
@@ -931,54 +784,6 @@ function TransitionEditor({
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>
-    </div>
-  );
-}
-
-// ─── Trace event card ──────────────────────────────────────────
-
-function TraceEventCard({ event, stateLabels }: { event: any; stateLabels: Record<string, string> }) {
-  const typeColors: Record<string, string> = {
-    intent_detected: "bg-[#007AFF]/8 border-[#007AFF]/15 text-[#007AFF]",
-    fsm_transition: "bg-[#AF52DE]/8 border-[#AF52DE]/15 text-[#AF52DE]",
-    skill_call: "bg-[#34C759]/8 border-[#34C759]/15 text-[#34C759]",
-    connected: "bg-[#8E8E93]/8 border-[#8E8E93]/15 text-[#636366]",
-  };
-
-  const icons: Record<string, React.ReactNode> = {
-    intent_detected: <Brain className="h-3 w-3" />,
-    fsm_transition: <GitBranch className="h-3 w-3" />,
-    skill_call: <Zap className="h-3 w-3" />,
-  };
-
-  const colorClass = typeColors[event.type] ?? "bg-[#8E8E93]/8 border-[#8E8E93]/15";
-
-  return (
-    <div className={cn("rounded border p-2 font-mono", colorClass)}>
-      <div className="flex items-center gap-1 font-medium mb-1">
-        {icons[event.type]}
-        <span>{event.type}</span>
-      </div>
-      {event.type === "intent_detected" && (
-        <div className="text-[10px] space-y-0.5">
-          <div>Intent: <strong>{event.intent}</strong></div>
-          <div>Confidence: {(event.confidence * 100).toFixed(0)}%</div>
-          <div>State: {event.fsm_state}</div>
-        </div>
-      )}
-      {event.type === "fsm_transition" && (
-        <div className="text-[10px] space-y-0.5">
-          <div>→ <strong>{stateLabels[event.to] ?? event.to}</strong></div>
-          <div>Action: {actionLabel(event.action)}</div>
-          {event.handoff && <div className="text-[#FF9500] font-semibold">Handoff triggered</div>}
-        </div>
-      )}
-      {event.type === "skill_call" && (
-        <div className="text-[10px] space-y-0.5">
-          <div>Skill: <strong>{event.action}</strong></div>
-          <div>Intent: {event.intent}</div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1182,7 +987,7 @@ function StatesManagerDialog({
             Manage FSM States
           </DialogTitle>
           <DialogDescription>
-            Add or remove states in your conversation flow. Built-in states cannot be removed.
+            Add or remove states in your conversation flow. Only <strong>idle</strong> is required and cannot be removed.
           </DialogDescription>
         </DialogHeader>
 
@@ -1223,32 +1028,35 @@ function StatesManagerDialog({
 
         {/* States list */}
         <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
-          {states.map((s) => (
-            <div
-              key={s.key}
-              className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="h-2 w-2 rounded-full bg-slate-400 shrink-0" />
-                <span className="font-medium truncate">{s.label}</span>
-                <span className="text-[10px] font-mono text-muted-foreground">{s.key}</span>
-                {s.is_default !== false && (
-                  <Badge variant="secondary" className="text-[9px] h-4 px-1.5">default</Badge>
+          {states.map((s) => {
+            const isImmutable = s.key === "idle";
+            return (
+              <div
+                key={s.key}
+                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="h-2 w-2 rounded-full bg-slate-400 shrink-0" />
+                  <span className="font-medium truncate">{s.label}</span>
+                  <span className="text-[10px] font-mono text-muted-foreground">{s.key}</span>
+                  {isImmutable && (
+                    <Badge variant="secondary" className="text-[9px] h-4 px-1.5">required</Badge>
+                  )}
+                </div>
+                {!isImmutable && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                    loading={deleteState.isPending}
+                    onClick={() => deleteState.mutate(s.key)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
                 )}
               </div>
-              {s.is_default === false && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
-                  loading={deleteState.isPending}
-                  onClick={() => deleteState.mutate(s.key)}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <DialogFooter>

@@ -50,47 +50,50 @@ export default function AnalyticsPage({
   const sessions = sessionsData?.data;
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      {/* Header + day selector */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Analytics</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Conversation metrics and session history
-          </p>
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-5xl mx-auto p-6 space-y-6">
+        {/* Header + day selector */}
+        <div className="flex items-end justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Analytics</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Conversation metrics and session history
+            </p>
+          </div>
+          <div className="flex gap-0.5 rounded-lg border p-0.5 bg-muted/50">
+            {DAY_OPTIONS.map((d) => (
+              <button
+                key={d}
+                onClick={() => { setDays(d); setPage(1); }}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  days === d
+                    ? "bg-background shadow-sm text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {d}d
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex gap-1 rounded-lg border p-1 bg-muted/40">
-          {DAY_OPTIONS.map((d) => (
-            <button
-              key={d}
-              onClick={() => { setDays(d); setPage(1); }}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                days === d
-                  ? "bg-background shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {d}d
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-4 gap-3">
         <KpiCard
           icon={<MessageSquare className="h-4 w-4" />}
           label="Conversations"
           value={formatNumber(analytics?.total_conversations)}
           loading={analyticsLoading}
-          color="blue"
+          bg="bg-blue-50"
+          fg="text-blue-600"
         />
         <KpiCard
           icon={<Users className="h-4 w-4" />}
           label="Messages"
           value={formatNumber(analytics?.total_messages)}
           loading={analyticsLoading}
-          color="violet"
+          bg="bg-violet-50"
+          fg="text-violet-600"
         />
         <KpiCard
           icon={<Star className="h-4 w-4" />}
@@ -98,7 +101,8 @@ export default function AnalyticsPage({
           value={analytics?.avg_nps != null ? analytics.avg_nps.toFixed(1) : "—"}
           sub={analytics?.nps_responses ? `${analytics.nps_responses} responses` : undefined}
           loading={analyticsLoading}
-          color="amber"
+          bg="bg-amber-50"
+          fg="text-amber-600"
         />
         <KpiCard
           icon={<DollarSign className="h-4 w-4" />}
@@ -106,12 +110,13 @@ export default function AnalyticsPage({
           value={formatCurrency(analytics?.estimated_cost_usd)}
           sub={analytics?.total_tokens ? `${formatNumber(analytics.total_tokens)} tokens` : undefined}
           loading={analyticsLoading}
-          color="emerald"
+          bg="bg-emerald-50"
+          fg="text-emerald-600"
         />
       </div>
 
       {/* Charts row */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3">
         {/* Daily volume area chart */}
         <Card className="col-span-2">
           <CardHeader>
@@ -322,6 +327,7 @@ export default function AnalyticsPage({
           onClose={() => setTranscriptSession(null)}
         />
       )}
+      </div>
     </div>
   );
 }
@@ -334,39 +340,36 @@ function KpiCard({
   value,
   sub,
   loading,
-  color,
+  bg,
+  fg,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   sub?: string;
   loading: boolean;
-  color: "blue" | "violet" | "amber" | "emerald";
+  bg: string;
+  fg: string;
 }) {
-  const colorMap = {
-    blue: "text-blue-600 bg-blue-50",
-    violet: "text-violet-600 bg-violet-50",
-    amber: "text-amber-600 bg-amber-50",
-    emerald: "text-emerald-600 bg-emerald-50",
-  };
-
   return (
-    <Card>
-      <CardContent className="pt-5">
-        <div className={`inline-flex rounded-lg p-2 mb-3 ${colorMap[color]}`}>
-          {icon}
+    <div className="rounded-xl border bg-card p-4 transition-colors hover:bg-accent/30">
+      <div className="flex items-center gap-3">
+        <div className={`rounded-lg p-2 ${bg}`}>
+          <span className={fg}>{icon}</span>
         </div>
-        <div className="text-xs text-muted-foreground mb-1">{label}</div>
-        {loading ? (
-          <div className="h-7 w-20 rounded bg-muted animate-pulse" />
-        ) : (
-          <>
-            <div className="text-2xl font-bold">{value}</div>
-            {sub && <div className="text-xs text-muted-foreground mt-0.5">{sub}</div>}
-          </>
-        )}
-      </CardContent>
-    </Card>
+        <div className="min-w-0">
+          <div className="text-xs text-muted-foreground">{label}</div>
+          {loading ? (
+            <div className="h-6 w-16 rounded bg-muted animate-pulse mt-0.5" />
+          ) : (
+            <>
+              <div className="text-xl font-bold tabular-nums">{value}</div>
+              {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -611,20 +611,116 @@ async def list_actions(
 async def list_fsm_states(
     tenant_id: str,
     admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
 ):
     """
-    Returns the list of valid FSM state keys from ConversationFSMState enum.
-    The frontend uses this to build the state graph dynamically, without
-    hardcoding state names.
+    Returns the merged list of FSM states for a tenant:
+    - Default states from ConversationFSMState enum
+    - Custom states the tenant has added (stored in fsm_config.custom_states)
+
+    Each item: { key, label, is_default }
     """
     if not admin.is_super_admin:
         require_same_tenant_admin(admin, tenant_id)
 
+    # Default states from enum
     states = [
-        {"key": s.value, "label": s.value.replace("_", " ").title()}
+        {"key": s.value, "label": s.value.replace("_", " ").title(), "is_default": True}
         for s in ConversationFSMState
     ]
+    default_keys = {s.value for s in ConversationFSMState}
+
+    # Custom states from tenant config
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    custom_states = fsm.get("custom_states", [])
+    for cs in custom_states:
+        if cs.get("key") and cs["key"] not in default_keys:
+            states.append({
+                "key": cs["key"],
+                "label": cs.get("label", cs["key"].replace("_", " ").title()),
+                "is_default": False,
+            })
+
     return APIResponse(data=states)
+
+
+@router.post(
+    "/{tenant_id}/states",
+    summary="Add a custom FSM state",
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_fsm_state(
+    tenant_id: str,
+    body: dict,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Add a custom FSM state for this tenant.
+    Body: { "key": "my_state", "label": "My State" }
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+        admin.require_admin()
+
+    key = body.get("key", "").strip().lower().replace(" ", "_")
+    label = body.get("label", "").strip() or key.replace("_", " ").title()
+
+    if not key or not key.replace("_", "").isalnum():
+        raise HTTPException(status_code=422, detail="State key must be alphanumeric with underscores")
+
+    # Check conflict with defaults
+    default_keys = {s.value for s in ConversationFSMState}
+    if key in default_keys:
+        raise HTTPException(status_code=409, detail=f"State '{key}' is a built-in state and cannot be re-created")
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    custom_states = fsm.get("custom_states", [])
+
+    # Check conflict with existing custom states
+    if any(cs.get("key") == key for cs in custom_states):
+        raise HTTPException(status_code=409, detail=f"State '{key}' already exists")
+
+    custom_states.append({"key": key, "label": label})
+    fsm["custom_states"] = custom_states
+    await _save_fsm_config(tenant_id, fsm, db)
+
+    return APIResponse(data={"key": key, "label": label, "is_default": False})
+
+
+@router.delete(
+    "/{tenant_id}/states/{state_key}",
+    summary="Delete a custom FSM state",
+)
+async def delete_fsm_state(
+    tenant_id: str,
+    state_key: str,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """
+    Delete a custom FSM state. Cannot delete built-in states.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+        admin.require_admin()
+
+    default_keys = {s.value for s in ConversationFSMState}
+    if state_key in default_keys:
+        raise HTTPException(status_code=400, detail=f"Cannot delete built-in state '{state_key}'")
+
+    _, fsm = await _get_fsm_config(tenant_id, db)
+    custom_states = fsm.get("custom_states", [])
+    original_len = len(custom_states)
+    custom_states = [cs for cs in custom_states if cs.get("key") != state_key]
+
+    if len(custom_states) == original_len:
+        raise HTTPException(status_code=404, detail=f"Custom state '{state_key}' not found")
+
+    fsm["custom_states"] = custom_states
+    await _save_fsm_config(tenant_id, fsm, db)
+
+    return APIResponse(data={"deleted": True, "key": state_key})
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -689,15 +785,16 @@ async def replace_transitions(
         from shared.models.flow_defaults import DEFAULT_INTENTS
         valid_keys = {i.key for i in DEFAULT_INTENTS}
 
-    # Validate all actions are known
+    # Validate all actions are known (including conversational sub-skills)
     valid_actions = {a.value for a in ActionType}
 
     errors = []
     for t in transitions:
         if t.intent not in valid_keys:
             errors.append(f"Intent '{t.intent}' not found in configured intents. Valid: {sorted(valid_keys)}")
-        if t.action not in valid_actions:
-            errors.append(f"Action '{t.action}' is not a valid skill. Valid: {sorted(valid_actions)}")
+        is_conversational_sub = t.action.startswith("conversational__") and len(t.action) > len("conversational__")
+        if t.action not in valid_actions and not is_conversational_sub:
+            errors.append(f"Action '{t.action}' is not a valid skill. Valid: {sorted(valid_actions)} or 'conversational__<slug>'")
 
     if errors:
         raise HTTPException(

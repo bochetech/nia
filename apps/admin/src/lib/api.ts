@@ -283,6 +283,22 @@ export interface RAGStats {
   points_count: number;
 }
 
+export interface RAGDocument {
+  doc_id: string;
+  filename: string;
+  chunks_count: number;
+  total_tokens: number;
+  tenant_id: string;
+}
+
+export interface RAGChunk {
+  chunk_id: string;
+  chunk_index: number;
+  text: string;
+  tokens: number;
+  section: string;
+}
+
 export interface ActionCatalogItem {
   key: string;
   name: string;
@@ -527,7 +543,28 @@ export const tenantManagerApi = {
       `${TENANT_MANAGER}/api/tenants/${tenantId}/states`,
       { token }
     );
-    return json<APIResponse<{ key: string; label: string }[]>>(res);
+    return json<APIResponse<{ key: string; label: string; is_default: boolean }[]>>(res);
+  },
+
+  createFSMState: async (token: string, tenantId: string, key: string, label: string) => {
+    const res = await apiFetch(
+      `${TENANT_MANAGER}/api/tenants/${tenantId}/states`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, label }),
+        token,
+      }
+    );
+    return json<APIResponse<{ key: string; label: string; is_default: boolean }>>(res);
+  },
+
+  deleteFSMState: async (token: string, tenantId: string, stateKey: string) => {
+    const res = await apiFetch(
+      `${TENANT_MANAGER}/api/tenants/${tenantId}/states/${stateKey}`,
+      { method: "DELETE", token }
+    );
+    return json<APIResponse<{ deleted: boolean; key: string }>>(res);
   },
 
   // Transitions
@@ -634,6 +671,22 @@ export const ragApi = {
     return json<APIResponse<{ doc_id: string; chunks_created: number; collection_name: string; filename: string }>>(res);
   },
 
+  listDocuments: async (token: string, tenantId: string) => {
+    const res = await apiFetch(
+      `${RAG_URL}/v1/rag/documents?tenant_id=${tenantId}`,
+      { token }
+    );
+    return json<APIResponse<RAGDocument[]>>(res);
+  },
+
+  getDocumentChunks: async (token: string, docId: string, tenantId: string) => {
+    const res = await apiFetch(
+      `${RAG_URL}/v1/rag/documents/${docId}/chunks?tenant_id=${tenantId}`,
+      { token }
+    );
+    return json<APIResponse<RAGChunk[]>>(res);
+  },
+
   query: async (token: string, tenantId: string, query: string) => {
     const res = await apiFetch(`${RAG_URL}/v1/rag/query`, {
       method: "POST",
@@ -642,6 +695,16 @@ export const ragApi = {
       token,
     });
     return json<APIResponse<{ answer: string; confidence_score: number; chunks_used: unknown[] }>>(res);
+  },
+
+  testQuery: async (token: string, tenantId: string, query: string) => {
+    const res = await apiFetch(`${RAG_URL}/v1/rag/test-query`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, tenant_id: tenantId }),
+      token,
+    });
+    return json<APIResponse<{ answer: string; confidence_score: number; chunks_used: { text: string; score: number; source: string }[] }>>(res);
   },
 
   deleteDocument: async (token: string, docId: string, tenantId: string) => {

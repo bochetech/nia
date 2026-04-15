@@ -30,40 +30,42 @@ export default function ChannelsPage({
 
   if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center h-64">
-        <div className="text-muted-foreground text-sm">Loading channels…</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading channels…</span>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Channels</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          Configure Widget, Telegram, Microsoft Teams, and Payment integrations
-        </p>
-      </div>
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-3xl mx-auto p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Channels</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Configure Widget, Telegram, Microsoft Teams, and Payment integrations
+          </p>
+        </div>
 
-      <Tabs defaultValue="widget">
-        <TabsList className="grid grid-cols-4 w-full">
-          <TabsTrigger value="widget">
-            <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
-            Widget
-          </TabsTrigger>
-          <TabsTrigger value="telegram">
-            <Send className="h-3.5 w-3.5 mr-1.5" />
-            Telegram
-          </TabsTrigger>
-          <TabsTrigger value="teams">
-            <Blocks className="h-3.5 w-3.5 mr-1.5" />
-            Teams
-          </TabsTrigger>
-          <TabsTrigger value="payment">
-            <CreditCard className="h-3.5 w-3.5 mr-1.5" />
-            Payment
-          </TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="widget">
+          <TabsList className="grid grid-cols-4 w-full">
+            <TabsTrigger value="widget" className="text-xs">
+              <MessageCircle className="h-3.5 w-3.5 mr-1.5" />
+              Widget
+            </TabsTrigger>
+            <TabsTrigger value="telegram" className="text-xs">
+              <Send className="h-3.5 w-3.5 mr-1.5" />
+              Telegram
+            </TabsTrigger>
+            <TabsTrigger value="teams" className="text-xs">
+              <Blocks className="h-3.5 w-3.5 mr-1.5" />
+              Teams
+            </TabsTrigger>
+            <TabsTrigger value="payment" className="text-xs">
+              <CreditCard className="h-3.5 w-3.5 mr-1.5" />
+              Payment
+            </TabsTrigger>
+          </TabsList>
 
         <TabsContent value="widget">
           {cfg ? (
@@ -89,6 +91,7 @@ export default function ChannelsPage({
           ) : null}
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

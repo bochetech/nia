@@ -28,6 +28,8 @@ import {
   useReplaceTransitions,
   useSkills,
   useFSMStates,
+  useCreateFSMState,
+  useDeleteFSMState,
 } from "@/hooks/use-api";
 import { createTraceEventSource } from "@/lib/api";
 import type { FlowTransition, IntentDefinition, ActionCatalogItem, SkillConfig } from "@/lib/api";
@@ -36,8 +38,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import {
   Save,
   Plus,
@@ -48,6 +51,7 @@ import {
   Edit,
   Brain,
   Radio,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
@@ -114,30 +118,17 @@ function StateNode({
     state: string;
     isActive: boolean;
     transitionCount: number;
-    /** hex color tint — driven by the most-associated incoming skill, purely decorative */
-    actionColor?: string;
   };
 }) {
   const handleStyle = { opacity: 0, width: 10, height: 10 };
 
-  // Border color driven by skill/action (inline style), fallback to neutral
-  const borderColor = data.actionColor ?? "#cbd5e1"; // slate-300
-  const bgColor = data.actionColor
-    ? `${data.actionColor}18` // 10% tint of action colour
-    : "#f8fafc"; // slate-50
-
   return (
     <div
-      style={{
-        borderColor: data.isActive ? "#7c3aed" : borderColor,
-        backgroundColor: bgColor,
-        boxShadow: data.isActive
-          ? `0 0 0 4px #7c3aed40, 0 4px 16px ${borderColor}40`
-          : `0 1px 4px ${borderColor}30`,
-      }}
       className={cn(
-        "rounded-xl border-2 px-4 py-2.5 min-w-[148px] text-center transition-all duration-300 relative",
-        data.isActive && "scale-105"
+        "rounded-xl border-2 px-4 py-2.5 min-w-[148px] text-center transition-all duration-300 relative bg-white",
+        data.isActive
+          ? "border-violet-500 scale-105 shadow-[0_0_0_4px_rgba(124,58,237,0.15),0_4px_16px_rgba(124,58,237,0.1)]"
+          : "border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300"
       )}
     >
       {/* Handles on all 4 sides — ReactFlow picks the closest pair */}
@@ -196,7 +187,7 @@ export default function FSMPage({
   );
 
   // Dynamic state list from backend — falls back to STATE_POSITIONS keys while loading
-  const fsmStateItems: { key: string; label: string }[] = useMemo(() => {
+  const fsmStateItems: { key: string; label: string; is_default?: boolean }[] = useMemo(() => {
     if (statesData?.data?.length) return statesData.data;
     return Object.keys(STATE_POSITIONS).map((k) => ({
       key: k,
@@ -238,6 +229,7 @@ export default function FSMPage({
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
   const [editingTransition, setEditingTransition] = useState<Partial<EditingTransition> | null>(null);
   const [showIntentDialog, setShowIntentDialog] = useState(false);
+  const [showStatesDialog, setShowStatesDialog] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
   // Build React Flow nodes
@@ -252,20 +244,7 @@ export default function FSMPage({
   }, [transitions]);
 
   // Map each destination state → action (the skill that "owns" that state)
-  // Priority: explicit from_states > wildcard transitions
-  const stateActionMap = useMemo(() => {
-    const m: Record<string, string> = {};
-    // First pass: explicit from_states (higher confidence)
-    transitions
-      .filter((t) => t.from_states.length > 0 && t.to_state !== "__same__")
-      .forEach((t) => { m[t.to_state] = t.action; });
-    // Second pass: wildcards (lower confidence, don't overwrite)
-    transitions
-      .filter((t) => t.from_states.length === 0 && t.to_state !== "__same__")
-      .forEach((t) => { if (!m[t.to_state]) m[t.to_state] = t.action; });
-    return m;
-  }, [transitions]);
-
+  // Used only for edge coloring, NOT for node coloring
   const hasWildcards = useMemo(
     () => transitions.some((t) => t.from_states.length === 0),
     [transitions]
@@ -273,7 +252,6 @@ export default function FSMPage({
 
   const initialNodes: Node[] = useMemo(() => {
     return fsmStateItems.map((stateItem) => {
-      const action = stateActionMap[stateItem.key];
       return {
         id: stateItem.key,
         type: "stateNode",
@@ -283,11 +261,10 @@ export default function FSMPage({
           state: stateItem.key,
           isActive: false,
           transitionCount: transitionCountMap[stateItem.key] ?? 0,
-          actionColor: action ? actionColor(action) : undefined,
         },
       };
     });
-  }, [fsmStateItems, transitionCountMap, stateActionMap, STATE_POSITIONS_DYNAMIC]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fsmStateItems, transitionCountMap, STATE_POSITIONS_DYNAMIC]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initialEdges: Edge[] = useMemo(
     () =>
@@ -553,7 +530,7 @@ export default function FSMPage({
         >
           <Background gap={16} size={1} color="#e5e7eb" />
           <Controls />
-          <MiniMap nodeColor={(n) => n.data?.actionColor ?? "#94a3b8"} />
+          <MiniMap nodeColor={() => "#94a3b8"} />
         </ReactFlow>
 
         {/* Canvas toolbar */}
@@ -575,6 +552,14 @@ export default function FSMPage({
           >
             <Brain className="h-3.5 w-3.5 mr-1" />
             Intents
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowStatesDialog(true)}
+          >
+            <Layers className="h-3.5 w-3.5 mr-1" />
+            States
           </Button>
         </div>
 
@@ -769,6 +754,14 @@ export default function FSMPage({
         open={showIntentDialog}
         onClose={() => setShowIntentDialog(false)}
         intents={intents}
+      />
+
+      {/* ── States manager dialog ─────────────────────────── */}
+      <StatesManagerDialog
+        tenantId={tenantId}
+        open={showStatesDialog}
+        onClose={() => setShowStatesDialog(false)}
+        states={fsmStateItems as { key: string; label: string; is_default?: boolean }[]}
       />
     </div>
   );
@@ -1135,6 +1128,127 @@ function IntentManagerDialog({
               </div>
             ))}
           </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Close</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── States manager dialog ─────────────────────────────────────
+
+function StatesManagerDialog({
+  tenantId,
+  open,
+  onClose,
+  states,
+}: {
+  tenantId: string;
+  open: boolean;
+  onClose: () => void;
+  states: { key: string; label: string; is_default?: boolean }[];
+}) {
+  const createState = useCreateFSMState(tenantId);
+  const deleteState = useDeleteFSMState(tenantId);
+  const [newKey, setNewKey] = useState("");
+  const [newLabel, setNewLabel] = useState("");
+
+  const slug = newKey
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+
+  const conflict = slug ? states.some((s) => s.key === slug) : false;
+
+  async function handleCreate() {
+    if (!slug || conflict) return;
+    await createState.mutateAsync({ key: slug, label: newLabel.trim() || slug.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) });
+    setNewKey("");
+    setNewLabel("");
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            Manage FSM States
+          </DialogTitle>
+          <DialogDescription>
+            Add or remove states in your conversation flow. Built-in states cannot be removed.
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Add new state */}
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+          <div className="text-xs font-medium">Add Custom State</div>
+          <div className="flex gap-2">
+            <Input
+              placeholder="State key (e.g. upselling)"
+              value={newKey}
+              onChange={(e) => setNewKey(e.target.value)}
+              className="text-xs h-8 font-mono flex-1"
+            />
+            <Input
+              placeholder="Display label (optional)"
+              value={newLabel}
+              onChange={(e) => setNewLabel(e.target.value)}
+              className="text-xs h-8 flex-1"
+            />
+            <Button
+              size="sm"
+              className="h-8 shrink-0"
+              disabled={!slug || conflict || createState.isPending}
+              loading={createState.isPending}
+              onClick={handleCreate}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Add
+            </Button>
+          </div>
+          {slug && (
+            <div className="text-[11px] font-mono text-muted-foreground">
+              Key: <span className={conflict ? "text-destructive" : "text-foreground"}>{slug}</span>
+              {conflict && <span className="text-destructive ml-1">(already exists)</span>}
+            </div>
+          )}
+        </div>
+
+        {/* States list */}
+        <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
+          {states.map((s) => (
+            <div
+              key={s.key}
+              className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="h-2 w-2 rounded-full bg-slate-400 shrink-0" />
+                <span className="font-medium truncate">{s.label}</span>
+                <span className="text-[10px] font-mono text-muted-foreground">{s.key}</span>
+                {s.is_default !== false && (
+                  <Badge variant="secondary" className="text-[9px] h-4 px-1.5">default</Badge>
+                )}
+              </div>
+              {s.is_default === false && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
+                  loading={deleteState.isPending}
+                  onClick={() => deleteState.mutate(s.key)}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+          ))}
         </div>
 
         <DialogFooter>

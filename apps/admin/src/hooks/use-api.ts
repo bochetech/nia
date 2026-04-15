@@ -197,7 +197,35 @@ export function useFSMStates(tenantId: string) {
     queryKey: ["fsmStates", tenantId],
     queryFn: () => tenantManagerApi.listFSMStates(token, tenantId),
     enabled: !!token && !!tenantId,
-    staleTime: Infinity, // enum values never change at runtime
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateFSMState(tenantId: string) {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ key, label }: { key: string; label: string }) =>
+      tenantManagerApi.createFSMState(token, tenantId, key, label),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fsmStates", tenantId] });
+      toast.success("State created");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useDeleteFSMState(tenantId: string) {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (stateKey: string) =>
+      tenantManagerApi.deleteFSMState(token, tenantId, stateKey),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["fsmStates", tenantId] });
+      toast.success("State deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 }
 
@@ -388,8 +416,50 @@ export function useIngestDocument(tenantId: string) {
       ragApi.ingest(token, tenantId, file, collectionName),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ["ragStats", tenantId] });
+      qc.invalidateQueries({ queryKey: ["ragDocuments", tenantId] });
       toast.success(`Ingested ${res.data.chunks_created} chunks from "${res.data.filename}"`);
     },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useRagDocuments(tenantId: string) {
+  const token = useToken();
+  return useQuery({
+    queryKey: ["ragDocuments", tenantId],
+    queryFn: () => ragApi.listDocuments(token, tenantId),
+    enabled: !!token && !!tenantId,
+    refetchInterval: 30_000,
+  });
+}
+
+export function useRagDocumentChunks(tenantId: string, docId: string | null) {
+  const token = useToken();
+  return useQuery({
+    queryKey: ["ragChunks", tenantId, docId],
+    queryFn: () => ragApi.getDocumentChunks(token, docId!, tenantId),
+    enabled: !!token && !!tenantId && !!docId,
+  });
+}
+
+export function useDeleteRagDocument(tenantId: string) {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (docId: string) => ragApi.deleteDocument(token, docId, tenantId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ragStats", tenantId] });
+      qc.invalidateQueries({ queryKey: ["ragDocuments", tenantId] });
+      toast.success("Document deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useTestRagQuery(tenantId: string) {
+  const token = useToken();
+  return useMutation({
+    mutationFn: (query: string) => ragApi.testQuery(token, tenantId, query),
     onError: (e: Error) => toast.error(e.message),
   });
 }

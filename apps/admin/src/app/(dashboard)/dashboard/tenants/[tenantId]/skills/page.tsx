@@ -131,8 +131,9 @@ export default function SkillsPage({
 
   if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center h-64">
-        <div className="text-muted-foreground text-sm">Loading skills…</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading skills…</span>
       </div>
     );
   }
@@ -434,7 +435,7 @@ function SkillEditor({
       {/* Header */}
       <div className="flex items-center gap-3">
         <div
-          className="h-10 w-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0"
+          className="h-10 w-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm"
           style={{ backgroundColor: accentColor }}
         >
           {isCustomConversational
@@ -442,7 +443,7 @@ function SkillEditor({
             : displayName.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold truncate">{displayName}</h1>
+          <h1 className="text-xl font-bold tracking-tight truncate">{displayName}</h1>
           <p className="text-sm text-muted-foreground truncate">
             {isCustomConversational
               ? <span className="font-mono text-xs">{action}</span>

@@ -18,6 +18,7 @@ node_modules/
 dist/
 .turbo/
 *.local
+.next/
 
 # Env files (NEVER commit)
 .env

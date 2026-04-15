@@ -40,15 +40,18 @@ export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
   const tenantId = tenantIdProp ?? tenantIdMatch?.[1];
 
   return (
-    <aside className="flex h-screen w-56 flex-col bg-sidebar border-r border-sidebar-border">
+    <aside className="flex h-screen w-56 flex-col bg-sidebar border-r border-sidebar-border select-none">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 py-5 border-b border-sidebar-border">
-        <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center">
+        <div className="h-7 w-7 rounded-lg bg-primary flex items-center justify-center shadow-sm">
           <span className="text-white font-bold text-sm">N</span>
         </div>
-        <span className="font-semibold text-sidebar-foreground text-sm tracking-tight">
-          NIA Admin
-        </span>
+        <div>
+          <span className="font-semibold text-sidebar-foreground text-sm tracking-tight">
+            NIA Admin
+          </span>
+          <span className="ml-1.5 text-[10px] text-sidebar-foreground/30 font-mono">v2</span>
+        </div>
       </div>
 
       {/* Main nav */}
@@ -72,7 +75,7 @@ export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
         {/* Per-tenant nav */}
         {tenantId && (
           <div className="mt-4 pt-4 border-t border-sidebar-border">
-            <p className="px-2.5 mb-1.5 text-xs font-semibold text-sidebar-foreground/40 uppercase tracking-wider">
+            <p className="px-2.5 mb-2 text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-widest">
               Tenant
             </p>
             {TENANT_NAV(tenantId).map(({ href, icon: Icon, label }) => (

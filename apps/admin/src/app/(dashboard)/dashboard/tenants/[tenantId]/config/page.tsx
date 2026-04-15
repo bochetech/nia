@@ -39,27 +39,29 @@ export default function TenantConfigPage({
 
   if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center h-64">
-        <div className="text-muted-foreground text-sm">Loading configuration…</div>
+      <div className="flex items-center justify-center h-64">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+        <span className="ml-2 text-sm text-muted-foreground">Loading configuration…</span>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Configuration</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">
-          AI model, generation parameters, limits and API access
-        </p>
-      </div>
+    <div className="flex-1 overflow-y-auto">
+      <div className="max-w-4xl mx-auto p-6 space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Configuration</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            AI model, generation parameters, limits and API access
+          </p>
+        </div>
 
-      <Tabs defaultValue="ai">
-        <TabsList>
-          <TabsTrigger value="ai">AI Model</TabsTrigger>
-          <TabsTrigger value="limits">Limits</TabsTrigger>
-          <TabsTrigger value="keys">API Keys</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="ai">
+          <TabsList>
+            <TabsTrigger value="ai" className="text-xs">AI Model</TabsTrigger>
+            <TabsTrigger value="limits" className="text-xs">Limits</TabsTrigger>
+            <TabsTrigger value="keys" className="text-xs">API Keys</TabsTrigger>
+          </TabsList>
 
         <TabsContent value="ai">
           {cfg && <AIConfigForm tenantId={tenantId} config={cfg.ai_config} />}
@@ -73,6 +75,7 @@ export default function TenantConfigPage({
           <ApiKeysPanel tenantId={tenantId} />
         </TabsContent>
       </Tabs>
+      </div>
     </div>
   );
 }

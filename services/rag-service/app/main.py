@@ -249,6 +249,126 @@ async def delete_document(
     return APIResponse(data=DeleteResponse(deleted=True, doc_id=doc_id, collection_name=effective_collection))
 
 
+@app.get(
+    "/v1/rag/documents",
+    summary="List ingested documents with chunk counts",
+    tags=["rag"],
+)
+async def list_documents(
+    tenant_id: str,
+    collection_name: str = "",
+    limit: int = 100,
+):
+    """
+    List all distinct documents in a tenant's collection,
+    grouped by doc_id with chunk counts.
+    """
+    effective_collection = collection_name.strip() or f"{tenant_id}_docs"
+    qdrant = get_qdrant()
+
+    try:
+        from qdrant_client.models import ScrollRequest
+        # Scroll all points to aggregate by doc_id
+        points, _next = await qdrant.scroll(
+            collection_name=effective_collection,
+            limit=10000,
+            with_payload=True,
+            with_vectors=False,
+        )
+    except Exception:
+        return APIResponse(data=[])
+
+    # Group by doc_id
+    docs: dict[str, dict] = {}
+    for pt in points:
+        payload = pt.payload or {}
+        doc_id = payload.get("doc_id", "unknown")
+        if doc_id not in docs:
+            docs[doc_id] = {
+                "doc_id": doc_id,
+                "filename": payload.get("doc_name", payload.get("filename", "unknown")),
+                "chunks_count": 0,
+                "total_tokens": 0,
+                "tenant_id": payload.get("tenant_id", tenant_id),
+            }
+        docs[doc_id]["chunks_count"] += 1
+        docs[doc_id]["total_tokens"] += payload.get("tokens", 0)
+
+    result = sorted(docs.values(), key=lambda d: d["filename"])
+    return APIResponse(data=result[:limit])
+
+
+@app.get(
+    "/v1/rag/documents/{doc_id}/chunks",
+    summary="List chunks for a specific document",
+    tags=["rag"],
+)
+async def list_document_chunks(
+    doc_id: str,
+    tenant_id: str,
+    collection_name: str = "",
+):
+    """
+    Returns all chunks for a specific document, ordered by chunk_index.
+    """
+    effective_collection = collection_name.strip() or f"{tenant_id}_docs"
+    qdrant = get_qdrant()
+
+    try:
+        from qdrant_client.models import FieldCondition, Filter, MatchValue
+        points, _ = await qdrant.scroll(
+            collection_name=effective_collection,
+            scroll_filter=Filter(
+                must=[FieldCondition(key="doc_id", match=MatchValue(value=doc_id))]
+            ),
+            limit=10000,
+            with_payload=True,
+            with_vectors=False,
+        )
+    except Exception:
+        return APIResponse(data=[])
+
+    chunks = []
+    for pt in points:
+        payload = pt.payload or {}
+        chunks.append({
+            "chunk_id": pt.id,
+            "chunk_index": payload.get("chunk_index", 0),
+            "text": payload.get("text", ""),
+            "tokens": payload.get("tokens", 0),
+            "section": payload.get("section", ""),
+        })
+
+    chunks.sort(key=lambda c: c["chunk_index"])
+    return APIResponse(data=chunks)
+
+
+@app.post(
+    "/v1/rag/test-query",
+    summary="Test a RAG query and see retrieved chunks",
+    tags=["rag"],
+)
+async def test_query(request: QueryRequest):
+    """
+    Like /v1/rag/query but returns extra debug info including
+    the retrieved chunks with scores, useful for the admin console.
+    """
+    if not request.query.strip():
+        raise HTTPException(status_code=422, detail="Empty query")
+
+    collection = request.collection_name or f"{request.tenant_id}_docs"
+
+    result = await query_rag(
+        query=request.query,
+        tenant_id=request.tenant_id,
+        collection_name=collection,
+        tenant_name=request.tenant_name,
+        settings=settings,
+        qdrant_client=get_qdrant(),
+    )
+    return APIResponse(data=result)
+
+
 @app.on_event("startup")
 async def on_startup():
     logger.info("rag_service_starting")

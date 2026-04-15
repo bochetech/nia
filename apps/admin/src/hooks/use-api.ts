@@ -191,6 +191,16 @@ export function useActions(tenantId: string) {
   });
 }
 
+export function useFSMStates(tenantId: string) {
+  const token = useToken();
+  return useQuery({
+    queryKey: ["fsmStates", tenantId],
+    queryFn: () => tenantManagerApi.listFSMStates(token, tenantId),
+    enabled: !!token && !!tenantId,
+    staleTime: Infinity, // enum values never change at runtime
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Transitions
 // ---------------------------------------------------------------------------

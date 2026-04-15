@@ -27,10 +27,11 @@ import {
   useTransitions,
   useReplaceTransitions,
   useSkills,
+  useFSMStates,
 } from "@/hooks/use-api";
 import { createTraceEventSource } from "@/lib/api";
 import type { FlowTransition, IntentDefinition, ActionCatalogItem, SkillConfig } from "@/lib/api";
-import { FSM_STATE_LABELS, ACTION_COLORS, ACTION_LABELS, cn } from "@/lib/utils";
+import { ACTION_COLORS, ACTION_LABELS, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -51,10 +52,13 @@ import {
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 
-// ─── FSM state node layout grid ───────────────────────────────
-
-// These keys MUST match ConversationFSMState enum values in shared/models/domain.py.
-// States not in that enum cannot be used as transition targets in the orchestrator.
+// ─── FSM state node layout hints ──────────────────────────────
+//
+// This is ONLY a positional hint for the known default states.
+// The actual valid state list is fetched from GET /{tenant_id}/states
+// which reflects ConversationFSMState enum in shared/models/domain.py.
+// Any state returned by the API that is NOT in this map gets
+// auto-positioned in a grid below the last known row.
 const STATE_POSITIONS: Record<string, { x: number; y: number }> = {
   idle:             { x: 400, y: 20  },
   pre_chat:         { x: 400, y: 130 },
@@ -72,13 +76,17 @@ const STATE_POSITIONS: Record<string, { x: number; y: number }> = {
   closed:           { x: 400, y: 700 },
 };
 
+/** Returns a position for a state not in STATE_POSITIONS — laid out in a grid below row 900. */
+function autoPosition(index: number): { x: number; y: number } {
+  const col = index % 4;
+  const row = Math.floor(index / 4);
+  return { x: 100 + col * 200, y: 920 + row * 110 };
+}
+
 // Sentinel value used in the intent Select to represent "wildcard / no filter"
 const INTENT_WILDCARD = "__wildcard__";
 // Sentinel for "from any state" (from_states: [])
 const FROM_ANY = "__any__";
-
-// All FSM states (excluding virtual nodes)
-const ALL_FSM_STATES = Object.keys(STATE_POSITIONS);
 
 /** Resolve an action key → hex color. Handles conversational__ sub-skills (always pink). */
 function actionColor(action: string): string {
@@ -106,10 +114,8 @@ function StateNode({
     state: string;
     isActive: boolean;
     transitionCount: number;
-    /** hex color of the action/skill that targets this state */
+    /** hex color tint — driven by the most-associated incoming skill, purely decorative */
     actionColor?: string;
-    /** display name of the action/skill that targets this state */
-    actionLabel?: string;
   };
 }) {
   const handleStyle = { opacity: 0, width: 10, height: 10 };
@@ -148,17 +154,7 @@ function StateNode({
         {data.label}
       </div>
 
-      {/* Skill/action badge */}
-      {data.actionLabel && (
-        <div
-          style={{ backgroundColor: borderColor, color: "white" }}
-          className="mt-1.5 rounded-full px-2 py-0.5 text-[9px] font-medium inline-block"
-        >
-          {data.actionLabel}
-        </div>
-      )}
-
-      {!data.actionLabel && data.transitionCount > 0 && (
+      {data.transitionCount > 0 && (
         <div className="text-[10px] text-slate-400 mt-0.5">{data.transitionCount} transitions</div>
       )}
 
@@ -187,6 +183,7 @@ export default function FSMPage({
   const { data: actionsData } = useActions(tenantId);
   const { data: transitionsData } = useTransitions(tenantId);
   const { data: skillsData } = useSkills(tenantId);
+  const { data: statesData } = useFSMStates(tenantId);
   const replaceTransitions = useReplaceTransitions(tenantId);
 
   const intents: IntentDefinition[] = intentsData?.data ?? [];
@@ -197,6 +194,38 @@ export default function FSMPage({
     () => (skillsData?.data ?? []).filter((s: SkillConfig) => s.action.startsWith("conversational__")),
     [skillsData]
   );
+
+  // Dynamic state list from backend — falls back to STATE_POSITIONS keys while loading
+  const fsmStateItems: { key: string; label: string }[] = useMemo(() => {
+    if (statesData?.data?.length) return statesData.data;
+    return Object.keys(STATE_POSITIONS).map((k) => ({
+      key: k,
+      label: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    }));
+  }, [statesData]);
+
+  // All state keys (for wildcard expansion)
+  const ALL_FSM_STATES: string[] = useMemo(
+    () => fsmStateItems.map((s) => s.key),
+    [fsmStateItems]
+  );
+
+  // State label lookup: key → display name
+  const FSM_STATE_LABELS_DYNAMIC: Record<string, string> = useMemo(
+    () => Object.fromEntries(fsmStateItems.map((s) => [s.key, s.label])),
+    [fsmStateItems]
+  );
+
+  // Position lookup: merge known hints + auto-position unknown states
+  const STATE_POSITIONS_DYNAMIC: Record<string, { x: number; y: number }> = useMemo(() => {
+    let autoIdx = 0;
+    return Object.fromEntries(
+      fsmStateItems.map((s) => [
+        s.key,
+        STATE_POSITIONS[s.key] ?? autoPosition(autoIdx++),
+      ])
+    );
+  }, [fsmStateItems]);
 
   // Live trace state
   const [activeState, setActiveState] = useState<string | null>(null);
@@ -243,34 +272,33 @@ export default function FSMPage({
   );
 
   const initialNodes: Node[] = useMemo(() => {
-    return Object.keys(STATE_POSITIONS).map((state) => {
-      const action = stateActionMap[state];
+    return fsmStateItems.map((stateItem) => {
+      const action = stateActionMap[stateItem.key];
       return {
-        id: state,
+        id: stateItem.key,
         type: "stateNode",
-        position: STATE_POSITIONS[state],
+        position: STATE_POSITIONS_DYNAMIC[stateItem.key],
         data: {
-          label: FSM_STATE_LABELS[state] ?? state,
-          state,
+          label: stateItem.label,
+          state: stateItem.key,
           isActive: false,
-          transitionCount: transitionCountMap[state] ?? 0,
-          actionColor: action ? (actionColor(action) ?? undefined) : undefined,
-          actionLabel: action ? actionLabel(action, customSkills) : undefined,
+          transitionCount: transitionCountMap[stateItem.key] ?? 0,
+          actionColor: action ? actionColor(action) : undefined,
         },
       };
     });
-  }, [transitionCountMap, stateActionMap, hasWildcards]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fsmStateItems, transitionCountMap, stateActionMap, STATE_POSITIONS_DYNAMIC]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initialEdges: Edge[] = useMemo(
     () =>
       transitions.flatMap((t, ti) => {
         // from_states: [] means "from every state" — expand to all FSM states
-        const sources = t.from_states.length > 0 ? t.from_states : ALL_FSM_STATES;
-        return sources.flatMap((fromState, si) => {
-          // __same__ = self-loop back to source; skip self-loops that have no visual value
+        const sources: string[] = t.from_states.length > 0 ? t.from_states : ALL_FSM_STATES;
+        return sources.flatMap((fromState: string, si: number) => {
+          // __same__ = self-loop back to source
           const target = t.to_state === "__same__" ? fromState : t.to_state;
-          // Skip edges to states not in our layout
-          if (!STATE_POSITIONS[target] || !STATE_POSITIONS[fromState]) return [];
+          // Skip edges for states not in our layout
+          if (!STATE_POSITIONS_DYNAMIC[target] || !STATE_POSITIONS_DYNAMIC[fromState]) return [];
           const edgeColor = actionColor(t.action);
           const isSelf = target === fromState;
           return [{
@@ -294,7 +322,7 @@ export default function FSMPage({
           }];
         });
       }),
-    [transitions]
+    [transitions, ALL_FSM_STATES, STATE_POSITIONS_DYNAMIC, customSkills] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -582,6 +610,7 @@ export default function FSMPage({
                 intents={intents}
                 actions={actions}
                 customSkills={customSkills}
+                allStates={fsmStateItems}
                 onChange={setEditingTransition}
                 onSave={saveEdgeTransition}
                 onDelete={deleteEdge}
@@ -670,10 +699,10 @@ export default function FSMPage({
                           {isWildcard ? (
                             <span className="text-slate-400 italic">any state</span>
                           ) : (
-                            <span>{t.from_states.map((s) => FSM_STATE_LABELS[s] ?? s).join(", ")}</span>
+                            <span>{t.from_states.map((s) => FSM_STATE_LABELS_DYNAMIC[s] ?? s).join(", ")}</span>
                           )}
                           <span className="text-muted-foreground"> → </span>
-                          <span>{isSame ? <span className="italic text-slate-400">same</span> : (FSM_STATE_LABELS[t.to_state] ?? t.to_state)}</span>
+                          <span>{isSame ? <span className="italic text-slate-400">same</span> : (FSM_STATE_LABELS_DYNAMIC[t.to_state] ?? t.to_state)}</span>
                         </div>
                         <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5">
                           <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: actionColor(t.action) }} />
@@ -727,7 +756,7 @@ export default function FSMPage({
                   No events yet. Connect to a live session to see execution trace.
                 </p>
               ) : (
-                traceEvents.map((evt, i) => <TraceEventCard key={i} event={evt} />)
+                traceEvents.map((evt, i) => <TraceEventCard key={i} event={evt} stateLabels={FSM_STATE_LABELS_DYNAMIC} />)
               )}
             </div>
           </TabsContent>
@@ -764,6 +793,7 @@ function TransitionEditor({
   intents,
   actions,
   customSkills,
+  allStates,
   onChange,
   onSave,
   onDelete,
@@ -773,12 +803,12 @@ function TransitionEditor({
   intents: IntentDefinition[];
   actions: ActionCatalogItem[];
   customSkills: SkillConfig[];
+  allStates: { key: string; label: string }[];
   onChange: (t: Partial<EditingTransition>) => void;
   onSave: () => void;
   onDelete: () => void;
   onCancel: () => void;
 }) {
-  const ALL_STATES = Object.keys(STATE_POSITIONS);
 
   return (
     <div className="space-y-3">
@@ -803,9 +833,9 @@ function TransitionEditor({
             <SelectItem value={FROM_ANY} className="text-xs text-muted-foreground italic">
               ✦ Any State (wildcard)
             </SelectItem>
-            {ALL_STATES.map((s) => (
-              <SelectItem key={s} value={s} className="text-xs">
-                {FSM_STATE_LABELS[s] ?? s}
+            {allStates.map((s) => (
+              <SelectItem key={s.key} value={s.key} className="text-xs">
+                {s.label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -823,9 +853,9 @@ function TransitionEditor({
             <SelectItem value="__same__" className="text-xs text-muted-foreground italic">
               ↩ Same State (no change)
             </SelectItem>
-            {ALL_STATES.map((s) => (
-              <SelectItem key={s} value={s} className="text-xs">
-                {FSM_STATE_LABELS[s] ?? s}
+            {allStates.map((s) => (
+              <SelectItem key={s.key} value={s.key} className="text-xs">
+                {s.label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -914,7 +944,7 @@ function TransitionEditor({
 
 // ─── Trace event card ──────────────────────────────────────────
 
-function TraceEventCard({ event }: { event: any }) {
+function TraceEventCard({ event, stateLabels }: { event: any; stateLabels: Record<string, string> }) {
   const typeColors: Record<string, string> = {
     intent_detected: "bg-blue-50 border-blue-200 text-blue-700",
     fsm_transition: "bg-violet-50 border-violet-200 text-violet-700",
@@ -945,7 +975,7 @@ function TraceEventCard({ event }: { event: any }) {
       )}
       {event.type === "fsm_transition" && (
         <div className="text-[10px] space-y-0.5">
-          <div>→ <strong>{FSM_STATE_LABELS[event.to] ?? event.to}</strong></div>
+          <div>→ <strong>{stateLabels[event.to] ?? event.to}</strong></div>
           <div>Action: {actionLabel(event.action)}</div>
           {event.handoff && <div className="text-amber-600 font-semibold">Handoff triggered</div>}
         </div>

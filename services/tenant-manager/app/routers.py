@@ -28,6 +28,7 @@ from shared.security.jwt import create_widget_token
 from shared.db.redis_client import RedisKeys, get_redis
 from shared.models.domain import (
     ActionType,
+    ConversationFSMState,
     FlowTransition,
     IntentDefinition,
     SkillConfig,
@@ -601,6 +602,29 @@ async def list_actions(
         require_same_tenant_admin(admin, tenant_id)
 
     return APIResponse(data=ACTIONS_CATALOG)
+
+
+@router.get(
+    "/{tenant_id}/states",
+    summary="List valid FSM states",
+)
+async def list_fsm_states(
+    tenant_id: str,
+    admin: AdminCtx,
+):
+    """
+    Returns the list of valid FSM state keys from ConversationFSMState enum.
+    The frontend uses this to build the state graph dynamically, without
+    hardcoding state names.
+    """
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+
+    states = [
+        {"key": s.value, "label": s.value.replace("_", " ").title()}
+        for s in ConversationFSMState
+    ]
+    return APIResponse(data=states)
 
 
 # ─────────────────────────────────────────────────────────────────

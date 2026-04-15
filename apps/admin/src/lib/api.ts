@@ -522,6 +522,14 @@ export const tenantManagerApi = {
     return json<APIResponse<ActionCatalogItem[]>>(res);
   },
 
+  listFSMStates: async (token: string, tenantId: string) => {
+    const res = await apiFetch(
+      `${TENANT_MANAGER}/api/tenants/${tenantId}/states`,
+      { token }
+    );
+    return json<APIResponse<{ key: string; label: string }[]>>(res);
+  },
+
   // Transitions
   listTransitions: async (token: string, tenantId: string) => {
     const res = await apiFetch(

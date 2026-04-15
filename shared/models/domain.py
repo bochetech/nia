@@ -669,8 +669,8 @@ class IntentDefinition(BaseModel):
         description="Nombre legible del intent. Se muestra en dashboards y logs.",
     )
     description: str = Field(
-        ...,
-        min_length=10,
+        default="",
+        min_length=0,
         max_length=500,
         description=(
             "Instrucción de clasificación para el LLM. Explica cuándo debe asignarse "

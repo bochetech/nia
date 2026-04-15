@@ -245,6 +245,20 @@ export function useUpsertSkill(tenantId: string) {
   });
 }
 
+export function useDeleteSkill(tenantId: string) {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (actionKey: string) =>
+      tenantManagerApi.deleteSkill(token, tenantId, actionKey),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["skills", tenantId] });
+      toast.success("Skill deleted");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Config patches
 // ---------------------------------------------------------------------------

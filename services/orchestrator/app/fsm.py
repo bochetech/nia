@@ -343,7 +343,7 @@ async def _route_by_intent(
             tenant_name=tenant_name,
         )
 
-    if matched.action == "conversational":
+    if matched.action == "conversational" or matched.action.startswith("conversational__"):
         return await _handle_conversational(
             message=message,
             session=session,

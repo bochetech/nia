@@ -794,12 +794,15 @@ async def upsert_skill(
             detail=f"URL action_key '{action_key}' does not match body action '{skill.action}'",
         )
 
-    # Validate action is a known ActionType
+    # Validate action_key: must be a known ActionType OR a conversational sub-skill
+    # (conversational skills use keys like "conversational__slug" to allow multiple
+    #  independent LLM personas per tenant, each with their own system prompt)
     valid_actions = {a.value for a in ActionType}
-    if action_key not in valid_actions:
+    is_conversational_sub = action_key.startswith("conversational__") and len(action_key) > len("conversational__")
+    if action_key not in valid_actions and not is_conversational_sub:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Action '{action_key}' is not a valid skill. Valid: {sorted(valid_actions)}",
+            detail=f"Action '{action_key}' is not a valid skill. Valid: {sorted(valid_actions)} or 'conversational__<slug>'",
         )
 
     _, fsm = await _get_fsm_config(tenant_id, db)

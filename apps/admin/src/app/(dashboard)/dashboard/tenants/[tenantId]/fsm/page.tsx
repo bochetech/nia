@@ -26,9 +26,10 @@ import {
   useActions,
   useTransitions,
   useReplaceTransitions,
+  useSkills,
 } from "@/hooks/use-api";
 import { createTraceEventSource } from "@/lib/api";
-import type { FlowTransition, IntentDefinition, ActionCatalogItem } from "@/lib/api";
+import type { FlowTransition, IntentDefinition, ActionCatalogItem, SkillConfig } from "@/lib/api";
 import { FSM_STATE_LABELS, ACTION_COLORS, ACTION_LABELS, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,29 +53,48 @@ import { useSession } from "next-auth/react";
 
 // ─── FSM state node layout grid ───────────────────────────────
 
+// These keys MUST match ConversationFSMState enum values in shared/models/domain.py.
+// States not in that enum cannot be used as transition targets in the orchestrator.
 const STATE_POSITIONS: Record<string, { x: number; y: number }> = {
-  idle:            { x: 400, y: 20  },
-  greeting:        { x: 400, y: 130 },
-  discovery:       { x: 100, y: 260 },
-  faq_answer:      { x: 400, y: 260 },
-  recommending:    { x: 700, y: 260 },
-  nps_survey:      { x: 100, y: 390 },
-  complaint:       { x: 400, y: 390 },
-  checkout:        { x: 700, y: 390 },
-  post_chat:       { x: 100, y: 520 },
-  handoff_pending: { x: 400, y: 520 },
-  handoff_active:  { x: 700, y: 520 },
-  escalation:      { x: 250, y: 650 },
-  resolved:        { x: 550, y: 650 },
-  closed:          { x: 400, y: 780 },
-  error:           { x: 700, y: 780 },
+  idle:             { x: 400, y: 20  },
+  pre_chat:         { x: 400, y: 130 },
+  greeting:         { x: 400, y: 240 },
+  discovery:        { x: 100, y: 370 },
+  faq_answer:       { x: 400, y: 370 },
+  recommending:     { x: 700, y: 370 },
+  product_selected: { x: 700, y: 480 },
+  checkout_init:    { x: 700, y: 590 },
+  awaiting_payment: { x: 700, y: 700 },
+  payment_failed:   { x: 550, y: 810 },
+  confirmed:        { x: 700, y: 810 },
+  post_chat:        { x: 100, y: 480 },
+  handoff_active:   { x: 250, y: 590 },
+  closed:           { x: 400, y: 700 },
 };
 
 // Sentinel value used in the intent Select to represent "wildcard / no filter"
 const INTENT_WILDCARD = "__wildcard__";
+// Sentinel for "from any state" (from_states: [])
+const FROM_ANY = "__any__";
 
 // All FSM states (excluding virtual nodes)
 const ALL_FSM_STATES = Object.keys(STATE_POSITIONS);
+
+/** Resolve an action key → hex color. Handles conversational__ sub-skills (always pink). */
+function actionColor(action: string): string {
+  if (action.startsWith("conversational__")) return "#ec4899";
+  return ACTION_COLORS[action] ?? "#94a3b8";
+}
+
+/** Resolve an action key → display label. Handles conversational__ sub-skills. */
+function actionLabel(action: string, customSkills?: { action: string; name?: string }[]): string {
+  if (action.startsWith("conversational__")) {
+    const skill = customSkills?.find((s) => s.action === action);
+    if (skill?.name) return skill.name;
+    return action.replace("conversational__", "").replace(/_/g, " ");
+  }
+  return ACTION_LABELS[action] ?? action;
+}
 
 // ─── Custom state node ─────────────────────────────────────────
 
@@ -166,11 +186,17 @@ export default function FSMPage({
   const { data: intentsData } = useIntents(tenantId);
   const { data: actionsData } = useActions(tenantId);
   const { data: transitionsData } = useTransitions(tenantId);
+  const { data: skillsData } = useSkills(tenantId);
   const replaceTransitions = useReplaceTransitions(tenantId);
 
   const intents: IntentDefinition[] = intentsData?.data ?? [];
   const actions: ActionCatalogItem[] = actionsData?.data ?? [];
   const transitions: FlowTransition[] = transitionsData?.data ?? [];
+  // Custom conversational sub-skills (action key = "conversational__slug")
+  const customSkills: SkillConfig[] = useMemo(
+    () => (skillsData?.data ?? []).filter((s: SkillConfig) => s.action.startsWith("conversational__")),
+    [skillsData]
+  );
 
   // Live trace state
   const [activeState, setActiveState] = useState<string | null>(null);
@@ -181,7 +207,7 @@ export default function FSMPage({
 
   // Editor state
   const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
-  const [editingTransition, setEditingTransition] = useState<Partial<FlowTransition> | null>(null);
+  const [editingTransition, setEditingTransition] = useState<Partial<EditingTransition> | null>(null);
   const [showIntentDialog, setShowIntentDialog] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
@@ -228,8 +254,8 @@ export default function FSMPage({
           state,
           isActive: false,
           transitionCount: transitionCountMap[state] ?? 0,
-          actionColor: action ? (ACTION_COLORS[action] ?? undefined) : undefined,
-          actionLabel: action ? (ACTION_LABELS[action] ?? action) : undefined,
+          actionColor: action ? (actionColor(action) ?? undefined) : undefined,
+          actionLabel: action ? actionLabel(action, customSkills) : undefined,
         },
       };
     });
@@ -245,21 +271,21 @@ export default function FSMPage({
           const target = t.to_state === "__same__" ? fromState : t.to_state;
           // Skip edges to states not in our layout
           if (!STATE_POSITIONS[target] || !STATE_POSITIONS[fromState]) return [];
-          const actionColor = ACTION_COLORS[t.action] ?? "#94a3b8";
+          const edgeColor = actionColor(t.action);
           const isSelf = target === fromState;
           return [{
             id: `e-${ti}-${si}`,
             type: "straight",
             source: fromState,
             target,
-            label: `${t.intent} → ${ACTION_LABELS[t.action] ?? t.action}`,
+            label: `${t.intent} → ${actionLabel(t.action, customSkills)}`,
             labelStyle: { fontSize: 10, fill: "#374151" },
             labelBgStyle: { fill: "white", fillOpacity: 0.9 },
             labelBgPadding: [4, 4] as [number, number],
             labelBgBorderRadius: 4,
-            markerEnd: { type: MarkerType.ArrowClosed, color: actionColor },
+            markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
             style: {
-              stroke: actionColor,
+              stroke: edgeColor,
               strokeWidth: isSelf ? 1.5 : 2,
               strokeDasharray: isSelf ? "4 3" : undefined,
               opacity: t.from_states.length === 0 ? 0.55 : 1,
@@ -346,7 +372,17 @@ export default function FSMPage({
   const onEdgeClick = useCallback(
     (_: MouseEvent, edge: Edge) => {
       setSelectedEdge(edge);
-      setEditingTransition({ ...(edge.data?.transition ?? {}) });
+      const t: FlowTransition = edge.data?.transition ?? {};
+      // Map FlowTransition → EditingTransition
+      // from_states: [] = wildcard → fromState: "" (displayed as FROM_ANY sentinel)
+      setEditingTransition({
+        fromState: edge.data?.fromState ?? (t.from_states?.length > 0 ? t.from_states[0] : ""),
+        to_state: t.to_state ?? "",
+        intent: t.intent ?? "",
+        action: t.action ?? "faq",
+        static_message: t.static_message,
+        enabled: t.enabled ?? true,
+      });
     },
     []
   );
@@ -373,7 +409,14 @@ export default function FSMPage({
       };
       setEdges((es) => addEdge(newEdge, es));
       setSelectedEdge(newEdge);
-      setEditingTransition(newEdge.data?.transition);
+      // Map to EditingTransition for the editor panel
+      setEditingTransition({
+        fromState: connection.source ?? "",
+        to_state: connection.target ?? "",
+        intent: "",
+        action: "faq",
+        enabled: true,
+      });
       setIsDirty(true);
     },
     [setEdges]
@@ -382,27 +425,38 @@ export default function FSMPage({
   const saveEdgeTransition = useCallback(() => {
     if (!editingTransition) return;
 
+    // Convert EditingTransition → FlowTransition
+    // fromState: "" means wildcard → from_states: []
+    const fromState = editingTransition.fromState ?? "";
+    const flowT: FlowTransition = {
+      intent: editingTransition.intent ?? "",
+      from_states: fromState ? [fromState] : [],
+      to_state: editingTransition.to_state ?? "__same__",
+      action: editingTransition.action ?? "faq",
+      static_message: editingTransition.static_message,
+      enabled: editingTransition.enabled ?? true,
+    };
+
     if (!selectedEdge) {
       // ── New transition (created via button, not canvas drag) ──
-      const t = editingTransition as FlowTransition;
-      const actionColor = ACTION_COLORS[t.action] ?? "#94a3b8";
-      const sources = t.from_states.length > 0 ? t.from_states : ALL_FSM_STATES;
-      const newEdges: Edge[] = sources.flatMap((fromState, si) => {
-        const target = t.to_state === "__same__" ? fromState : t.to_state;
-        if (!target || !fromState) return [];
+      const edgeColor = actionColor(flowT.action);
+      const sources = flowT.from_states.length > 0 ? flowT.from_states : ALL_FSM_STATES;
+      const newEdges: Edge[] = sources.flatMap((src, si) => {
+        const target = flowT.to_state === "__same__" ? src : flowT.to_state;
+        if (!target || !src) return [];
         return [{
           id: `e-new-${Date.now()}-${si}`,
           type: "straight",
-          source: fromState,
+          source: src,
           target,
-          label: `${t.intent || "*"} → ${ACTION_LABELS[t.action] ?? t.action}`,
+          label: `${flowT.intent || "*"} → ${actionLabel(flowT.action, customSkills)}`,
           labelStyle: { fontSize: 10, fill: "#374151" },
           labelBgStyle: { fill: "white", fillOpacity: 0.9 },
           labelBgPadding: [4, 4] as [number, number],
           labelBgBorderRadius: 4,
-          markerEnd: { type: MarkerType.ArrowClosed, color: actionColor },
-          style: { stroke: actionColor, strokeWidth: 2, opacity: t.from_states.length === 0 ? 0.55 : 1 },
-          data: { transition: t, fromState, isWildcard: t.from_states.length === 0 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
+          style: { stroke: edgeColor, strokeWidth: 2, opacity: flowT.from_states.length === 0 ? 0.55 : 1 },
+          data: { transition: flowT, fromState: src, isWildcard: flowT.from_states.length === 0 },
         }];
       });
       setEdges((es) => [...es, ...newEdges]);
@@ -416,14 +470,13 @@ export default function FSMPage({
     setEdges((es) =>
       es.map((e) => {
         if (e.id !== selectedEdge.id) return e;
-        const t = { ...e.data.transition, ...editingTransition } as FlowTransition;
-        const actionColor = ACTION_COLORS[t.action] ?? "#94a3b8";
+        const edgeColor = actionColor(flowT.action);
         return {
           ...e,
-          label: `${t.intent ?? "*"} → ${ACTION_LABELS[t.action] ?? t.action}`,
-          style: { stroke: actionColor, strokeWidth: 2 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: actionColor },
-          data: { transition: t },
+          label: `${flowT.intent || "*"} → ${actionLabel(flowT.action, customSkills)}`,
+          style: { stroke: edgeColor, strokeWidth: 2 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
+          data: { transition: flowT, fromState: e.data?.fromState },
         };
       })
     );
@@ -497,9 +550,13 @@ export default function FSMPage({
           </Button>
         </div>
 
-        {/* Drag hint */}
-        <div className="absolute bottom-12 left-4 text-xs text-muted-foreground bg-white/80 px-2 py-1 rounded border z-10">
-          Drag between nodes to add transition · Click an edge to edit
+        {/* Canvas info bar */}
+        <div className="absolute bottom-12 left-4 right-84 text-[11px] text-muted-foreground bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border shadow-sm z-10 flex items-center gap-3">
+          <span><strong className="text-slate-600">Nodes</strong> = FSM states (where the conversation is)</span>
+          <span className="text-slate-300">|</span>
+          <span><strong className="text-slate-600">Arrow color</strong> = skill executed on that transition</span>
+          <span className="text-slate-300">|</span>
+          <span>Drag node edge · Click arrow to edit</span>
         </div>
       </div>
 
@@ -524,6 +581,7 @@ export default function FSMPage({
                 transition={editingTransition}
                 intents={intents}
                 actions={actions}
+                customSkills={customSkills}
                 onChange={setEditingTransition}
                 onSave={saveEdgeTransition}
                 onDelete={deleteEdge}
@@ -531,13 +589,27 @@ export default function FSMPage({
               />
             ) : (
               <div className="space-y-3">
+                {/* ── How it works ─── */}
+                <details className="group rounded-lg border bg-slate-50 text-xs">
+                  <summary className="px-3 py-2 cursor-pointer font-medium text-slate-600 flex items-center justify-between select-none">
+                    <span>How FSM works</span>
+                    <span className="text-slate-400 group-open:rotate-180 transition-transform">▾</span>
+                  </summary>
+                  <div className="px-3 pb-3 space-y-1.5 text-slate-600 leading-relaxed border-t pt-2">
+                    <p><strong>State</strong> (node) = where the conversation is right now, e.g. <em>FAQ Answer</em>, <em>Recommending</em>.</p>
+                    <p><strong>Skill</strong> (arrow color) = the action executed when a transition fires, e.g. <em>FAQ</em> queries the RAG knowledge base, <em>Handoff</em> connects to a human agent.</p>
+                    <p><strong>Transition</strong> (arrow) = a rule: <em>if intent X is detected (from state Y), run skill Z and move to state W</em>.</p>
+                    <p className="text-slate-400 pt-1">A node's border color shows the skill most associated with arriving at that state. Nodes with no border have no incoming transitions configured.</p>
+                  </div>
+                </details>
+
                 {/* ── New transition CTA ─── */}
                 <Button
                   size="sm"
                   className="w-full"
                   onClick={() => {
                     setSelectedEdge(null);
-                    setEditingTransition({ intent: "", action: "", from_states: [], to_state: "" });
+                    setEditingTransition({ intent: "", action: "faq", fromState: "", to_state: "", enabled: true });
                   }}
                 >
                   <Plus className="h-3.5 w-3.5 mr-1.5" />
@@ -581,8 +653,16 @@ export default function FSMPage({
                       <button
                         key={ti}
                         onClick={() => {
-                          if (matchEdge) { setSelectedEdge(matchEdge); setEditingTransition({ ...t }); }
-                          else setEditingTransition({ ...t });
+                          const et: Partial<EditingTransition> = {
+                            fromState: t.from_states.length > 0 ? t.from_states[0] : "",
+                            to_state: t.to_state,
+                            intent: t.intent,
+                            action: t.action,
+                            static_message: t.static_message,
+                            enabled: t.enabled,
+                          };
+                          if (matchEdge) setSelectedEdge(matchEdge);
+                          setEditingTransition(et);
                         }}
                         className="w-full text-left rounded-md border p-2 text-xs hover:bg-accent transition-colors group"
                       >
@@ -596,8 +676,8 @@ export default function FSMPage({
                           <span>{isSame ? <span className="italic text-slate-400">same</span> : (FSM_STATE_LABELS[t.to_state] ?? t.to_state)}</span>
                         </div>
                         <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5">
-                          <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: ACTION_COLORS[t.action] ?? "#94a3b8" }} />
-                          {t.intent || <span className="italic">wildcard</span>} · {ACTION_LABELS[t.action] ?? t.action}
+                          <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: actionColor(t.action) }} />
+                          {t.intent || <span className="italic">wildcard</span>} · {actionLabel(t.action, customSkills)}
                         </div>
                       </button>
                     );
@@ -670,19 +750,20 @@ export default function FSMPage({
 // When editing, we work with a single from/to state pair + the transition data.
 // The FlowTransition.from_states[] is managed at save time.
 interface EditingTransition {
+  /** "" means wildcard (any state) — maps to from_states: [] */
   fromState: string;
   to_state: string;
   intent: string;
   action: string;
   static_message?: string;
   enabled: boolean;
-  priority?: number;
 }
 
 function TransitionEditor({
   transition,
   intents,
   actions,
+  customSkills,
   onChange,
   onSave,
   onDelete,
@@ -691,6 +772,7 @@ function TransitionEditor({
   transition: Partial<EditingTransition>;
   intents: IntentDefinition[];
   actions: ActionCatalogItem[];
+  customSkills: SkillConfig[];
   onChange: (t: Partial<EditingTransition>) => void;
   onSave: () => void;
   onDelete: () => void;
@@ -708,10 +790,19 @@ function TransitionEditor({
       </div>
 
       <div className="space-y-1.5">
-        <Label className="text-xs">From State</Label>
-        <Select value={transition.fromState} onValueChange={(v) => onChange({ ...transition, fromState: v })}>
+        <Label className="text-xs">
+          From State{" "}
+          <span className="text-muted-foreground">(Any = applies from every state)</span>
+        </Label>
+        <Select
+          value={transition.fromState || FROM_ANY}
+          onValueChange={(v) => onChange({ ...transition, fromState: v === FROM_ANY ? "" : v })}
+        >
           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
+            <SelectItem value={FROM_ANY} className="text-xs text-muted-foreground italic">
+              ✦ Any State (wildcard)
+            </SelectItem>
             {ALL_STATES.map((s) => (
               <SelectItem key={s} value={s} className="text-xs">
                 {FSM_STATE_LABELS[s] ?? s}
@@ -723,9 +814,15 @@ function TransitionEditor({
 
       <div className="space-y-1.5">
         <Label className="text-xs">To State</Label>
-        <Select value={transition.to_state} onValueChange={(v) => onChange({ ...transition, to_state: v })}>
-          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+        <Select
+          value={transition.to_state || ""}
+          onValueChange={(v) => onChange({ ...transition, to_state: v })}
+        >
+          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select target state…" /></SelectTrigger>
           <SelectContent>
+            <SelectItem value="__same__" className="text-xs text-muted-foreground italic">
+              ↩ Same State (no change)
+            </SelectItem>
             {ALL_STATES.map((s) => (
               <SelectItem key={s} value={s} className="text-xs">
                 {FSM_STATE_LABELS[s] ?? s}
@@ -761,6 +858,7 @@ function TransitionEditor({
         >
           <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
+            {/* Built-in catalog actions */}
             {(actions.length > 0 ? actions.map((a) => a.key) : Object.keys(ACTION_LABELS)).map((a) => (
               <SelectItem key={a} value={a} className="text-xs">
                 <div className="flex items-center gap-2">
@@ -769,6 +867,22 @@ function TransitionEditor({
                 </div>
               </SelectItem>
             ))}
+            {/* Custom conversational personas */}
+            {customSkills.length > 0 && (
+              <>
+                <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide border-t mt-1 pt-2">
+                  Custom Personas
+                </div>
+                {customSkills.map((skill) => (
+                  <SelectItem key={skill.action} value={skill.action} className="text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 rounded-full" style={{ backgroundColor: "#ec4899" }} />
+                      {skill.name ?? skill.action.replace("conversational__", "").replace(/_/g, " ")}
+                    </div>
+                  </SelectItem>
+                ))}
+              </>
+            )}
           </SelectContent>
         </Select>
       </div>
@@ -784,16 +898,6 @@ function TransitionEditor({
           />
         </div>
       )}
-
-      <div className="space-y-1.5">
-        <Label className="text-xs">Priority</Label>
-        <Input
-          type="number"
-          className="text-xs h-8"
-          value={transition.priority ?? 50}
-          onChange={(e) => onChange({ ...transition, priority: Number(e.target.value) })}
-        />
-      </div>
 
       <div className="flex gap-2 pt-1">
         <Button size="sm" className="flex-1" onClick={onSave}>
@@ -842,7 +946,7 @@ function TraceEventCard({ event }: { event: any }) {
       {event.type === "fsm_transition" && (
         <div className="text-[10px] space-y-0.5">
           <div>→ <strong>{FSM_STATE_LABELS[event.to] ?? event.to}</strong></div>
-          <div>Action: {ACTION_LABELS[event.action] ?? event.action}</div>
+          <div>Action: {actionLabel(event.action)}</div>
           {event.handoff && <div className="text-amber-600 font-semibold">Handoff triggered</div>}
         </div>
       )}

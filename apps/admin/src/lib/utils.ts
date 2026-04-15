@@ -54,20 +54,20 @@ export const FSM_STATES = [
 export type FSMStateKey = (typeof FSM_STATES)[number];
 
 export const FSM_STATE_LABELS: Record<string, string> = {
-  idle: "Idle",
-  pre_chat: "Pre-Chat",
-  greeting: "Greeting",
-  discovery: "Discovery",
-  faq_answer: "FAQ Answer",
-  recommending: "Recommending",
+  idle:             "Idle",
+  pre_chat:         "Pre-Chat",
+  greeting:         "Greeting",
+  discovery:        "Discovery",
+  faq_answer:       "FAQ Answer",
+  recommending:     "Recommending",
   product_selected: "Product Selected",
-  checkout_init: "Checkout Init",
+  checkout_init:    "Checkout Init",
   awaiting_payment: "Awaiting Payment",
-  payment_failed: "Payment Failed",
-  confirmed: "Confirmed",
-  post_chat: "Post-Chat",
-  handoff_active: "Handoff Active",
-  closed: "Closed",
+  payment_failed:   "Payment Failed",
+  confirmed:        "Confirmed",
+  post_chat:        "Post-Chat",
+  handoff_active:   "Handoff Active",
+  closed:           "Closed",
 };
 
 export const FSM_STATE_COLORS: Record<string, string> = {

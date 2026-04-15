@@ -566,6 +566,14 @@ export const tenantManagerApi = {
     return json<APIResponse<SkillConfig>>(res);
   },
 
+  deleteSkill: async (token: string, tenantId: string, actionKey: string) => {
+    const res = await apiFetch(
+      `${TENANT_MANAGER}/api/tenants/${tenantId}/skills/${actionKey}`,
+      { method: "DELETE", token }
+    );
+    return json<APIResponse<{ deleted: boolean }>>(res);
+  },
+
   // Analytics
   getAnalytics: async (token: string, tenantId: string, days = 30) => {
     const res = await apiFetch(

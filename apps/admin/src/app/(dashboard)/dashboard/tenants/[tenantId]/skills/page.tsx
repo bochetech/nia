@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useMemo, useState } from "react";
-import { useSkills, useUpsertSkill, useActions } from "@/hooks/use-api";
+import { useSkills, useUpsertSkill, useDeleteSkill, useActions } from "@/hooks/use-api";
 import type { SkillConfig } from "@/lib/api";
 import { ACTION_LABELS, ACTION_COLORS } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,13 +9,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, Trash2, Save, ChevronRight } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Plus, Trash2, Save, ChevronRight, MessageSquare, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useForm, useFieldArray } from "react-hook-form";
 
-const DEFAULT_ACTIONS = [
+// ─── Constants ─────────────────────────────────────────────────
+
+const BUILTIN_ACTIONS = [
   "faq",
   "recommend",
   "handoff",
@@ -37,6 +55,21 @@ const ACTION_DESCRIPTIONS: Record<string, string> = {
   conversational: "Pure LLM response driven by your custom system prompt — no external services required.",
 };
 
+const CONVERSATIONAL_COLOR = "#ec4899";
+
+/** Convert a display name to a safe slug: "Guía Turismo" → "guia_turismo" */
+function toSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 40);
+}
+
+// ─── Page ──────────────────────────────────────────────────────
+
 export default function SkillsPage({
   params,
 }: {
@@ -45,7 +78,12 @@ export default function SkillsPage({
   const { tenantId } = use(params);
   const { data: skillsData, isLoading } = useSkills(tenantId);
   const { data: actionsData } = useActions(tenantId);
+  const upsert = useUpsertSkill(tenantId);
+
   const [selectedAction, setSelectedAction] = useState<string>("faq");
+  const [showNewDialog, setShowNewDialog] = useState(false);
+  const [newSkillName, setNewSkillName] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
   const skills: Record<string, SkillConfig> = useMemo(() => {
     const arr: SkillConfig[] = skillsData?.data ?? [];
@@ -53,9 +91,43 @@ export default function SkillsPage({
       acc[s.action] = s;
       return acc;
     }, {});
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skillsData]);
-  const catalogActions = actionsData?.data?.map((a: any) => a.key ?? a.action) ?? DEFAULT_ACTIONS;
+
+  // Builtin catalog actions (from API or fallback)
+  const catalogActions: string[] =
+    (actionsData?.data?.map((a: any) => a.key ?? a.action) ?? BUILTIN_ACTIONS)
+      .filter((a: string) => !a.startsWith("conversational__"));
+
+  // Custom conversational sub-skills (persisted in DB with action = "conversational__slug")
+  const customConversational: SkillConfig[] = useMemo(() => {
+    const arr: SkillConfig[] = skillsData?.data ?? [];
+    return arr
+      .filter((s) => s.action.startsWith("conversational__"))
+      .sort((a, b) => (a.name ?? a.action).localeCompare(b.name ?? b.action));
+  }, [skillsData]);
+
+  const newSlug = toSlug(newSkillName);
+  const newActionKey = newSlug ? `conversational__${newSlug}` : "";
+  const slugConflict = newSlug ? !!skills[newActionKey] : false;
+
+  async function handleCreateCustomSkill() {
+    if (!newSlug || slugConflict) return;
+    await upsert.mutateAsync({
+      actionKey: newActionKey,
+      skill: {
+        action: newActionKey,
+        name: newSkillName.trim(),
+        description: "Custom conversational skill with a dedicated system prompt.",
+        enabled: true,
+        preparation_prompt: "",
+        entity_schema: [],
+        response_templates: {},
+      },
+    });
+    setShowNewDialog(false);
+    setNewSkillName("");
+    setSelectedAction(newActionKey);
+  }
 
   if (isLoading) {
     return (
@@ -75,49 +147,219 @@ export default function SkillsPage({
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
-      {/* ── Sidebar: action list ────────────────────────── */}
-      <div className="w-56 border-r bg-muted/30 p-3 flex flex-col gap-1 overflow-y-auto">
-        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2 px-1">
-          Actions
+      {/* ── Sidebar ──────────────────────────────────────── */}
+      <div className="w-60 border-r bg-muted/30 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-3 space-y-4">
+          {/* Built-in skills */}
+          <div>
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 px-1">
+              Built-in Skills
+            </div>
+            <div className="space-y-0.5">
+              {catalogActions.map((action: string) => {
+                const hasConfig = !!skills[action];
+                return (
+                  <button
+                    key={action}
+                    onClick={() => setSelectedAction(action)}
+                    className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                      selectedAction === action
+                        ? "bg-background border shadow-sm font-medium"
+                        : "hover:bg-background/60"
+                    }`}
+                  >
+                    <div
+                      className="h-2.5 w-2.5 rounded-full shrink-0"
+                      style={{ backgroundColor: ACTION_COLORS[action] ?? "#94a3b8" }}
+                    />
+                    <span className="flex-1 truncate">{ACTION_LABELS[action] ?? action}</span>
+                    {hasConfig && (
+                      <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" title="Configured" />
+                    )}
+                    {selectedAction === action && (
+                      <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Custom conversational skills */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5 px-1">
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Custom Personas
+              </span>
+              <button
+                onClick={() => setShowNewDialog(true)}
+                className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-background transition-colors"
+                title="New conversational skill"
+              >
+                <Plus className="h-3.5 w-3.5" />
+              </button>
+            </div>
+
+            {customConversational.length === 0 ? (
+              <button
+                onClick={() => setShowNewDialog(true)}
+                className="w-full rounded-lg border border-dashed border-pink-200 bg-pink-50/50 py-3 px-2 text-center text-xs text-pink-500 hover:bg-pink-50 transition-colors"
+              >
+                <Sparkles className="h-3.5 w-3.5 mx-auto mb-1 opacity-70" />
+                Create your first persona
+              </button>
+            ) : (
+              <div className="space-y-0.5">
+                {customConversational.map((skill) => (
+                  <button
+                    key={skill.action}
+                    onClick={() => setSelectedAction(skill.action)}
+                    className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors group ${
+                      selectedAction === skill.action
+                        ? "bg-background border shadow-sm font-medium"
+                        : "hover:bg-background/60"
+                    }`}
+                  >
+                    <MessageSquare
+                      className="h-3 w-3 shrink-0"
+                      style={{ color: CONVERSATIONAL_COLOR }}
+                    />
+                    <span className="flex-1 truncate">{skill.name ?? skill.action}</span>
+                    {selectedAction === skill.action && (
+                      <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-        {catalogActions.map((action: string) => {
-          const hasConfig = !!skills[action];
-          return (
-            <button
-              key={action}
-              onClick={() => setSelectedAction(action)}
-              className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
-                selectedAction === action
-                  ? "bg-background border shadow-sm font-medium"
-                  : "hover:bg-background/60"
-              }`}
-            >
-              <div
-                className="h-2.5 w-2.5 rounded-full shrink-0"
-                style={{ backgroundColor: ACTION_COLORS[action] ?? "#94a3b8" }}
-              />
-              <span className="flex-1">{ACTION_LABELS[action] ?? action}</span>
-              {hasConfig && (
-                <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" title="Configured" />
-              )}
-              {selectedAction === action && (
-                <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
-              )}
-            </button>
-          );
-        })}
       </div>
 
-      {/* ── Main: skill editor ──────────────────────────── */}
+      {/* ── Main editor ──────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-6">
         <SkillEditor
           key={selectedAction}
           tenantId={tenantId}
           action={selectedAction}
           skill={currentSkill}
+          onDeleteRequest={
+            selectedAction.startsWith("conversational__")
+              ? () => setDeleteTarget(selectedAction)
+              : undefined
+          }
         />
       </div>
+
+      {/* ── New persona dialog ───────────────────────────── */}
+      <Dialog open={showNewDialog} onOpenChange={setShowNewDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-pink-500" />
+              New Custom Persona
+            </DialogTitle>
+            <DialogDescription>
+              Create a new conversational skill with its own system prompt. It will appear
+              as a selectable action in the FSM transition editor.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="skill-name">Display Name</Label>
+              <Input
+                id="skill-name"
+                autoFocus
+                placeholder="e.g. Guía de Turismo, Sales Assistant…"
+                value={newSkillName}
+                onChange={(e) => setNewSkillName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreateCustomSkill()}
+              />
+            </div>
+            {newSlug && (
+              <div className="rounded-md bg-muted px-3 py-2 text-xs font-mono text-muted-foreground">
+                Action key:{" "}
+                <span className={slugConflict ? "text-destructive" : "text-foreground"}>
+                  conversational__{newSlug}
+                </span>
+                {slugConflict && (
+                  <span className="ml-2 text-destructive font-normal">(already exists)</span>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowNewDialog(false); setNewSkillName(""); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateCustomSkill}
+              disabled={!newSlug || slugConflict || upsert.isPending}
+              loading={upsert.isPending}
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              Create
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete confirm ───────────────────────────────── */}
+      <DeleteSkillDialog
+        tenantId={tenantId}
+        actionKey={deleteTarget}
+        skillName={deleteTarget ? (skills[deleteTarget]?.name ?? deleteTarget) : ""}
+        onClose={(deleted) => {
+          setDeleteTarget(null);
+          if (deleted) setSelectedAction("faq");
+        }}
+      />
     </div>
+  );
+}
+
+// ─── Delete confirm dialog ─────────────────────────────────────
+
+function DeleteSkillDialog({
+  tenantId,
+  actionKey,
+  skillName,
+  onClose,
+}: {
+  tenantId: string;
+  actionKey: string | null;
+  skillName: string;
+  onClose: (deleted: boolean) => void;
+}) {
+  const deleteSkill = useDeleteSkill(tenantId);
+
+  async function handleDelete() {
+    if (!actionKey) return;
+    await deleteSkill.mutateAsync(actionKey);
+    onClose(true);
+  }
+
+  return (
+    <AlertDialog open={!!actionKey} onOpenChange={(open: boolean) => !open && onClose(false)}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete "{skillName}"?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently remove this custom persona and its system prompt.
+            Any FSM transitions using this action will stop working until reassigned.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={handleDelete}
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -127,15 +369,25 @@ function SkillEditor({
   tenantId,
   action,
   skill,
+  onDeleteRequest,
 }: {
   tenantId: string;
   action: string;
   skill: SkillConfig;
+  onDeleteRequest?: () => void;
 }) {
   const upsert = useUpsertSkill(tenantId);
+  const isCustomConversational = action.startsWith("conversational__");
+  const isConversational = action === "conversational" || isCustomConversational;
+
+  // Display name: for custom skills use the stored name, for builtins use ACTION_LABELS
+  const displayName = isCustomConversational
+    ? (skill.name ?? action.replace("conversational__", "").replace(/_/g, " "))
+    : (ACTION_LABELS[action] ?? action);
 
   const form = useForm({
     defaultValues: {
+      name: skill.name ?? displayName,
       preparation_prompt: skill.preparation_prompt ?? "",
       entity_schema: skill.entity_schema ?? [],
       response_templates: Object.entries(skill.response_templates ?? {}).map(
@@ -160,8 +412,10 @@ function SkillEditor({
       actionKey: action,
       skill: {
         action,
-        name: ACTION_LABELS[action] ?? action,
-        description: ACTION_DESCRIPTIONS[action] ?? "",
+        name: isCustomConversational ? (values.name || displayName) : (ACTION_LABELS[action] ?? action),
+        description: isCustomConversational
+          ? "Custom conversational skill with a dedicated system prompt."
+          : (ACTION_DESCRIPTIONS[action] ?? ""),
         enabled: true,
         preparation_prompt: values.preparation_prompt,
         entity_schema: values.entity_schema,
@@ -171,51 +425,89 @@ function SkillEditor({
     toast.success("Skill saved");
   });
 
+  const accentColor = isCustomConversational
+    ? CONVERSATIONAL_COLOR
+    : (ACTION_COLORS[action] ?? "#94a3b8");
+
   return (
     <div className="max-w-2xl space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <div
-          className="h-10 w-10 rounded-xl flex items-center justify-center text-white text-sm font-bold"
-          style={{ backgroundColor: ACTION_COLORS[action] ?? "#94a3b8" }}
+          className="h-10 w-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0"
+          style={{ backgroundColor: accentColor }}
         >
-          {(ACTION_LABELS[action] ?? action).charAt(0).toUpperCase()}
+          {isCustomConversational
+            ? <MessageSquare className="h-5 w-5" />
+            : displayName.charAt(0).toUpperCase()}
         </div>
-        <div>
-          <h1 className="text-xl font-bold">{ACTION_LABELS[action] ?? action}</h1>
-          <p className="text-sm text-muted-foreground">{ACTION_DESCRIPTIONS[action] ?? "Configure this skill"}</p>
+        <div className="flex-1 min-w-0">
+          <h1 className="text-xl font-bold truncate">{displayName}</h1>
+          <p className="text-sm text-muted-foreground truncate">
+            {isCustomConversational
+              ? <span className="font-mono text-xs">{action}</span>
+              : (ACTION_DESCRIPTIONS[action] ?? "Configure this skill")}
+          </p>
         </div>
+        {onDeleteRequest && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="text-destructive hover:bg-destructive/10 hover:text-destructive border-destructive/30 shrink-0"
+            onClick={onDeleteRequest}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+            Delete
+          </Button>
+        )}
       </div>
 
       <form onSubmit={onSubmit} className="space-y-5">
-        {/* Preparation Prompt */}
+        {/* Custom name field — only for conversational__ skills */}
+        {isCustomConversational && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Persona Name</CardTitle>
+              <CardDescription>
+                Display name shown in the FSM editor action selector and in logs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Input
+                placeholder="e.g. Guía de Turismo, Sales Assistant…"
+                {...form.register("name")}
+              />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* System / Preparation Prompt */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">
-              {action === "conversational" ? "System Prompt" : "Preparation Prompt"}
+              {isConversational ? "System Prompt" : "Preparation Prompt"}
             </CardTitle>
             <CardDescription>
-              {action === "conversational"
-                ? "This is the full system prompt the LLM receives when this skill runs. Define the bot's persona, tone, and scope here."
-                : "Additional context injected into the LLM prompt when this skill is active. Use "}{" "}
-              {action !== "conversational" && (
-                <code className="text-xs bg-muted px-1 rounded">{"{{entity}}"}</code>
-              )}
-              {action !== "conversational" && " placeholders."}
+              {isConversational
+                ? "This is the full system prompt the LLM receives when this skill runs. Define the persona's character, tone, scope, and constraints here."
+                : <>Additional context injected into the LLM prompt when this skill is active. Use <code className="text-xs bg-muted px-1 rounded">{"{{entity}}"}</code> placeholders.</>}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {action === "conversational" && (
+            {isConversational && (
               <div className="rounded-lg border border-pink-200 bg-pink-50 px-3 py-2.5 text-xs text-pink-700 leading-relaxed">
-                <strong>💬 Conversational skill</strong> — the LLM responds freely using only this system prompt and the conversation history.
-                No external services are called. Perfect for custom personas, role-plays, or specialized mini-assistants.
+                <strong>💬 Conversational skill</strong> — the LLM responds freely using only this system prompt
+                and the conversation history. No external services are called.
+                {isCustomConversational && (
+                  <> This is an <strong>independent persona</strong> — changing it won't affect the default <em>Conversational</em> skill.</>
+                )}
               </div>
             )}
             <Textarea
-              rows={action === "conversational" ? 8 : 5}
+              rows={isConversational ? 10 : 5}
               placeholder={
-                action === "conversational"
-                  ? "Eres un asistente experto en turismo de aventura. Responde siempre en español, con un tono entusiasta y amigable. Ayuda al usuario a planificar su viaje ideal…"
+                isConversational
+                  ? "Eres un asistente experto en turismo de aventura. Responde siempre en español, con un tono entusiasta y amigable. Ayuda al usuario a planificar su viaje ideal y a descubrir destinos únicos. No respondas preguntas que no estén relacionadas con viajes."
                   : "You are helping the user with… Always respond in a friendly tone…"
               }
               {...form.register("preparation_prompt")}
@@ -410,3 +702,4 @@ function EntityFieldRow({
     </div>
   );
 }
+

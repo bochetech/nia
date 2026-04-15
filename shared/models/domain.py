@@ -77,13 +77,14 @@ class ActionType(str, Enum):
 
     To add a new action you must write the handler in fsm.py first.
     """
-    FAQ = "faq"                    # consulta al RAG service
-    RECOMMEND = "recommend"        # consulta al Recommender service
-    HANDOFF = "handoff"            # escala a asesor humano
-    NPS = "nps"                    # captura puntuación NPS
-    COMPLAINT = "complaint"        # registra queja y evalúa escalación
-    STATIC_REPLY = "static_reply"  # responde con un mensaje fijo
-    DISCOVERY = "discovery"        # pide más detalles al usuario
+    FAQ = "faq"                          # consulta al RAG service
+    RECOMMEND = "recommend"              # consulta al Recommender service
+    HANDOFF = "handoff"                  # escala a asesor humano
+    NPS = "nps"                          # captura puntuación NPS
+    COMPLAINT = "complaint"              # registra queja y evalúa escalación
+    STATIC_REPLY = "static_reply"        # responde con un mensaje fijo
+    DISCOVERY = "discovery"              # pide más detalles al usuario
+    CONVERSATIONAL = "conversational"    # LLM puro con preparation_prompt personalizado
 
 
 class HandoffTrigger(str, Enum):

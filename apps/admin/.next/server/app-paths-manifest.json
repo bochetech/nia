@@ -1,13 +1,7 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
-  "/login/page": "app/login/page.js",
-  "/page": "app/page.js",
-  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
-  "/(dashboard)/dashboard/tenants/[tenantId]/analytics/page": "app/(dashboard)/dashboard/tenants/[tenantId]/analytics/page.js",
   "/(dashboard)/dashboard/tenants/[tenantId]/config/page": "app/(dashboard)/dashboard/tenants/[tenantId]/config/page.js",
   "/(dashboard)/dashboard/tenants/[tenantId]/skills/page": "app/(dashboard)/dashboard/tenants/[tenantId]/skills/page.js",
-  "/(dashboard)/dashboard/tenants/[tenantId]/knowledge/page": "app/(dashboard)/dashboard/tenants/[tenantId]/knowledge/page.js",
   "/(dashboard)/dashboard/tenants/[tenantId]/fsm/page": "app/(dashboard)/dashboard/tenants/[tenantId]/fsm/page.js",
+  "/(dashboard)/dashboard/tenants/[tenantId]/knowledge/page": "app/(dashboard)/dashboard/tenants/[tenantId]/knowledge/page.js",
   "/(dashboard)/dashboard/tenants/[tenantId]/channels/page": "app/(dashboard)/dashboard/tenants/[tenantId]/channels/page.js"
 }

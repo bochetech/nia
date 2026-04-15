@@ -23,6 +23,7 @@ const DEFAULT_ACTIONS = [
   "complaint",
   "static_reply",
   "discovery",
+  "conversational",
 ];
 
 const ACTION_DESCRIPTIONS: Record<string, string> = {
@@ -33,6 +34,7 @@ const ACTION_DESCRIPTIONS: Record<string, string> = {
   complaint: "Handles complaints and escalation flows.",
   static_reply: "Sends a predefined static text response.",
   discovery: "Asks clarifying questions to understand user intent.",
+  conversational: "Pure LLM response driven by your custom system prompt — no external services required.",
 };
 
 export default function SkillsPage({
@@ -189,16 +191,33 @@ function SkillEditor({
         {/* Preparation Prompt */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Preparation Prompt</CardTitle>
+            <CardTitle className="text-base">
+              {action === "conversational" ? "System Prompt" : "Preparation Prompt"}
+            </CardTitle>
             <CardDescription>
-              Additional context injected into the LLM prompt when this skill is active.
-              Use <code className="text-xs bg-muted px-1 rounded">{"{{entity}}"}</code> placeholders.
+              {action === "conversational"
+                ? "This is the full system prompt the LLM receives when this skill runs. Define the bot's persona, tone, and scope here."
+                : "Additional context injected into the LLM prompt when this skill is active. Use "}{" "}
+              {action !== "conversational" && (
+                <code className="text-xs bg-muted px-1 rounded">{"{{entity}}"}</code>
+              )}
+              {action !== "conversational" && " placeholders."}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-3">
+            {action === "conversational" && (
+              <div className="rounded-lg border border-pink-200 bg-pink-50 px-3 py-2.5 text-xs text-pink-700 leading-relaxed">
+                <strong>💬 Conversational skill</strong> — the LLM responds freely using only this system prompt and the conversation history.
+                No external services are called. Perfect for custom personas, role-plays, or specialized mini-assistants.
+              </div>
+            )}
             <Textarea
-              rows={5}
-              placeholder="You are helping the user with… Always respond in a friendly tone…"
+              rows={action === "conversational" ? 8 : 5}
+              placeholder={
+                action === "conversational"
+                  ? "Eres un asistente experto en turismo de aventura. Responde siempre en español, con un tono entusiasta y amigable. Ayuda al usuario a planificar su viaje ideal…"
+                  : "You are helping the user with… Always respond in a friendly tone…"
+              }
               {...form.register("preparation_prompt")}
             />
           </CardContent>

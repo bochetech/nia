@@ -95,6 +95,7 @@ export const ACTION_LABELS: Record<string, string> = {
   complaint: "Complaint",
   static_reply: "Static Reply",
   discovery: "Discovery",
+  conversational: "Conversational",
 };
 
 export const ACTION_COLORS: Record<string, string> = {
@@ -105,4 +106,5 @@ export const ACTION_COLORS: Record<string, string> = {
   complaint: "#ef4444",
   static_reply: "#6b7280",
   discovery: "#8b5cf6",
+  conversational: "#ec4899",
 };

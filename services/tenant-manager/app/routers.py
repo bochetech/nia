@@ -579,6 +579,7 @@ ACTIONS_CATALOG = [
         (ActionType.COMPLAINT, "Registra la queja del usuario y evalúa si necesita escalación a humano."),
         (ActionType.STATIC_REPLY, "Responde con un mensaje fijo predefinido, sin llamar a ningún servicio externo."),
         (ActionType.DISCOVERY, "Pide más detalles al usuario para entender mejor su necesidad."),
+        (ActionType.CONVERSATIONAL, "Responde libremente usando el LLM con un system prompt personalizable (sin servicios externos)."),
     ]
 ]
 

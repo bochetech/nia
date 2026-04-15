@@ -31,9 +31,13 @@ const TENANT_NAV = (id: string) => [
   { href: `/dashboard/tenants/${id}/channels`, icon: Puzzle, label: "Channels" },
 ];
 
-export function Sidebar({ tenantId }: { tenantId?: string }) {
+export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+
+  // Auto-detect tenantId from URL if not passed as prop
+  const tenantIdMatch = pathname.match(/\/dashboard\/tenants\/([^/]+)/);
+  const tenantId = tenantIdProp ?? tenantIdMatch?.[1];
 
   return (
     <aside className="flex h-screen w-56 flex-col bg-sidebar border-r border-sidebar-border">

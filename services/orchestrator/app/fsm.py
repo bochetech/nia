@@ -343,6 +343,16 @@ async def _route_by_intent(
             tenant_name=tenant_name,
         )
 
+    if matched.action == "conversational":
+        return await _handle_conversational(
+            message=message,
+            session=session,
+            tenant_config=tenant_config,
+            settings=settings,
+            skill=skill,
+            to_state=matched.to_state,
+        )
+
     # Acción desconocida → fallback seguro
     logger.error(
         "fsm_unknown_action",
@@ -353,6 +363,87 @@ async def _route_by_intent(
     return FSMResult(
         response_text="Ha ocurrido un error al procesar tu solicitud. Por favor, intenta de nuevo.",
         new_state=session.fsm_state,
+        session=session,
+    )
+
+
+async def _handle_conversational(
+    *,
+    message: str,
+    session: SessionState,
+    tenant_config: dict,
+    settings: OrchestratorSettings,
+    skill: SkillConfig | None = None,
+    to_state: str = "__same__",
+) -> FSMResult:
+    """
+    Responde con el LLM usando el preparation_prompt del skill como system message.
+    Sin llamadas a servicios externos — ideal para skills puramente conversacionales
+    creados por el administrador del tenant.
+    """
+    tenant_name = tenant_config.get("ui_config", {}).get("chat_title", "el asistente")
+    tpl = skill.response_templates if skill else {}
+    error_msg = tpl.get("error", f"Disculpa, tuve un problema al procesar tu mensaje. ¿Puedes intentarlo de nuevo?")
+
+    # Build system prompt from skill preparation_prompt, fallback to generic
+    system_prompt = (
+        skill.preparation_prompt
+        if skill and skill.preparation_prompt
+        else f"Eres {tenant_name}, un asistente virtual amigable y útil. Responde de manera concisa y en el mismo idioma que el usuario."
+    )
+
+    # Build messages array (last 6 turns for context + current message)
+    messages: list[dict] = [{"role": "system", "content": system_prompt}]
+    history = getattr(session, "conversation_history", []) or []
+    for turn in history[-6:]:
+        if hasattr(turn, "user_message"):
+            messages.append({"role": "user", "content": turn.user_message})
+            if turn.bot_response:
+                messages.append({"role": "assistant", "content": turn.bot_response})
+        elif isinstance(turn, dict):
+            messages.append({"role": turn.get("role", "user"), "content": turn.get("content", "")})
+    messages.append({"role": "user", "content": message})
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                f"{settings.model_adapter_url}/v1/chat/completions",
+                json={
+                    "messages": messages,
+                    "temperature": 0.7,
+                    "max_tokens": 512,
+                    "tenant_id": session.tenant_id,
+                },
+            )
+            resp.raise_for_status()
+            resp_data = resp.json()["data"]
+            answer = resp_data.get("content", "").strip()
+            if not answer:
+                answer = resp_data.get("reasoning_content", "").strip()
+    except Exception as exc:
+        logger.error("conversational_llm_failed", error=str(exc))
+        return FSMResult(
+            response_text=error_msg,
+            new_state=session.fsm_state,
+            session=session,
+        )
+
+    if not answer:
+        answer = error_msg
+
+    # Resolve target FSM state
+    if to_state == "__same__" or not to_state:
+        new_state = session.fsm_state
+    else:
+        try:
+            new_state = ConversationFSMState(to_state)
+        except ValueError:
+            new_state = session.fsm_state
+
+    await transition_state(session, new_state)
+    return FSMResult(
+        response_text=answer,
+        new_state=new_state,
         session=session,
     )
 

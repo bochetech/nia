@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { useTenantConfig, useUpdateUIConfig, useUpdateAIConfig } from "@/hooks/use-api";
+import { useTenantConfig, useUpdateAIConfig } from "@/hooks/use-api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,18 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import type { UIConfig, AIConfig } from "@/lib/api";
+import type { AIConfig } from "@/lib/api";
 import { ApiKeysPanel } from "@/components/domain/api-keys-panel";
-
-const uiSchema = z.object({
-  chat_title: z.string().min(1),
-  header_title: z.string(),
-  welcome_message: z.string(),
-  primary_color: z.string(),
-  secondary_color: z.string(),
-  input_placeholder: z.string(),
-  show_powered_by: z.boolean(),
-});
 
 const aiSchema = z.object({
   primary_provider: z.string(),
@@ -60,21 +50,16 @@ export default function TenantConfigPage({
       <div>
         <h1 className="text-2xl font-bold">Configuration</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Manage AI model, widget appearance, and integrations
+          AI model, generation parameters, limits and API access
         </p>
       </div>
 
-      <Tabs defaultValue="ui">
+      <Tabs defaultValue="ai">
         <TabsList>
-          <TabsTrigger value="ui">Widget UI</TabsTrigger>
           <TabsTrigger value="ai">AI Model</TabsTrigger>
           <TabsTrigger value="limits">Limits</TabsTrigger>
           <TabsTrigger value="keys">API Keys</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="ui">
-          {cfg && <UIConfigForm tenantId={tenantId} config={cfg.ui_config} />}
-        </TabsContent>
 
         <TabsContent value="ai">
           {cfg && <AIConfigForm tenantId={tenantId} config={cfg.ai_config} />}
@@ -89,72 +74,6 @@ export default function TenantConfigPage({
         </TabsContent>
       </Tabs>
     </div>
-  );
-}
-
-// ─── UI Config form ───────────────────────────────────────────
-
-function UIConfigForm({ tenantId, config }: { tenantId: string; config: UIConfig }) {
-  const update = useUpdateUIConfig(tenantId);
-  const { register, handleSubmit, formState: { isDirty, isSubmitting } } = useForm({
-    resolver: zodResolver(uiSchema),
-    defaultValues: config,
-  });
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Widget Appearance</CardTitle>
-        <CardDescription>Customise how the chat widget looks to your users</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit((d) => update.mutateAsync(d))} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Chat Title</Label>
-              <Input {...register("chat_title")} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Header Title</Label>
-              <Input {...register("header_title")} />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Welcome Message</Label>
-            <Textarea rows={3} {...register("welcome_message")} />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Input Placeholder</Label>
-            <Input {...register("input_placeholder")} />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label>Primary Color</Label>
-              <div className="flex gap-2">
-                <input type="color" className="h-9 w-12 rounded border border-input p-1" {...register("primary_color")} />
-                <Input {...register("primary_color")} className="font-mono text-xs" />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Secondary Color</Label>
-              <div className="flex gap-2">
-                <input type="color" className="h-9 w-12 rounded border border-input p-1" {...register("secondary_color")} />
-                <Input {...register("secondary_color")} className="font-mono text-xs" />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end pt-2">
-            <Button type="submit" disabled={!isDirty} loading={isSubmitting}>
-              Save UI Config
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
   );
 }
 

@@ -9,6 +9,7 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   MarkerType,
+  ConnectionMode,
   type Node,
   type Edge,
   type Connection,
@@ -28,7 +29,7 @@ import {
 } from "@/hooks/use-api";
 import { createTraceEventSource } from "@/lib/api";
 import type { FlowTransition, IntentDefinition, ActionCatalogItem } from "@/lib/api";
-import { FSM_STATES, FSM_STATE_LABELS, FSM_STATE_COLORS, ACTION_COLORS, ACTION_LABELS, cn, type FSMStateKey } from "@/lib/utils";
+import { FSM_STATE_LABELS, ACTION_COLORS, ACTION_LABELS, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,47 +53,99 @@ import { useSession } from "next-auth/react";
 // ─── FSM state node layout grid ───────────────────────────────
 
 const STATE_POSITIONS: Record<string, { x: number; y: number }> = {
-  idle:            { x: 400, y: 20 },
-  greeting:        { x: 400, y: 120 },
-  discovery:       { x: 160, y: 240 },
-  faq:             { x: 400, y: 240 },
-  recommendation:  { x: 640, y: 240 },
-  nps_survey:      { x: 160, y: 360 },
-  complaint:       { x: 400, y: 360 },
-  checkout:        { x: 640, y: 360 },
-  handoff_pending: { x: 280, y: 480 },
-  handoff_active:  { x: 520, y: 480 },
-  escalation:      { x: 280, y: 580 },
-  resolved:        { x: 520, y: 580 },
-  closed:          { x: 400, y: 680 },
-  error:           { x: 640, y: 680 },
+  idle:            { x: 400, y: 20  },
+  greeting:        { x: 400, y: 130 },
+  discovery:       { x: 100, y: 260 },
+  faq_answer:      { x: 400, y: 260 },
+  recommending:    { x: 700, y: 260 },
+  nps_survey:      { x: 100, y: 390 },
+  complaint:       { x: 400, y: 390 },
+  checkout:        { x: 700, y: 390 },
+  post_chat:       { x: 100, y: 520 },
+  handoff_pending: { x: 400, y: 520 },
+  handoff_active:  { x: 700, y: 520 },
+  escalation:      { x: 250, y: 650 },
+  resolved:        { x: 550, y: 650 },
+  closed:          { x: 400, y: 780 },
+  error:           { x: 700, y: 780 },
 };
+
+// Sentinel value used in the intent Select to represent "wildcard / no filter"
+const INTENT_WILDCARD = "__wildcard__";
+
+// All FSM states (excluding virtual nodes)
+const ALL_FSM_STATES = Object.keys(STATE_POSITIONS);
 
 // ─── Custom state node ─────────────────────────────────────────
 
 function StateNode({
   data,
 }: {
-  data: { label: string; state: string; isActive: boolean; transitionCount: number };
+  data: {
+    label: string;
+    state: string;
+    isActive: boolean;
+    transitionCount: number;
+    /** hex color of the action/skill that targets this state */
+    actionColor?: string;
+    /** display name of the action/skill that targets this state */
+    actionLabel?: string;
+  };
 }) {
-  const colorClass = FSM_STATE_COLORS[data.state] ?? "bg-slate-100 border-slate-300 text-slate-700";
+  const handleStyle = { opacity: 0, width: 10, height: 10 };
+
+  // Border color driven by skill/action (inline style), fallback to neutral
+  const borderColor = data.actionColor ?? "#cbd5e1"; // slate-300
+  const bgColor = data.actionColor
+    ? `${data.actionColor}18` // 10% tint of action colour
+    : "#f8fafc"; // slate-50
+
   return (
     <div
+      style={{
+        borderColor: data.isActive ? "#7c3aed" : borderColor,
+        backgroundColor: bgColor,
+        boxShadow: data.isActive
+          ? `0 0 0 4px #7c3aed40, 0 4px 16px ${borderColor}40`
+          : `0 1px 4px ${borderColor}30`,
+      }}
       className={cn(
-        "rounded-xl border-2 px-4 py-2.5 min-w-[140px] text-center transition-all duration-300 shadow-sm",
-        colorClass,
-        data.isActive && "ring-4 ring-violet-500 ring-offset-2 scale-105 shadow-lg shadow-violet-200"
+        "rounded-xl border-2 px-4 py-2.5 min-w-[148px] text-center transition-all duration-300 relative",
+        data.isActive && "scale-105"
       )}
     >
-      <Handle type="target" position={Position.Top} className="!bg-transparent !border-0 !w-0 !h-0" />
-      <div className="font-semibold text-xs uppercase tracking-wide">{data.label}</div>
-      {data.transitionCount > 0 && (
-        <div className="text-[10px] opacity-60 mt-0.5">{data.transitionCount} transitions</div>
+      {/* Handles on all 4 sides — ReactFlow picks the closest pair */}
+      <Handle type="target" position={Position.Top}    id="t-top"    style={handleStyle} />
+      <Handle type="target" position={Position.Bottom} id="t-bottom" style={handleStyle} />
+      <Handle type="target" position={Position.Left}   id="t-left"   style={handleStyle} />
+      <Handle type="target" position={Position.Right}  id="t-right"  style={handleStyle} />
+      <Handle type="source" position={Position.Top}    id="s-top"    style={handleStyle} />
+      <Handle type="source" position={Position.Bottom} id="s-bottom" style={handleStyle} />
+      <Handle type="source" position={Position.Left}   id="s-left"   style={handleStyle} />
+      <Handle type="source" position={Position.Right}  id="s-right"  style={handleStyle} />
+
+      <div className="font-semibold text-[11px] uppercase tracking-wide text-slate-700">
+        {data.label}
+      </div>
+
+      {/* Skill/action badge */}
+      {data.actionLabel && (
+        <div
+          style={{ backgroundColor: borderColor, color: "white" }}
+          className="mt-1.5 rounded-full px-2 py-0.5 text-[9px] font-medium inline-block"
+        >
+          {data.actionLabel}
+        </div>
       )}
+
+      {!data.actionLabel && data.transitionCount > 0 && (
+        <div className="text-[10px] text-slate-400 mt-0.5">{data.transitionCount} transitions</div>
+      )}
+
+      {/* Active pulse indicator */}
       {data.isActive && (
-        <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-violet-500 animate-pulse" />
+        <div className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-violet-500 animate-pulse shadow-lg" />
       )}
-      <Handle type="source" position={Position.Bottom} className="!bg-transparent !border-0 !w-0 !h-0" />
     </div>
   );
 }
@@ -143,47 +196,105 @@ export default function FSMPage({
     return m;
   }, [transitions]);
 
-  const initialNodes: Node[] = useMemo(
-    () =>
-      Object.keys(STATE_POSITIONS).map((state) => ({
+  // Map each destination state → action (the skill that "owns" that state)
+  // Priority: explicit from_states > wildcard transitions
+  const stateActionMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    // First pass: explicit from_states (higher confidence)
+    transitions
+      .filter((t) => t.from_states.length > 0 && t.to_state !== "__same__")
+      .forEach((t) => { m[t.to_state] = t.action; });
+    // Second pass: wildcards (lower confidence, don't overwrite)
+    transitions
+      .filter((t) => t.from_states.length === 0 && t.to_state !== "__same__")
+      .forEach((t) => { if (!m[t.to_state]) m[t.to_state] = t.action; });
+    return m;
+  }, [transitions]);
+
+  const hasWildcards = useMemo(
+    () => transitions.some((t) => t.from_states.length === 0),
+    [transitions]
+  );
+
+  const initialNodes: Node[] = useMemo(() => {
+    return Object.keys(STATE_POSITIONS).map((state) => {
+      const action = stateActionMap[state];
+      return {
         id: state,
         type: "stateNode",
         position: STATE_POSITIONS[state],
         data: {
           label: FSM_STATE_LABELS[state] ?? state,
           state,
-          isActive: activeState === state,
+          isActive: false,
           transitionCount: transitionCountMap[state] ?? 0,
+          actionColor: action ? (ACTION_COLORS[action] ?? undefined) : undefined,
+          actionLabel: action ? (ACTION_LABELS[action] ?? action) : undefined,
         },
-      })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [transitionCountMap]
-  );
+      };
+    });
+  }, [transitionCountMap, stateActionMap, hasWildcards]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const initialEdges: Edge[] = useMemo(
     () =>
-      transitions.flatMap((t, ti) =>
-        t.from_states.map((fromState, si) => {
+      transitions.flatMap((t, ti) => {
+        // from_states: [] means "from every state" — expand to all FSM states
+        const sources = t.from_states.length > 0 ? t.from_states : ALL_FSM_STATES;
+        return sources.flatMap((fromState, si) => {
+          // __same__ = self-loop back to source; skip self-loops that have no visual value
+          const target = t.to_state === "__same__" ? fromState : t.to_state;
+          // Skip edges to states not in our layout
+          if (!STATE_POSITIONS[target] || !STATE_POSITIONS[fromState]) return [];
           const actionColor = ACTION_COLORS[t.action] ?? "#94a3b8";
-          return {
+          const isSelf = target === fromState;
+          return [{
             id: `e-${ti}-${si}`,
+            type: "straight",
             source: fromState,
-            target: t.to_state,
-            label: `${t.intent ?? "*"} → ${ACTION_LABELS[t.action] ?? t.action}`,
+            target,
+            label: `${t.intent} → ${ACTION_LABELS[t.action] ?? t.action}`,
             labelStyle: { fontSize: 10, fill: "#374151" },
-            labelBgStyle: { fill: "white", fillOpacity: 0.85 },
+            labelBgStyle: { fill: "white", fillOpacity: 0.9 },
             labelBgPadding: [4, 4] as [number, number],
+            labelBgBorderRadius: 4,
             markerEnd: { type: MarkerType.ArrowClosed, color: actionColor },
-            style: { stroke: actionColor, strokeWidth: 2 },
-            data: { transition: t, fromState },
-          };
-        })
-      ),
+            style: {
+              stroke: actionColor,
+              strokeWidth: isSelf ? 1.5 : 2,
+              strokeDasharray: isSelf ? "4 3" : undefined,
+              opacity: t.from_states.length === 0 ? 0.55 : 1,
+            },
+            data: { transition: t, fromState, isWildcard: t.from_states.length === 0 },
+          }];
+        });
+      }),
     [transitions]
   );
 
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+
+  // Track whether we've done the first load so we don't re-init on every render
+  const loadedTransitionsRef = useRef<string>("");
+  const loadedNodesRef = useRef(false);
+
+  // Sync transitions → edges only when the server data actually changes
+  useEffect(() => {
+    const key = JSON.stringify(transitions);
+    if (key === loadedTransitionsRef.current) return;
+    loadedTransitionsRef.current = key;
+    setEdges(initialEdges);
+    setIsDirty(false);
+  }, [transitions]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync initial nodes once after first load
+  useEffect(() => {
+    if (loadedNodesRef.current) return;
+    if (Object.keys(transitionCountMap).length > 0) {
+      loadedNodesRef.current = true;
+      setNodes(initialNodes);
+    }
+  }, [transitionCountMap]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync active node highlight into node data
   useEffect(() => {
@@ -194,17 +305,6 @@ export default function FSMPage({
       }))
     );
   }, [activeState, setNodes]);
-
-  // Sync new transitions into edges when fetched
-  useEffect(() => {
-    setEdges(initialEdges);
-    setIsDirty(false);
-  }, [initialEdges, setEdges]);
-
-  // Sync new state positions into nodes when fetched
-  useEffect(() => {
-    setNodes(initialNodes);
-  }, [initialNodes, setNodes]);
 
   // ── Live trace ──────────────────────────────────────────────
 
@@ -280,7 +380,39 @@ export default function FSMPage({
   );
 
   const saveEdgeTransition = useCallback(() => {
-    if (!selectedEdge || !editingTransition) return;
+    if (!editingTransition) return;
+
+    if (!selectedEdge) {
+      // ── New transition (created via button, not canvas drag) ──
+      const t = editingTransition as FlowTransition;
+      const actionColor = ACTION_COLORS[t.action] ?? "#94a3b8";
+      const sources = t.from_states.length > 0 ? t.from_states : ALL_FSM_STATES;
+      const newEdges: Edge[] = sources.flatMap((fromState, si) => {
+        const target = t.to_state === "__same__" ? fromState : t.to_state;
+        if (!target || !fromState) return [];
+        return [{
+          id: `e-new-${Date.now()}-${si}`,
+          type: "straight",
+          source: fromState,
+          target,
+          label: `${t.intent || "*"} → ${ACTION_LABELS[t.action] ?? t.action}`,
+          labelStyle: { fontSize: 10, fill: "#374151" },
+          labelBgStyle: { fill: "white", fillOpacity: 0.9 },
+          labelBgPadding: [4, 4] as [number, number],
+          labelBgBorderRadius: 4,
+          markerEnd: { type: MarkerType.ArrowClosed, color: actionColor },
+          style: { stroke: actionColor, strokeWidth: 2, opacity: t.from_states.length === 0 ? 0.55 : 1 },
+          data: { transition: t, fromState, isWildcard: t.from_states.length === 0 },
+        }];
+      });
+      setEdges((es) => [...es, ...newEdges]);
+      setIsDirty(true);
+      setEditingTransition(null);
+      toast.success("Transition added — save to persist");
+      return;
+    }
+
+    // ── Editing existing edge ──
     setEdges((es) =>
       es.map((e) => {
         if (e.id !== selectedEdge.id) return e;
@@ -333,21 +465,14 @@ export default function FSMPage({
           onConnect={onConnect}
           onEdgeClick={onEdgeClick}
           nodeTypes={nodeTypes}
+          connectionMode={ConnectionMode.Loose}
           fitView
           fitViewOptions={{ padding: 0.2 }}
-          defaultEdgeOptions={{ animated: false }}
+          defaultEdgeOptions={{ type: "straight", animated: false }}
         >
           <Background gap={16} size={1} color="#e5e7eb" />
           <Controls />
-          <MiniMap nodeColor={(n) => {
-            const color = FSM_STATE_COLORS[n.data?.state ?? ""] ?? "";
-            if (color.includes("blue")) return "#3b82f6";
-            if (color.includes("green")) return "#22c55e";
-            if (color.includes("amber")) return "#f59e0b";
-            if (color.includes("red")) return "#ef4444";
-            if (color.includes("purple")) return "#a855f7";
-            return "#94a3b8";
-          }} />
+          <MiniMap nodeColor={(n) => n.data?.actionColor ?? "#94a3b8"} />
         </ReactFlow>
 
         {/* Canvas toolbar */}
@@ -406,41 +531,73 @@ export default function FSMPage({
               />
             ) : (
               <div className="space-y-3">
-                <p className="text-xs text-muted-foreground">
-                  Click on an edge to edit a transition, or drag from a node handle to create one.
+                {/* ── New transition CTA ─── */}
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={() => {
+                    setSelectedEdge(null);
+                    setEditingTransition({ intent: "", action: "", from_states: [], to_state: "" });
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5 mr-1.5" />
+                  New Transition
+                </Button>
+                <p className="text-[11px] text-muted-foreground leading-relaxed bg-slate-50 rounded-lg px-3 py-2 border">
+                  <strong className="text-slate-600">Tip:</strong> drag from any node's edge handle to another node to visually wire a transition, or click an existing arrow to edit it.
                 </p>
+
+                {/* ── Legend ─── */}
                 <div className="space-y-2">
                   <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Legend
+                    Skill Legend
                   </div>
                   {Object.entries(ACTION_LABELS).map(([action, label]) => (
                     <div key={action} className="flex items-center gap-2 text-xs">
                       <div
-                        className="h-2 w-6 rounded-full"
+                        className="h-2.5 w-2.5 rounded-full shrink-0"
                         style={{ backgroundColor: ACTION_COLORS[action] }}
                       />
-                      <span>{label}</span>
+                      <span className="text-slate-700">{label}</span>
                     </div>
                   ))}
                 </div>
+
+                {/* ── Transitions list ─── */}
                 <div className="pt-2 border-t space-y-1.5">
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                    Transitions ({edges.length})
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                      Transitions ({transitions.length})
+                    </div>
                   </div>
-                  {edges.map((e) => {
-                    const t = e.data?.transition as FlowTransition | undefined;
-                    if (!t) return null;
+                  {transitions.map((t, ti) => {
+                    const isWildcard = t.from_states.length === 0;
+                    const isSame = t.to_state === "__same__";
+                    // Find a matching edge to use for click-to-edit
+                    const matchEdge = edges.find((e) => e.data?.transition === t || (
+                      e.data?.transition?.intent === t.intent && e.data?.transition?.action === t.action
+                    ));
                     return (
                       <button
-                        key={e.id}
-                        onClick={() => { setSelectedEdge(e); setEditingTransition({ ...t }); }}
-                        className="w-full text-left rounded-md border p-2 text-xs hover:bg-accent transition-colors"
+                        key={ti}
+                        onClick={() => {
+                          if (matchEdge) { setSelectedEdge(matchEdge); setEditingTransition({ ...t }); }
+                          else setEditingTransition({ ...t });
+                        }}
+                        className="w-full text-left rounded-md border p-2 text-xs hover:bg-accent transition-colors group"
                       >
-                        <span className="font-medium">{FSM_STATE_LABELS[e.data?.fromState ?? ""] ?? e.data?.fromState}</span>
-                        <span className="text-muted-foreground"> → </span>
-                        <span className="font-medium">{FSM_STATE_LABELS[t.to_state] ?? t.to_state}</span>
-                        <div className="text-muted-foreground mt-0.5">
-                          {t.intent ?? "any intent"} · {ACTION_LABELS[t.action] ?? t.action}
+                        <div className="flex items-center gap-1 font-medium">
+                          {isWildcard ? (
+                            <span className="text-slate-400 italic">any state</span>
+                          ) : (
+                            <span>{t.from_states.map((s) => FSM_STATE_LABELS[s] ?? s).join(", ")}</span>
+                          )}
+                          <span className="text-muted-foreground"> → </span>
+                          <span>{isSame ? <span className="italic text-slate-400">same</span> : (FSM_STATE_LABELS[t.to_state] ?? t.to_state)}</span>
+                        </div>
+                        <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                          <div className="h-1.5 w-1.5 rounded-full shrink-0" style={{ backgroundColor: ACTION_COLORS[t.action] ?? "#94a3b8" }} />
+                          {t.intent || <span className="italic">wildcard</span>} · {ACTION_LABELS[t.action] ?? t.action}
                         </div>
                       </button>
                     );
@@ -581,12 +738,12 @@ function TransitionEditor({
       <div className="space-y-1.5">
         <Label className="text-xs">Intent <span className="text-muted-foreground">(leave blank for wildcard)</span></Label>
         <Select
-          value={transition.intent ?? ""}
-          onValueChange={(v) => onChange({ ...transition, intent: v })}
+          value={transition.intent || INTENT_WILDCARD}
+          onValueChange={(v) => onChange({ ...transition, intent: v === INTENT_WILDCARD ? "" : v })}
         >
           <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Any intent" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="" className="text-xs text-muted-foreground">Any intent (wildcard)</SelectItem>
+            <SelectItem value={INTENT_WILDCARD} className="text-xs text-muted-foreground">Any intent (wildcard)</SelectItem>
             {intents.map((i) => (
               <SelectItem key={i.key} value={i.key} className="text-xs">
                 {i.name ?? i.key}

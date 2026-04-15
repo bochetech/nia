@@ -594,6 +594,22 @@ class AIConfig(BaseModel):
         default=True,
         description="Si true, el model-adapter puede seleccionar automáticamente un modelo más económico para intents de baja complejidad.",
     )
+    input_cost_per_million: float = Field(
+        default=0.15,
+        description=(
+            "Costo en USD por cada 1 millón de tokens de entrada (prompt). "
+            "Referencia: Gemini 1.5 Flash ≈ $0.075, GPT-4o-mini ≈ $0.15, "
+            "GPT-4o ≈ $2.50, Claude 3 Haiku ≈ $0.25."
+        ),
+    )
+    output_cost_per_million: float = Field(
+        default=0.60,
+        description=(
+            "Costo en USD por cada 1 millón de tokens de salida (completion). "
+            "Referencia: Gemini 1.5 Flash ≈ $0.30, GPT-4o-mini ≈ $0.60, "
+            "GPT-4o ≈ $10.00, Claude 3 Haiku ≈ $1.25."
+        ),
+    )
 
 
 class PaymentConfig(BaseModel):

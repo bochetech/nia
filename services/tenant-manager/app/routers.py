@@ -391,7 +391,12 @@ async def _save_fsm_config(tenant_id: str, fsm: dict, db: AsyncSession):
     )
     await db.commit()
 
-    # Refresh Redis cache
+    # Expire all cached ORM objects so the next query reads fresh data from DB.
+    # Without this, get_tenant() may return a stale object from the session's
+    # identity map because the UPDATE above was raw SQL (bypasses ORM tracking).
+    db.expire_all()
+
+    # Refresh Redis cache with the freshly committed data
     from app.provisioning import _cache_tenant_config
     from app import crud as _crud
     tenant = await _crud.get_tenant(tenant_id, db)

@@ -115,6 +115,8 @@ export interface AIConfig {
   enable_caching: boolean;
   cache_ttl_seconds: number;
   cost_optimization: boolean;
+  input_cost_per_million: number;
+  output_cost_per_million: number;
 }
 
 export interface RAGConfig {

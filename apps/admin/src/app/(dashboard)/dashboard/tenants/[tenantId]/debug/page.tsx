@@ -28,6 +28,7 @@ import {
   Activity,
   Circle,
   ChevronDown,
+  DollarSign,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -108,11 +109,17 @@ export default function DebugConsolePage({
   const tenantName = tenantData?.data?.name ?? tenantId;
 
   // Widget styling from tenant config
-  const uiConfig = (configData?.data as TenantConfigDTO | undefined)?.ui_config;
+  const tenantConfig = configData?.data as TenantConfigDTO | undefined;
+  const uiConfig = tenantConfig?.ui_config;
+  const aiConfig = tenantConfig?.ai_config;
   const primaryColor = uiConfig?.primary_color ?? "#7C3AED";
   const chatTitle = uiConfig?.chat_title ?? uiConfig?.header_title ?? tenantName;
   const welcomeMessage = uiConfig?.welcome_message ?? `Hi! I'm the assistant for ${tenantName}. How can I help you?`;
   const logoUrl = uiConfig?.logo_url;
+
+  // Cost rates (USD per 1M tokens, default GPT-4o-mini pricing)
+  const inputRate = (aiConfig?.input_cost_per_million ?? 0.15) / 1_000_000;
+  const outputRate = (aiConfig?.output_cost_per_million ?? 0.60) / 1_000_000;
 
   // Session state
   const [widgetSession, setWidgetSession] = useState<WidgetSession | null>(null);
@@ -131,9 +138,15 @@ export default function DebugConsolePage({
   // Counters
   const [currentFsmState, setCurrentFsmState] = useState<string>("idle");
   const [totalTokens, setTotalTokens] = useState(0);
+  const [totalInputTokens, setTotalInputTokens] = useState(0);
+  const [totalOutputTokens, setTotalOutputTokens] = useState(0);
   const [messageCount, setMessageCount] = useState(0);
   const [intentsDetected, setIntentsDetected] = useState<string[]>([]);
   const [stateTransitions, setStateTransitions] = useState<{ from: string; to: string; ts: number }[]>([]);
+
+  // Derived: conversation cost in USD
+  // Formula: (input_tokens × input_rate) + (output_tokens × output_rate)
+  const totalCost = totalInputTokens * inputRate + totalOutputTokens * outputRate;
 
   // Refs for auto-scroll
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -155,6 +168,8 @@ export default function DebugConsolePage({
       setTraceEvents([]);
       setCurrentFsmState("idle");
       setTotalTokens(0);
+      setTotalInputTokens(0);
+      setTotalOutputTokens(0);
       setMessageCount(0);
       setIntentsDetected([]);
       setStateTransitions([]);
@@ -195,6 +210,12 @@ export default function DebugConsolePage({
         if (event.type === "intent_detected") {
           if (event.intent) setIntentsDetected((prev) => [...prev, event.intent]);
           if (event.fsm_state) setCurrentFsmState(event.fsm_state);
+        }
+        if (event.type === "llm_call") {
+          const inp = (event.input_tokens as number) ?? 0;
+          const out = (event.output_tokens as number) ?? 0;
+          setTotalInputTokens((t) => t + inp);
+          setTotalOutputTokens((t) => t + out);
         }
       } catch {}
     });
@@ -276,6 +297,8 @@ export default function DebugConsolePage({
     setTraceConnected(false);
     setCurrentFsmState("idle");
     setTotalTokens(0);
+    setTotalInputTokens(0);
+    setTotalOutputTokens(0);
     setMessageCount(0);
     setIntentsDetected([]);
     setStateTransitions([]);
@@ -430,6 +453,13 @@ export default function DebugConsolePage({
                         {msg.meta.tokens_used} tok
                       </span>
                     )}
+                    {msg.meta.tokens_used != null && (
+                      <span className="flex items-center gap-0.5">
+                        <DollarSign className="h-2.5 w-2.5" />
+                        {/* Blended estimate: avg of input + output rate × total tokens */}
+                        ${(msg.meta.tokens_used * ((inputRate + outputRate) / 2)).toFixed(5)}
+                      </span>
+                    )}
                     {msg.meta.latency_ms != null && (
                       <span className="flex items-center gap-0.5">
                         <Clock className="h-2.5 w-2.5" />
@@ -497,7 +527,7 @@ export default function DebugConsolePage({
       {/* ── Right: Trace & Metrics ──────────────────────── */}
       <div className="flex-1 flex flex-col bg-slate-50/50 overflow-hidden">
         {/* Metrics bar */}
-        <div className="grid grid-cols-5 gap-2 px-4 py-3 border-b bg-white">
+        <div className="grid grid-cols-6 gap-2 px-4 py-3 border-b bg-white">
           <MetricCard
             icon={<GitBranch className="h-3.5 w-3.5 text-violet-500" />}
             label="FSM State"
@@ -508,6 +538,12 @@ export default function DebugConsolePage({
             icon={<Hash className="h-3.5 w-3.5 text-blue-500" />}
             label="Tokens Used"
             value={totalTokens.toLocaleString()}
+          />
+          <MetricCard
+            icon={<DollarSign className="h-3.5 w-3.5 text-green-600" />}
+            label="Est. Cost"
+            value={totalCost < 0.01 ? `$${totalCost.toFixed(4)}` : `$${totalCost.toFixed(3)}`}
+            subtitle={`in ${totalInputTokens.toLocaleString()} / out ${totalOutputTokens.toLocaleString()}`}
           />
           <MetricCard
             icon={<MessageSquare className="h-3.5 w-3.5 text-emerald-500" />}
@@ -634,11 +670,13 @@ function MetricCard({
   label,
   value,
   className,
+  subtitle,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   className?: string;
+  subtitle?: string;
 }) {
   return (
     <div className="rounded-lg border bg-white px-3 py-2">
@@ -656,6 +694,9 @@ function MetricCard({
       >
         {value}
       </div>
+      {subtitle && (
+        <div className="text-[9px] text-muted-foreground mt-0.5 truncate">{subtitle}</div>
+      )}
     </div>
   );
 }
@@ -684,7 +725,10 @@ function TraceEventRow({ event }: { event: TraceEvent }) {
   } else if (event.type === "skill_call") {
     summary = `${event.action ?? event.skill ?? "?"}${event.latency_ms ? ` · ${formatMs(event.latency_ms as number)}` : ""}`;
   } else if (event.type === "llm_call") {
-    summary = `${event.model ?? "model"}${event.tokens ? ` · ${event.tokens} tok` : ""}`;
+    const inp = (event.input_tokens as number) ?? 0;
+    const out = (event.output_tokens as number) ?? 0;
+    const tok = inp + out || (event.tokens as number) || 0;
+    summary = `${event.model ?? "model"}${tok ? ` · ${tok} tok` : ""}`;
   } else if (event.type === "connected") {
     summary = `session ${(event.session_id as string)?.slice(0, 8) ?? ""}…`;
   }

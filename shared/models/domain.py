@@ -924,6 +924,25 @@ class FSMConfig(BaseModel):
             "los skills NIA por defecto (DEFAULT_SKILLS)."
         ),
     )
+    # ── Admin-console only fields ─────────────────────────────
+    # These are stored in the DB JSONB column and managed via the admin API.
+    # They must be declared here so FSMConfig(**raw).model_dump() round-trips
+    # without silently dropping them.
+    hidden_states: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Default enum states that have been hidden for this tenant. "
+            "Populated by DELETE /api/tenants/{id}/states/{key} when the key "
+            "is a built-in ConversationFSMState value."
+        ),
+    )
+    custom_states: list[dict] = Field(
+        default_factory=list,
+        description=(
+            "Custom FSM states added for this tenant via the admin console. "
+            "Each entry is {key, label}."
+        ),
+    )
 
 
 class TelegramConfig(BaseModel):

@@ -274,6 +274,7 @@ async def detect_intent(
             resp.raise_for_status()
             resp_data = resp.json()["data"]
             content = resp_data.get("content", "")
+            intent_tokens = resp_data.get("input_tokens", 0) + resp_data.get("output_tokens", 0)
 
             # Reasoning models (Gemma 4, DeepSeek-R1, etc.) may return an empty
             # `content` because all tokens were consumed by the internal thinking
@@ -319,14 +320,14 @@ async def detect_intent(
             confidence=confidence,
             entities=raw_entities,
         )
-        return intent_typed, confidence, entities, raw_entities
+        return intent_typed, confidence, entities, raw_entities, intent_tokens
 
     except Exception as exc:
         logger.warning("intent_detection_failed", error=str(exc))
         try:
-            return IntentType.UNCLEAR, 0.0, IntentEntities(), {}
+            return IntentType.UNCLEAR, 0.0, IntentEntities(), {}, 0
         except Exception:
-            return "unclear", 0.0, IntentEntities(), {}  # type: ignore[return-value]
+            return "unclear", 0.0, IntentEntities(), {}, 0  # type: ignore[return-value]
 
 
 def _parse_intent_response(content: str) -> dict:

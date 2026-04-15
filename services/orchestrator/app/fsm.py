@@ -122,7 +122,7 @@ async def process_message(
 
     # 5. Detectar intent usando historial real
     history = _build_history_for_intent(session)
-    intent, confidence, entities, raw_entities = await detect_intent(
+    intent, confidence, entities, raw_entities, intent_tokens = await detect_intent(
         message=clean_message,
         conversation_history=history,
         settings=settings,
@@ -133,6 +133,7 @@ async def process_message(
     session.last_intent = intent
     session.last_entities = raw_entities or entities.model_dump(exclude_none=True)
     session.messages_count += 1
+    session.tokens_used += intent_tokens
 
     # Helper to get intent as plain string
     intent_value = intent.value if isinstance(intent, IntentType) else str(intent)
@@ -146,6 +147,7 @@ async def process_message(
     }))
 
     # 6. Routing por intent
+    prev_state = session.fsm_state.value if isinstance(session.fsm_state, ConversationFSMState) else str(session.fsm_state)
     result = await _route_by_intent(
         message=clean_message,
         intent=intent,
@@ -164,6 +166,7 @@ async def process_message(
     # Publish FSM transition trace event
     asyncio.create_task(_publish_trace(tenant_id, session_id, {
         "type": "fsm_transition",
+        "from": prev_state,
         "to": result.new_state.value if isinstance(result.new_state, ConversationFSMState) else str(result.new_state),
         "handoff": result.handoff_triggered,
         "action": result.metadata.get("action") if result.metadata else None,
@@ -420,6 +423,17 @@ async def _handle_conversational(
             answer = resp_data.get("content", "").strip()
             if not answer:
                 answer = resp_data.get("reasoning_content", "").strip()
+            # Accumulate LLM token usage into session
+            llm_tokens = resp_data.get("input_tokens", 0) + resp_data.get("output_tokens", 0)
+            session.tokens_used += llm_tokens
+            if llm_tokens:
+                asyncio.create_task(_publish_trace(session.tenant_id, session.session_id, {
+                    "type": "llm_call",
+                    "tokens": llm_tokens,
+                    "input_tokens": resp_data.get("input_tokens", 0),
+                    "output_tokens": resp_data.get("output_tokens", 0),
+                    "model": resp_data.get("model", "unknown"),
+                }))
     except Exception as exc:
         logger.error("conversational_llm_failed", error=str(exc))
         return FSMResult(

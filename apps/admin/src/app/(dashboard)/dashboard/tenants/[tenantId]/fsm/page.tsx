@@ -378,6 +378,7 @@ export default function FSMPage({
 
   const onConnect = useCallback(
     (connection: Connection) => {
+      const isFromAny = connection.source === ANY_NODE_ID;
       const newEdge: Edge = {
         ...connection,
         id: `e-new-${Date.now()}`,
@@ -387,13 +388,14 @@ export default function FSMPage({
         markerEnd: { type: MarkerType.ArrowClosed },
         data: {
           transition: {
-            from_states: [connection.source ?? "idle"],
+            from_states: isFromAny ? [] : [connection.source ?? "idle"],
             to_state: connection.target ?? "idle",
             intent: "",
             action: "faq",
             enabled: true,
           } satisfies FlowTransition,
           fromState: connection.source,
+          isWildcard: isFromAny,
         },
       };
       setEdges((es) => addEdge(newEdge, es));
@@ -502,7 +504,14 @@ export default function FSMPage({
   // ── Save all transitions ────────────────────────────────────
 
   const saveAll = useCallback(async () => {
-    const newTransitions: FlowTransition[] = edges.map((e) => e.data?.transition).filter(Boolean);
+    // Sanitize: strip "__any__" sentinel from from_states before sending to backend
+    const newTransitions: FlowTransition[] = edges
+      .map((e) => e.data?.transition)
+      .filter(Boolean)
+      .map((t: FlowTransition) => ({
+        ...t,
+        from_states: t.from_states.filter((s: string) => s !== "__any__"),
+      }));
     try {
       await replaceTransitions.mutateAsync(newTransitions);
       setIsDirty(false);

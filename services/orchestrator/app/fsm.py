@@ -129,7 +129,7 @@ async def process_message(
 
     # 5. Detectar intent usando historial real
     history = _build_history_for_intent(session)
-    intent, confidence, entities, raw_entities, intent_tokens = await detect_intent(
+    intent, confidence, entities, raw_entities, intent_tokens, intent_input_tokens, intent_output_tokens = await detect_intent(
         message=clean_message,
         conversation_history=history,
         settings=settings,
@@ -144,6 +144,17 @@ async def process_message(
 
     # Helper to get intent as plain string
     intent_value = intent.value if isinstance(intent, IntentType) else str(intent)
+
+    # Publish LLM call trace for intent detection
+    if intent_tokens:
+        asyncio.create_task(_publish_trace(tenant_id, session_id, {
+            "type": "llm_call",
+            "purpose": "intent_detection",
+            "tokens": intent_tokens,
+            "input_tokens": intent_input_tokens,
+            "output_tokens": intent_output_tokens,
+            "model": "intent-classifier",
+        }))
 
     # Publish intent detection trace event
     asyncio.create_task(_publish_trace(tenant_id, session_id, {
@@ -261,10 +272,12 @@ async def _route_by_intent(
         if t.intent and t.intent != intent_value:
             continue
         intent_score = 2 if t.intent == intent_value else 1  # 1 = wildcard
+        # Normalize from_states: "__any__" is a UI-only sentinel → treat as wildcard
+        effective_from = [s for s in t.from_states if s != "__any__"]
         # State match: exact > wildcard > no match
-        if t.from_states and current_state not in t.from_states:
+        if effective_from and current_state not in effective_from:
             continue
-        state_score = 2 if (t.from_states and current_state in t.from_states) else 1  # 1 = wildcard
+        state_score = 2 if (effective_from and current_state in effective_from) else 1  # 1 = wildcard
         score = intent_score + state_score
         if score >= best_score:
             best_score = score

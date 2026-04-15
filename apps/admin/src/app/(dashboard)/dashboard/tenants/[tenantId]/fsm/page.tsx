@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -10,10 +10,13 @@ import ReactFlow, {
   useEdgesState,
   MarkerType,
   ConnectionMode,
+  useReactFlow,
+  ReactFlowProvider,
   type Node,
   type Edge,
   type Connection,
   type NodeTypes,
+  type Viewport,
   Handle,
   Position,
 } from "reactflow";
@@ -48,6 +51,8 @@ import {
   Edit,
   Brain,
   Layers,
+  HelpCircle,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
@@ -55,19 +60,47 @@ import { useSession } from "next-auth/react";
 // ─── FSM state layout ─────────────────────────────────────────
 //
 // ALL states are fetched dynamically from GET /{tenant_id}/states.
-// Positions are assigned automatically in a grid layout.
+// Positions are saved to localStorage keyed by tenantId so layout persists.
 // Only "idle" and the virtual "★ ANY" node are immutable.
 
 /** Virtual node ID used to represent wildcard "from any state" transitions. */
 const ANY_NODE_ID = "__any__";
 const ANY_NODE_POSITION = { x: 20, y: 20 };
 
-/** Auto-position states in a grid layout. */
+/** Auto-position states in a grid layout (fallback when no saved position). */
 function autoPosition(index: number): { x: number; y: number } {
   const cols = 4;
   const col = index % cols;
   const row = Math.floor(index / cols);
   return { x: 80 + col * 220, y: 60 + row * 130 };
+}
+
+// ─── Layout persistence (localStorage) ───────────────────────
+
+interface SavedLayout {
+  positions: Record<string, { x: number; y: number }>;
+  viewport: Viewport;
+}
+
+function layoutKey(tenantId: string) {
+  return `nia_fsm_layout_${tenantId}`;
+}
+
+function loadLayout(tenantId: string): SavedLayout | null {
+  try {
+    const raw = localStorage.getItem(layoutKey(tenantId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveLayout(tenantId: string, positions: Record<string, { x: number; y: number }>, viewport: Viewport) {
+  try {
+    localStorage.setItem(layoutKey(tenantId), JSON.stringify({ positions, viewport }));
+  } catch {
+    // storage quota — ignore
+  }
 }
 
 // Sentinel value used in the intent Select to represent "wildcard / no filter"
@@ -87,6 +120,21 @@ function actionLabel(action: string, customSkills?: { action: string; name?: str
 
 // ─── Custom state node ─────────────────────────────────────────
 
+/** Visible dot on each edge of a node for precise connection targeting (draw.io style). */
+const HANDLE_DOT: React.CSSProperties = {
+  width: 10,
+  height: 10,
+  background: "#818cf8",
+  border: "2px solid #fff",
+  borderRadius: "50%",
+  boxShadow: "0 0 0 1px #818cf8",
+  opacity: 0,
+  transition: "opacity 0.15s",
+};
+
+const HANDLE_HOVER_CLASS =
+  "group-hover/node:[&_.react-flow__handle]:opacity-100";
+
 function StateNode({
   data,
 }: {
@@ -98,12 +146,11 @@ function StateNode({
     isGhost?: boolean;
   };
 }) {
-  const handleStyle = { opacity: 0, width: 10, height: 10 };
-
   return (
     <div
       className={cn(
-        "rounded-xl border-2 px-4 py-2.5 min-w-[148px] text-center transition-all duration-300 relative",
+        "group/node rounded-xl border-2 px-4 py-3 min-w-[148px] text-center transition-all duration-300 relative",
+        HANDLE_HOVER_CLASS,
         data.isGhost
           ? "bg-slate-50 border-dashed border-slate-300"
           : "bg-white",
@@ -111,18 +158,20 @@ function StateNode({
           ? "border-violet-500 scale-105 shadow-[0_0_0_4px_rgba(124,58,237,0.15),0_4px_16px_rgba(124,58,237,0.1)]"
           : data.isGhost
           ? ""
-          : "border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300"
+          : "border-slate-200 shadow-sm hover:shadow-md hover:border-violet-300"
       )}
     >
-      {/* Handles on all 4 sides — ReactFlow picks the closest pair */}
-      <Handle type="target" position={Position.Top}    id="t-top"    style={handleStyle} />
-      <Handle type="target" position={Position.Bottom} id="t-bottom" style={handleStyle} />
-      <Handle type="target" position={Position.Left}   id="t-left"   style={handleStyle} />
-      <Handle type="target" position={Position.Right}  id="t-right"  style={handleStyle} />
-      <Handle type="source" position={Position.Top}    id="s-top"    style={handleStyle} />
-      <Handle type="source" position={Position.Bottom} id="s-bottom" style={handleStyle} />
-      <Handle type="source" position={Position.Left}   id="s-left"   style={handleStyle} />
-      <Handle type="source" position={Position.Right}  id="s-right"  style={handleStyle} />
+      {/* ── Source handles (outgoing) ── */}
+      <Handle type="source" position={Position.Top}    id="s-top"    style={{ ...HANDLE_DOT, top: -5, left: "50%", transform: "translateX(-50%)" }} />
+      <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ ...HANDLE_DOT, bottom: -5, left: "50%", transform: "translateX(-50%)" }} />
+      <Handle type="source" position={Position.Left}   id="s-left"   style={{ ...HANDLE_DOT, left: -5, top: "50%", transform: "translateY(-50%)" }} />
+      <Handle type="source" position={Position.Right}  id="s-right"  style={{ ...HANDLE_DOT, right: -5, top: "50%", transform: "translateY(-50%)" }} />
+
+      {/* ── Target handles (incoming) — small, inline with border ── */}
+      <Handle type="target" position={Position.Top}    id="t-top"    style={{ ...HANDLE_DOT, background: "#34d399", boxShadow: "0 0 0 1px #34d399", top: -5, left: "35%", transform: "translateX(-50%)" }} />
+      <Handle type="target" position={Position.Bottom} id="t-bottom" style={{ ...HANDLE_DOT, background: "#34d399", boxShadow: "0 0 0 1px #34d399", bottom: -5, left: "35%", transform: "translateX(-50%)" }} />
+      <Handle type="target" position={Position.Left}   id="t-left"   style={{ ...HANDLE_DOT, background: "#34d399", boxShadow: "0 0 0 1px #34d399", left: -5, top: "35%", transform: "translateY(-50%)" }} />
+      <Handle type="target" position={Position.Right}  id="t-right"  style={{ ...HANDLE_DOT, background: "#34d399", boxShadow: "0 0 0 1px #34d399", right: -5, top: "35%", transform: "translateY(-50%)" }} />
 
       <div className={cn("font-semibold text-[11px] uppercase tracking-wide", data.isGhost ? "text-slate-400" : "text-slate-700")}>
         {data.label}
@@ -131,7 +180,7 @@ function StateNode({
       {data.isGhost ? (
         <div className="text-[9px] text-slate-400 mt-0.5 italic">not in states list</div>
       ) : data.transitionCount > 0 ? (
-        <div className="text-[10px] text-slate-400 mt-0.5">{data.transitionCount} transitions</div>
+        <div className="text-[10px] text-slate-400 mt-0.5">{data.transitionCount} transition{data.transitionCount !== 1 ? "s" : ""}</div>
       ) : null}
 
       {/* Active pulse indicator */}
@@ -147,14 +196,12 @@ const nodeTypes: NodeTypes = { stateNode: StateNode, anyNode: AnyStateNode };
 // ─── Virtual "★ Any State" node ────────────────────────────────
 
 function AnyStateNode() {
-  const handleStyle = { opacity: 0, width: 10, height: 10 };
-
   return (
-    <div className="rounded-xl border-2 border-dashed border-amber-400 bg-amber-50/80 px-5 py-2.5 min-w-[120px] text-center shadow-sm">
-      <Handle type="source" position={Position.Top}    id="s-top"    style={handleStyle} />
-      <Handle type="source" position={Position.Bottom} id="s-bottom" style={handleStyle} />
-      <Handle type="source" position={Position.Left}   id="s-left"   style={handleStyle} />
-      <Handle type="source" position={Position.Right}  id="s-right"  style={handleStyle} />
+    <div className={cn("group/node rounded-xl border-2 border-dashed border-amber-400 bg-amber-50/80 px-5 py-3 min-w-[120px] text-center shadow-sm relative", HANDLE_HOVER_CLASS)}>
+      <Handle type="source" position={Position.Top}    id="s-top"    style={{ ...HANDLE_DOT, top: -5, left: "50%", transform: "translateX(-50%)", background: "#f59e0b", boxShadow: "0 0 0 1px #f59e0b" }} />
+      <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ ...HANDLE_DOT, bottom: -5, left: "50%", transform: "translateX(-50%)", background: "#f59e0b", boxShadow: "0 0 0 1px #f59e0b" }} />
+      <Handle type="source" position={Position.Left}   id="s-left"   style={{ ...HANDLE_DOT, left: -5, top: "50%", transform: "translateY(-50%)", background: "#f59e0b", boxShadow: "0 0 0 1px #f59e0b" }} />
+      <Handle type="source" position={Position.Right}  id="s-right"  style={{ ...HANDLE_DOT, right: -5, top: "50%", transform: "translateY(-50%)", background: "#f59e0b", boxShadow: "0 0 0 1px #f59e0b" }} />
       <div className="font-semibold text-[12px] text-amber-700 tracking-wide">★ ANY STATE</div>
       <div className="text-[9px] text-amber-500 mt-0.5">wildcard source</div>
     </div>
@@ -169,8 +216,17 @@ export default function FSMPage({
   params: Promise<{ tenantId: string }>;
 }) {
   const { tenantId } = use(params);
+  return (
+    <ReactFlowProvider>
+      <FSMCanvas tenantId={tenantId} />
+    </ReactFlowProvider>
+  );
+}
+
+function FSMCanvas({ tenantId }: { tenantId: string }) {
   const { data: session } = useSession();
   const token = (session as any)?.accessToken as string | undefined;
+  const { setViewport } = useReactFlow();
 
   const { data: intentsData } = useIntents(tenantId);
   const { data: actionsData } = useActions(tenantId);
@@ -222,12 +278,17 @@ export default function FSMPage({
     [allStateItems]
   );
 
-  // Position lookup: auto-position ALL states in a grid
+  // Position lookup: saved layout first, then auto-grid fallback
+  const savedLayout = useMemo(() => loadLayout(tenantId), []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const STATE_POSITIONS_DYNAMIC: Record<string, { x: number; y: number }> = useMemo(() => {
     return Object.fromEntries(
-      allStateItems.map((s, i) => [s.key, autoPosition(i)])
+      allStateItems.map((s, i) => [
+        s.key,
+        savedLayout?.positions?.[s.key] ?? autoPosition(i),
+      ])
     );
-  }, [allStateItems]);
+  }, [allStateItems, savedLayout]);
 
   // Live trace state (active state highlight only — no SSE panel in this page)
   const [activeState, setActiveState] = useState<string | null>(null);
@@ -237,6 +298,7 @@ export default function FSMPage({
   const [editingTransition, setEditingTransition] = useState<Partial<EditingTransition> | null>(null);
   const [showIntentDialog, setShowIntentDialog] = useState(false);
   const [showStatesDialog, setShowStatesDialog] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const pendingSaveRef = useRef(false);
 
@@ -251,8 +313,6 @@ export default function FSMPage({
     return m;
   }, [transitions]);
 
-  // Map each destination state → action (the skill that "owns" that state)
-  // Used only for edge coloring, NOT for node coloring
   const hasWildcards = useMemo(
     () => transitions.some((t) => t.from_states.length === 0),
     [transitions]
@@ -329,6 +389,16 @@ export default function FSMPage({
   const loadedTransitionsRef = useRef<string>("");
   const loadedNodesRef = useRef<string>("");
 
+  // Restore saved viewport once on first mount
+  const viewportRestoredRef = useRef(false);
+  useEffect(() => {
+    if (viewportRestoredRef.current) return;
+    viewportRestoredRef.current = true;
+    if (savedLayout?.viewport) {
+      setViewport(savedLayout.viewport);
+    }
+  }, [savedLayout, setViewport]);
+
   // Sync transitions → edges only when the server data actually changes
   useEffect(() => {
     const key = JSON.stringify(transitions);
@@ -355,6 +425,27 @@ export default function FSMPage({
       }))
     );
   }, [activeState, setNodes]);
+
+  // Persist node positions whenever they change (debounced 500ms)
+  const layoutSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onNodesChangeWithPersist = useCallback(
+    (changes: Parameters<typeof onNodesChange>[0]) => {
+      onNodesChange(changes);
+      // Debounce layout save
+      if (layoutSaveTimerRef.current) clearTimeout(layoutSaveTimerRef.current);
+      layoutSaveTimerRef.current = setTimeout(() => {
+        setNodes((currentNodes) => {
+          const positions: Record<string, { x: number; y: number }> = {};
+          currentNodes.forEach((n) => { positions[n.id] = n.position; });
+          // We don't have viewport here easily, save what we have; viewport is saved onMoveEnd
+          const existing = loadLayout(tenantId);
+          saveLayout(tenantId, positions, existing?.viewport ?? { x: 0, y: 0, zoom: 1 });
+          return currentNodes;
+        });
+      }, 500);
+    },
+    [onNodesChange, setNodes, tenantId]
+  );
 
   // ── Edge click → edit transition ───────────────────────────
 
@@ -534,20 +625,29 @@ export default function FSMPage({
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
+        onNodesChange={onNodesChangeWithPersist}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onEdgeClick={onEdgeClick}
         nodeTypes={nodeTypes}
         connectionMode={ConnectionMode.Loose}
-        fitView
+        fitView={!savedLayout}
         fitViewOptions={{ padding: 0.18 }}
         defaultEdgeOptions={{ type: "straight", animated: false }}
         onPaneClick={() => { setSelectedEdge(null); setEditingTransition(null); }}
+        onMoveEnd={(_, viewport) => {
+          // Persist viewport (zoom + pan) after the user stops moving
+          setNodes((currentNodes) => {
+            const positions: Record<string, { x: number; y: number }> = {};
+            currentNodes.forEach((n) => { positions[n.id] = n.position; });
+            saveLayout(tenantId, positions, viewport);
+            return currentNodes;
+          });
+        }}
       >
         <Background gap={16} size={1} color="#e8e8ed" />
-        <Controls />
-        <MiniMap nodeColor={(n) => n.data?.isGhost ? "#e2e8f0" : "#c7d2fe"} />
+        <Controls position="bottom-left" />
+        <MiniMap nodeColor={(n) => n.data?.isGhost ? "#e2e8f0" : "#c7d2fe"} position="bottom-right" />
       </ReactFlow>
 
       {/* ── Top toolbar ──────────────────────────────── */}
@@ -594,18 +694,59 @@ export default function FSMPage({
         </Button>
       </div>
 
-      {/* ── Info bar bottom ──────────────────────────── */}
-      <div className="absolute bottom-12 left-4 text-[11px] text-muted-foreground bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-lg border shadow-sm z-10 flex items-center gap-3">
-        <span><strong className="text-amber-600">★ ANY</strong> = wildcard (all states)</span>
-        <span className="text-slate-300">|</span>
-        <span>Arrows show <em>intent → action</em></span>
-        <span className="text-slate-300">|</span>
-        <span className="text-slate-400">Click arrow to edit · Drag handle to connect</span>
+      {/* ── Help button (top-right) ───────────────────── */}
+      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+        {!editingTransition && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="shadow-sm bg-white/95 backdrop-blur-sm gap-1.5"
+            onClick={() => setShowHelp((v) => !v)}
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+            Help
+          </Button>
+        )}
       </div>
+
+      {/* ── Help popover ─────────────────────────────── */}
+      {showHelp && !editingTransition && (
+        <div className="absolute top-14 right-4 z-30 w-80 bg-white rounded-2xl border shadow-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50">
+            <div className="font-semibold text-sm text-slate-800">FSM Editor — How it works</div>
+            <button
+              onClick={() => setShowHelp(false)}
+              className="rounded-md p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+          <div className="p-4 space-y-4 text-sm text-slate-700">
+            <HelpSection icon="🔵" title="Nodes = States">
+              Each box represents a conversation state (e.g. <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">faq_answer</code>, <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">checkout</code>). Drag nodes freely — positions are saved automatically.
+            </HelpSection>
+            <HelpSection icon="➡️" title="Arrows = Transitions">
+              An arrow means: <em>"when intent X is detected in state A, execute action Y and move to state B"</em>. Click any arrow to edit it.
+            </HelpSection>
+            <HelpSection icon="🟡" title="★ ANY STATE node">
+              Transitions originating from <strong>★ ANY</strong> apply regardless of the current state — useful for global intents like <em>goodbye</em> or <em>complaint</em>.
+            </HelpSection>
+            <HelpSection icon="🟣" title="Connection handles">
+              Hover a node to reveal <span className="text-violet-500 font-medium">purple dots</span> (source) and <span className="text-emerald-500 font-medium">green dots</span> (target) on each side. Drag from any dot to create a connection — just like draw.io.
+            </HelpSection>
+            <HelpSection icon="💾" title="Layout persistence">
+              Node positions, zoom, and pan are saved in your browser automatically. Use <strong>Save Changes</strong> (top-left) to commit transition rules to the server.
+            </HelpSection>
+            <HelpSection icon="🎯" title="Intent wildcard">
+              Leave Intent blank (wildcard) on a transition to match <em>any</em> detected intent from that state.
+            </HelpSection>
+          </div>
+        </div>
+      )}
 
       {/* ── Transition editor overlay ─────────────────── */}
       {editingTransition && (
-        <div className="absolute top-4 right-4 z-20 w-72 bg-white rounded-2xl border shadow-lg overflow-hidden">
+        <div className="absolute top-4 right-4 z-20">
           <TransitionEditor
             transition={editingTransition}
             intents={intents}
@@ -635,6 +776,20 @@ export default function FSMPage({
         onClose={() => setShowStatesDialog(false)}
         states={fsmStateItems as { key: string; label: string; is_default?: boolean }[]}
       />
+    </div>
+  );
+}
+
+// ─── Help section sub-component ───────────────────────────────
+
+function HelpSection({ icon, title, children }: { icon: string; title: string; children: ReactNode }) {
+  return (
+    <div className="flex gap-3">
+      <span className="text-base shrink-0 mt-0.5">{icon}</span>
+      <div>
+        <div className="font-semibold text-slate-800 mb-0.5">{title}</div>
+        <div className="text-slate-500 text-xs leading-relaxed">{children}</div>
+      </div>
     </div>
   );
 }
@@ -676,130 +831,180 @@ function TransitionEditor({
 }) {
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="font-medium text-sm">Edit Transition</div>
-        <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-xs">
-          From State{" "}
-          <span className="text-muted-foreground">(Any = applies from every state)</span>
-        </Label>
-        <Select
-          value={transition.fromState || FROM_ANY}
-          onValueChange={(v) => onChange({ ...transition, fromState: v === FROM_ANY ? "" : v })}
-        >
-          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value={FROM_ANY} className="text-xs text-muted-foreground italic">
-              ✦ Any State (wildcard)
-            </SelectItem>
-            {allStates.map((s) => (
-              <SelectItem key={s.key} value={s.key} className="text-xs">
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-xs">To State</Label>
-        <Select
-          value={transition.to_state || ""}
-          onValueChange={(v) => onChange({ ...transition, to_state: v })}
-        >
-          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select target state…" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__same__" className="text-xs text-muted-foreground italic">
-              ↩ Same State (no change)
-            </SelectItem>
-            {allStates.map((s) => (
-              <SelectItem key={s.key} value={s.key} className="text-xs">
-                {s.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-xs">Intent <span className="text-muted-foreground">(leave blank for wildcard)</span></Label>
-        <Select
-          value={transition.intent || INTENT_WILDCARD}
-          onValueChange={(v) => onChange({ ...transition, intent: v === INTENT_WILDCARD ? "" : v })}
-        >
-          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Any intent" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value={INTENT_WILDCARD} className="text-xs text-muted-foreground">Any intent (wildcard)</SelectItem>
-            {intents.map((i) => (
-              <SelectItem key={i.key} value={i.key} className="text-xs">
-                {i.name ?? i.key}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-xs">Action</Label>
-        <Select
-          value={transition.action}
-          onValueChange={(v) => onChange({ ...transition, action: v })}
-        >
-          <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {/* Built-in catalog actions */}
-            {(actions.length > 0 ? actions.map((a) => a.key) : Object.keys(ACTION_LABELS)).map((a) => (
-              <SelectItem key={a} value={a} className="text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: ACTION_COLORS[a] }} />
-                  {ACTION_LABELS[a] ?? a}
-                </div>
-              </SelectItem>
-            ))}
-            {/* Custom conversational personas */}
-            {customSkills.length > 0 && (
-              <>
-                <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wide border-t mt-1 pt-2">
-                  Custom Personas
-                </div>
-                {customSkills.map((skill) => (
-                  <SelectItem key={skill.action} value={skill.action} className="text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full" style={{ backgroundColor: "#FF2D55" }} />
-                      {skill.name ?? skill.action.replace("conversational__", "").replace(/_/g, " ")}
-                    </div>
-                  </SelectItem>
-                ))}
-              </>
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {transition.action === "static_reply" && (
-        <div className="space-y-1.5">
-          <Label className="text-xs">Static Message</Label>
-          <Input
-            className="text-xs h-8"
-            placeholder="Message to send…"
-            value={transition.static_message ?? ""}
-            onChange={(e) => onChange({ ...transition, static_message: e.target.value })}
-          />
+    <div className="w-[300px] bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+        <div className="flex items-center gap-2">
+          <GitBranch className="h-4 w-4 text-violet-500" />
+          <span className="font-semibold text-sm text-slate-800">Edit Transition</span>
         </div>
-      )}
+        <button
+          onClick={onCancel}
+          className="rounded-md p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
 
-      <div className="flex gap-2 pt-1">
-        <Button size="sm" className="flex-1" onClick={onSave}>
-          <Save className="h-3.5 w-3.5 mr-1" />
+      {/* Body */}
+      <div className="p-4 space-y-4">
+        {/* From State */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-slate-700">
+            From State
+            <span className="ml-1.5 text-slate-400 font-normal">(Any = applies from every state)</span>
+          </Label>
+          <Select
+            value={transition.fromState || FROM_ANY}
+            onValueChange={(v) => onChange({ ...transition, fromState: v === FROM_ANY ? "" : v })}
+          >
+            <SelectTrigger className="h-9 text-sm border-slate-200 focus:ring-violet-500 focus:border-violet-400">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={FROM_ANY} className="text-sm">
+                <span className="text-amber-600 font-medium">✦ Any State</span>
+                <span className="ml-1.5 text-slate-400 text-xs">(wildcard)</span>
+              </SelectItem>
+              {allStates.map((s) => (
+                <SelectItem key={s.key} value={s.key} className="text-sm">
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Arrow visual */}
+        <div className="flex items-center gap-2 text-slate-300 text-xs">
+          <div className="flex-1 h-px bg-slate-100" />
+          <span className="shrink-0">↓ transitions to</span>
+          <div className="flex-1 h-px bg-slate-100" />
+        </div>
+
+        {/* To State */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-slate-700">To State</Label>
+          <Select
+            value={transition.to_state || ""}
+            onValueChange={(v) => onChange({ ...transition, to_state: v })}
+          >
+            <SelectTrigger className="h-9 text-sm border-slate-200 focus:ring-violet-500 focus:border-violet-400">
+              <SelectValue placeholder="Select target state…" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__same__" className="text-sm">
+                <span className="text-slate-500">↩ Same State</span>
+                <span className="ml-1.5 text-slate-400 text-xs">(no change)</span>
+              </SelectItem>
+              {allStates.map((s) => (
+                <SelectItem key={s.key} value={s.key} className="text-sm">
+                  {s.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="h-px bg-slate-100" />
+
+        {/* Intent */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-slate-700">
+            Intent
+            <span className="ml-1.5 text-slate-400 font-normal">(blank = any intent)</span>
+          </Label>
+          <Select
+            value={transition.intent || INTENT_WILDCARD}
+            onValueChange={(v) => onChange({ ...transition, intent: v === INTENT_WILDCARD ? "" : v })}
+          >
+            <SelectTrigger className="h-9 text-sm border-slate-200 focus:ring-violet-500 focus:border-violet-400">
+              <SelectValue placeholder="Any intent" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={INTENT_WILDCARD} className="text-sm text-slate-500">
+                — Any intent (wildcard)
+              </SelectItem>
+              {intents.map((i) => (
+                <SelectItem key={i.key} value={i.key} className="text-sm">
+                  {i.name ?? i.key}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Action */}
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-slate-700">Action</Label>
+          <Select
+            value={transition.action}
+            onValueChange={(v) => onChange({ ...transition, action: v })}
+          >
+            <SelectTrigger className="h-9 text-sm border-slate-200 focus:ring-violet-500 focus:border-violet-400">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {/* Built-in catalog actions */}
+              {(actions.length > 0 ? actions.map((a) => a.key) : Object.keys(ACTION_LABELS)).map((a) => (
+                <SelectItem key={a} value={a} className="text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: ACTION_COLORS[a] ?? "#94a3b8" }} />
+                    {ACTION_LABELS[a] ?? a}
+                  </div>
+                </SelectItem>
+              ))}
+              {/* Custom conversational personas */}
+              {customSkills.length > 0 && (
+                <>
+                  <div className="px-3 pt-3 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-widest border-t mt-1">
+                    Custom Personas
+                  </div>
+                  {customSkills.map((skill) => (
+                    <SelectItem key={skill.action} value={skill.action} className="text-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full shrink-0 bg-rose-500" />
+                        {skill.name ?? skill.action.replace("conversational__", "").replace(/_/g, " ")}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Static message (only for static_reply) */}
+        {transition.action === "static_reply" && (
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-slate-700">Static Message</Label>
+            <Input
+              className="text-sm h-9 border-slate-200 focus-visible:ring-violet-500"
+              placeholder="Message to send…"
+              value={transition.static_message ?? ""}
+              onChange={(e) => onChange({ ...transition, static_message: e.target.value })}
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="px-4 pb-4 flex items-center gap-2">
+        <Button
+          size="sm"
+          className="flex-1 h-9 bg-violet-600 hover:bg-violet-700 text-white font-medium"
+          onClick={onSave}
+        >
+          <Save className="h-3.5 w-3.5 mr-1.5" />
           Apply
         </Button>
-        <Button size="sm" variant="destructive" onClick={onDelete}>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-9 w-9 p-0 border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+          onClick={onDelete}
+          title="Delete transition"
+        >
           <Trash2 className="h-3.5 w-3.5" />
         </Button>
       </div>

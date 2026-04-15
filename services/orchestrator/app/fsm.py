@@ -242,17 +242,45 @@ async def _route_by_intent(
     current_state = session.fsm_state.value if isinstance(session.fsm_state, ConversationFSMState) else session.fsm_state
     intent_value = intent.value if isinstance(intent, IntentType) else str(intent)
 
-    # ── Buscar la primera transición que aplica ───────────────────────────────
+    # ── Buscar la transición que mejor aplica ────────────────────────────────
+    #
+    # Scoring de especificidad (mayor = mejor):
+    #   +2  intent coincide exactamente
+    #   +1  intent es wildcard (vacío) — matches anything
+    #   +2  from_states incluye el estado actual
+    #   +1  from_states vacío — matches any state
+    #
+    # Si hay empate de score, gana la última (permite que overrides del
+    # usuario, que se añaden al final de la lista, superen a los defaults).
     matched: FlowTransition | None = None
+    best_score = -1
     for t in transitions:
         if not t.enabled:
             continue
-        if t.intent != intent_value:
+        # Intent match: exact > wildcard > no match
+        if t.intent and t.intent != intent_value:
             continue
+        intent_score = 2 if t.intent == intent_value else 1  # 1 = wildcard
+        # State match: exact > wildcard > no match
         if t.from_states and current_state not in t.from_states:
             continue
-        matched = t
-        break
+        state_score = 2 if (t.from_states and current_state in t.from_states) else 1  # 1 = wildcard
+        score = intent_score + state_score
+        if score >= best_score:
+            best_score = score
+            matched = t
+
+    if matched is not None:
+        logger.debug(
+            "fsm_transition_matched",
+            tenant_id=session.tenant_id,
+            intent=intent_value,
+            state=current_state,
+            matched_intent=matched.intent or "*",
+            matched_action=matched.action,
+            matched_to_state=matched.to_state,
+            score=best_score,
+        )
 
     if matched is None:
         # Ninguna transición coincide → intentar RAG como fallback inteligente

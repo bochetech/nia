@@ -307,7 +307,8 @@ class SessionState(BaseModel):
     """Estado completo de una sesión en Redis."""
     session_id: str
     tenant_id: str
-    fsm_state: ConversationFSMState = ConversationFSMState.IDLE
+    # fsm_state puede ser un enum conocido o un string para estados personalizados del tenant
+    fsm_state: Union[ConversationFSMState, str] = ConversationFSMState.IDLE
     lead_id: Union[str, None] = None
     lead_captured: bool = False
     user_profile_id: Union[str, None] = None
@@ -321,7 +322,7 @@ class SessionState(BaseModel):
     booking_intent_id: Union[str, None] = None
     checkout_session_id: Union[str, None] = None
     handoff_case_id: Union[str, None] = None
-    previous_fsm_state: Union[ConversationFSMState, None] = None
+    previous_fsm_state: Union[ConversationFSMState, str, None] = None
     page_url: Union[str, None] = None
     user_agent: Union[str, None] = None
     # Historial de conversación (últimos MAX_HISTORY_TURNS turnos en Redis)
@@ -542,21 +543,53 @@ class EmailConfig(BaseModel):
 class AIConfig(BaseModel):
     """Configuración del modelo de lenguaje (LLM) y comportamiento de generación de respuestas."""
 
+    # ── Conexión primaria ────────────────────────────────────────────────────
     primary_provider: str = Field(
-        default="vertex_ai",
-        description="Proveedor LLM principal. Valores: 'vertex_ai' | 'openai' | 'anthropic' | 'lmstudio'.",
+        default="lmstudio",
+        description="Tipo de proveedor principal: 'lmstudio' | 'openai' | 'openai_compat' | 'anthropic' | 'vertex_ai'.",
     )
     primary_model: str = Field(
-        default="gemini-1.5-flash",
-        description="Nombre del modelo principal, ej: 'gemini-1.5-flash', 'gpt-4o', 'claude-3-haiku', 'llama-3.2-3b-instruct'.",
+        default="",
+        description=(
+            "Nombre exacto del modelo tal como lo reporta la API, "
+            "ej: 'google/gemma-4-e4b', 'gpt-4o', 'claude-3-5-sonnet-20241022'. "
+            "Vacío = usa el modelo por defecto del proveedor configurado en el servidor."
+        ),
     )
+    primary_endpoint_url: str = Field(
+        default="",
+        description=(
+            "URL base del endpoint del proveedor primario. "
+            "Para LM Studio local: 'http://localhost:1234'. "
+            "Para servicios compatibles con OpenAI: URL del servidor. "
+            "Vacío = usa la URL configurada en el servidor."
+        ),
+    )
+    primary_api_key: str = Field(
+        default="",
+        description=(
+            "API key del proveedor primario. "
+            "Para LM Studio local no se requiere (dejar vacío). "
+            "Se almacena cifrado en la base de datos."
+        ),
+    )
+
+    # ── Conexión fallback ────────────────────────────────────────────────────
     fallback_provider: str = Field(
         default="openai",
         description="Proveedor al que el model-adapter escala si el principal falla o está saturado.",
     )
     fallback_model: str = Field(
-        default="gpt-4o-mini",
-        description="Modelo del proveedor de fallback.",
+        default="",
+        description="Modelo del proveedor de fallback. Vacío = usa el modelo por defecto del fallback.",
+    )
+    fallback_endpoint_url: str = Field(
+        default="",
+        description="URL base del endpoint fallback. Vacío = usa la URL configurada en el servidor.",
+    )
+    fallback_api_key: str = Field(
+        default="",
+        description="API key del proveedor fallback.",
     )
     temperature: float = Field(
         default=0.3,

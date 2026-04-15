@@ -104,10 +104,17 @@ export interface LeadConfig {
 }
 
 export interface AIConfig {
+  // Primary connection
   primary_provider: string;
   primary_model: string;
+  primary_endpoint_url: string;
+  primary_api_key: string;
+  // Fallback connection
   fallback_provider: string;
   fallback_model: string;
+  fallback_endpoint_url: string;
+  fallback_api_key: string;
+  // Generation parameters
   temperature: number;
   max_tokens: number;
   top_p: number;

@@ -180,7 +180,7 @@ async def chat(
         session_id=session_id,
         tenant_id=tenant_id,
         response=result.response_text,
-        fsm_state=result.new_state.value,
+        fsm_state=result.new_state.value if hasattr(result.new_state, "value") else str(result.new_state),
         show_lead_form=result.show_lead_form,
         recommendations=(
             [r.model_dump() for r in result.recommendations.recommendations]

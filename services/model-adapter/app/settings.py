@@ -10,6 +10,9 @@ class ModelAdapterSettings(BaseServiceSettings):
     service_name: str = "model-adapter"
     port: int = 8005
 
+    # Tenant manager (to read per-tenant ai_config connection settings)
+    tenant_manager_url: str = "http://nia_tenant_manager:8001/v1/tenants"
+
     # LM Studio
     lm_studio_base_url: str = "http://localhost:1234"
     lm_studio_chat_model: str = "google/gemma-4-e4b"

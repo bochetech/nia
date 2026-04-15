@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
 
 from app.providers.base import ChatRequest, ChatResponse
-from app.providers.factory import create_provider
+from app.providers.factory import create_provider, create_provider_for_tenant
 from app.settings import get_settings
 from shared.utils.logging import get_logger
 from shared.utils.responses import APIResponse
@@ -13,8 +13,13 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-def _get_provider():
-    return create_provider(get_settings())
+def _get_provider(request: ChatRequest):
+    """Return a provider scoped to the tenant if it has custom connection config,
+    otherwise fall back to the server-level default provider."""
+    settings = get_settings()
+    if request.tenant_id:
+        return create_provider_for_tenant(request.tenant_id, settings)
+    return create_provider(settings)
 
 
 @router.post(
@@ -23,7 +28,7 @@ def _get_provider():
     summary="Chat completion (non-streaming)",
 )
 async def chat_completions(request: ChatRequest) -> APIResponse[ChatResponse]:
-    provider = _get_provider()
+    provider = _get_provider(request)
     try:
         result = await provider.chat(request)
     except Exception as exc:
@@ -41,7 +46,7 @@ async def chat_completions(request: ChatRequest) -> APIResponse[ChatResponse]:
     summary="Chat completion (streaming SSE)",
 )
 async def chat_stream(request: ChatRequest) -> StreamingResponse:
-    provider = _get_provider()
+    provider = _get_provider(request)
 
     async def event_generator():
         try:

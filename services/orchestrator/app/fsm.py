@@ -45,6 +45,24 @@ async def _publish_trace(tenant_id: str, session_id: str, event: dict) -> None:
         pass  # Trace is best-effort — never block the conversation
 
 
+def _resolve_fsm_state(
+    to_state: str,
+    current_state: ConversationFSMState | str,
+) -> ConversationFSMState | str:
+    """
+    Resolve a target state string to either:
+    - The corresponding ConversationFSMState enum value (if it exists)
+    - The raw string (for custom tenant-defined states)
+    - The current state if to_state is "__same__" or empty
+    """
+    if to_state == "__same__" or not to_state:
+        return current_state
+    try:
+        return ConversationFSMState(to_state)
+    except ValueError:
+        # Custom state defined by tenant — use as-is
+        return to_state
+
 
 class FSMResult:
     """Resultado de procesar un mensaje en el FSM."""
@@ -374,11 +392,8 @@ async def _route_by_intent(
         )
 
     if matched.action == "static_reply":
-        # Resolver estado final (__same__ = mantener estado actual)
-        if matched.to_state == "__same__":
-            final_state = session.fsm_state
-        else:
-            final_state = ConversationFSMState(matched.to_state)
+        # Resolver estado final (__same__ = mantener estado actual, o custom state)
+        final_state = _resolve_fsm_state(matched.to_state, session.fsm_state)
         return FSMResult(
             response_text=matched.static_message or "No tengo información sobre eso.",
             new_state=final_state,
@@ -493,14 +508,8 @@ async def _handle_conversational(
     if not answer:
         answer = error_msg
 
-    # Resolve target FSM state
-    if to_state == "__same__" or not to_state:
-        new_state = session.fsm_state
-    else:
-        try:
-            new_state = ConversationFSMState(to_state)
-        except ValueError:
-            new_state = session.fsm_state
+    # Resolve target FSM state (supports custom tenant states)
+    new_state = _resolve_fsm_state(to_state, session.fsm_state)
 
     await transition_state(session, new_state)
     return FSMResult(

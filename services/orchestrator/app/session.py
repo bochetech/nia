@@ -50,7 +50,7 @@ async def get_or_create_session(tenant_id: str, session_id: str) -> SessionState
 
 async def transition_state(
     state: SessionState,
-    new_fsm_state: ConversationFSMState,
+    new_fsm_state: ConversationFSMState | str,
 ) -> SessionState:
     """Realiza una transición de estado FSM con logging."""
     old_state = state.fsm_state

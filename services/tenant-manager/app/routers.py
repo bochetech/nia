@@ -808,7 +808,8 @@ async def replace_transitions(
 
     errors = []
     for t in transitions:
-        if t.intent not in valid_keys:
+        # Empty intent = wildcard (matches any intent) — skip validation
+        if t.intent and t.intent not in valid_keys:
             errors.append(f"Intent '{t.intent}' not found in configured intents. Valid: {sorted(valid_keys)}")
         is_conversational_sub = t.action.startswith("conversational__") and len(t.action) > len("conversational__")
         if t.action not in valid_actions and not is_conversational_sub:

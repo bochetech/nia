@@ -238,6 +238,7 @@ export default function FSMPage({
   const [showIntentDialog, setShowIntentDialog] = useState(false);
   const [showStatesDialog, setShowStatesDialog] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
+  const pendingSaveRef = useRef(false);
 
   // Build React Flow nodes
   const transitionCountMap = useMemo(() => {
@@ -463,8 +464,8 @@ export default function FSMPage({
       }
       setEdges((es) => [...es, ...newEdges]);
       setIsDirty(true);
+      pendingSaveRef.current = true;
       setEditingTransition(null);
-      toast.success("Transition added — save to persist");
       return;
     }
 
@@ -484,6 +485,7 @@ export default function FSMPage({
       })
     );
     setIsDirty(true);
+    pendingSaveRef.current = true;
     setSelectedEdge(null);
     setEditingTransition(null);
   }, [selectedEdge, editingTransition, setEdges]);
@@ -492,6 +494,7 @@ export default function FSMPage({
     if (!selectedEdge) return;
     setEdges((es) => es.filter((e) => e.id !== selectedEdge.id));
     setIsDirty(true);
+    pendingSaveRef.current = true;
     setSelectedEdge(null);
     setEditingTransition(null);
   }, [selectedEdge, setEdges]);
@@ -508,6 +511,13 @@ export default function FSMPage({
       toast.error("Failed to save transitions");
     }
   }, [edges, replaceTransitions]);
+
+  // Auto-save when edges are modified (add / edit / delete) via the overlay editor
+  useEffect(() => {
+    if (!pendingSaveRef.current) return;
+    pendingSaveRef.current = false;
+    saveAll();
+  }, [edges]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="relative h-[calc(100vh-4rem)] overflow-hidden">

@@ -60,14 +60,14 @@ export default function AnalyticsPage({
               Conversation metrics and session history
             </p>
           </div>
-          <div className="flex gap-0.5 rounded-lg border p-0.5 bg-muted/50">
+          <div className="flex gap-0.5 rounded-xl border border-black/[0.04] p-0.5 bg-[#f5f5f7] shadow-apple-sm">
             {DAY_OPTIONS.map((d) => (
               <button
                 key={d}
                 onClick={() => { setDays(d); setPage(1); }}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-[10px] text-[12px] font-medium transition-all duration-150 ${
                   days === d
-                    ? "bg-background shadow-sm text-foreground"
+                    ? "bg-white shadow-apple-sm text-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -84,16 +84,16 @@ export default function AnalyticsPage({
           label="Conversations"
           value={formatNumber(analytics?.total_conversations)}
           loading={analyticsLoading}
-          bg="bg-blue-50"
-          fg="text-blue-600"
+          bg="bg-[#007AFF]/8"
+          fg="text-[#007AFF]"
         />
         <KpiCard
           icon={<Users className="h-4 w-4" />}
           label="Messages"
           value={formatNumber(analytics?.total_messages)}
           loading={analyticsLoading}
-          bg="bg-violet-50"
-          fg="text-violet-600"
+          bg="bg-[#AF52DE]/8"
+          fg="text-[#AF52DE]"
         />
         <KpiCard
           icon={<Star className="h-4 w-4" />}
@@ -101,8 +101,8 @@ export default function AnalyticsPage({
           value={analytics?.avg_nps != null ? analytics.avg_nps.toFixed(1) : "—"}
           sub={analytics?.nps_responses ? `${analytics.nps_responses} responses` : undefined}
           loading={analyticsLoading}
-          bg="bg-amber-50"
-          fg="text-amber-600"
+          bg="bg-[#FF9500]/8"
+          fg="text-[#FF9500]"
         />
         <KpiCard
           icon={<DollarSign className="h-4 w-4" />}
@@ -110,8 +110,8 @@ export default function AnalyticsPage({
           value={formatCurrency(analytics?.estimated_cost_usd)}
           sub={analytics?.total_tokens ? `${formatNumber(analytics.total_tokens)} tokens` : undefined}
           loading={analyticsLoading}
-          bg="bg-emerald-50"
-          fg="text-emerald-600"
+          bg="bg-[#34C759]/8"
+          fg="text-[#34C759]"
         />
       </div>
 
@@ -134,8 +134,8 @@ export default function AnalyticsPage({
                 <AreaChart data={analytics!.daily_volume}>
                   <defs>
                     <linearGradient id="msgGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#007AFF" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#007AFF" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -152,7 +152,7 @@ export default function AnalyticsPage({
                   <Area
                     type="monotone"
                     dataKey="messages"
-                    stroke="#6366f1"
+                    stroke="#007AFF"
                     strokeWidth={2}
                     fill="url(#msgGrad)"
                   />
@@ -191,7 +191,7 @@ export default function AnalyticsPage({
                     tickFormatter={(v: string) => v.length > 12 ? v.slice(0, 12) + "…" : v}
                   />
                   <Tooltip contentStyle={{ fontSize: 12 }} />
-                  <Bar dataKey="count" fill="#10b981" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="count" fill="#34C759" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -352,18 +352,18 @@ function KpiCard({
   fg: string;
 }) {
   return (
-    <div className="rounded-xl border bg-card p-4 transition-colors hover:bg-accent/30">
+    <div className="rounded-xl border border-black/[0.04] bg-white p-4 shadow-apple transition-shadow hover:shadow-apple-md">
       <div className="flex items-center gap-3">
-        <div className={`rounded-lg p-2 ${bg}`}>
+        <div className={`rounded-xl p-2.5 ${bg}`}>
           <span className={fg}>{icon}</span>
         </div>
         <div className="min-w-0">
-          <div className="text-xs text-muted-foreground">{label}</div>
+          <div className="text-[11px] font-medium text-muted-foreground">{label}</div>
           {loading ? (
-            <div className="h-6 w-16 rounded bg-muted animate-pulse mt-0.5" />
+            <div className="h-6 w-16 rounded-lg bg-muted animate-pulse mt-0.5" />
           ) : (
             <>
-              <div className="text-xl font-bold tabular-nums">{value}</div>
+              <div className="text-xl font-semibold tabular-nums tracking-tight">{value}</div>
               {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
             </>
           )}

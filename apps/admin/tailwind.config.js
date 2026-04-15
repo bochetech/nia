@@ -59,8 +59,21 @@ module.exports = {
         sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "system-ui", "sans-serif"],
-        mono: ["var(--font-geist-mono)", "monospace"],
+        sans: [
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "SF Pro Text",
+          "SF Pro Display",
+          "var(--font-geist-sans)",
+          "system-ui",
+          "sans-serif",
+        ],
+        mono: [
+          "SF Mono",
+          "var(--font-geist-mono)",
+          "ui-monospace",
+          "monospace",
+        ],
       },
       keyframes: {
         "accordion-down": {
@@ -72,12 +85,20 @@ module.exports = {
           to: { height: "0" },
         },
         "fade-in": {
-          from: { opacity: "0", transform: "translateY(4px)" },
+          from: { opacity: "0", transform: "translateY(6px)" },
           to: { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in-scale": {
+          from: { opacity: "0", transform: "scale(0.97)" },
+          to: { opacity: "1", transform: "scale(1)" },
         },
         "slide-in-right": {
           from: { transform: "translateX(100%)" },
           to: { transform: "translateX(0)" },
+        },
+        "subtle-bounce": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-2px)" },
         },
         pulse_ring: {
           "0%, 100%": { opacity: "1" },
@@ -87,9 +108,17 @@ module.exports = {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.2s ease-out",
-        "slide-in-right": "slide-in-right 0.3s ease-out",
-        "pulse-ring": "pulse_ring 1.5s ease-in-out infinite",
+        "fade-in": "fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        "fade-in-scale": "fade-in-scale 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+        "slide-in-right": "slide-in-right 0.35s cubic-bezier(0.16, 1, 0.3, 1)",
+        "subtle-bounce": "subtle-bounce 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)",
+        "pulse-ring": "pulse_ring 2s ease-in-out infinite",
+      },
+      boxShadow: {
+        "apple-sm": "0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.03)",
+        "apple": "0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)",
+        "apple-md": "0 4px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04)",
+        "apple-lg": "0 8px 30px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04)",
       },
     },
   },

@@ -38,22 +38,22 @@ export default function DashboardPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: "Total Tenants", value: total, icon: Users, bg: "bg-blue-50", fg: "text-blue-600" },
-            { label: "Active", value: active, icon: Activity, bg: "bg-emerald-50", fg: "text-emerald-600" },
-            { label: "Professional+", value: tenants.filter((t) => t.plan !== "starter").length, icon: TrendingUp, bg: "bg-violet-50", fg: "text-violet-600" },
-            { label: "Skills Running", value: active * 7, icon: Zap, bg: "bg-amber-50", fg: "text-amber-600" },
+            { label: "Total Tenants", value: total, icon: Users, bg: "bg-[#007AFF]/8", fg: "text-[#007AFF]" },
+            { label: "Active", value: active, icon: Activity, bg: "bg-[#34C759]/8", fg: "text-[#34C759]" },
+            { label: "Professional+", value: tenants.filter((t) => t.plan !== "starter").length, icon: TrendingUp, bg: "bg-[#AF52DE]/8", fg: "text-[#AF52DE]" },
+            { label: "Skills Running", value: active * 7, icon: Zap, bg: "bg-[#FF9500]/8", fg: "text-[#FF9500]" },
           ].map(({ label, value, icon: Icon, bg, fg }) => (
-            <div key={label} className="rounded-xl border bg-card p-4 transition-colors hover:bg-accent/30">
+            <div key={label} className="rounded-xl border border-black/[0.04] bg-white p-4 shadow-apple transition-shadow hover:shadow-apple-md">
               <div className="flex items-center gap-3">
-                <div className={`rounded-lg p-2 ${bg}`}>
+                <div className={`rounded-xl p-2.5 ${bg}`}>
                   <Icon className={`h-4 w-4 ${fg}`} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">{label}</p>
+                  <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
                   {isLoading ? (
-                    <div className="h-6 w-12 rounded bg-muted animate-pulse mt-0.5" />
+                    <div className="h-6 w-12 rounded-lg bg-muted animate-pulse mt-0.5" />
                   ) : (
-                    <p className="text-xl font-bold tabular-nums">{value}</p>
+                    <p className="text-xl font-semibold tabular-nums tracking-tight">{value}</p>
                   )}
                 </div>
               </div>
@@ -92,9 +92,9 @@ export default function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="rounded-lg border overflow-hidden">
+            <div className="rounded-xl border border-black/[0.04] bg-white shadow-apple overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-[1fr_90px_90px_120px_80px] gap-4 px-4 py-2 bg-muted/50 text-xs font-medium text-muted-foreground border-b">
+              <div className="grid grid-cols-[1fr_90px_90px_120px_80px] gap-4 px-4 py-2.5 bg-[#f5f5f7] text-[11px] font-medium text-muted-foreground border-b border-black/[0.04]">
                 <span>Tenant</span>
                 <span>Status</span>
                 <span>Plan</span>
@@ -105,8 +105,8 @@ export default function DashboardPage() {
                 <Link
                   key={tenant.id}
                   href={`/dashboard/tenants/${tenant.id}/config`}
-                  className={`grid grid-cols-[1fr_90px_90px_120px_80px] gap-4 items-center px-4 py-3 text-sm hover:bg-accent/40 transition-colors group ${
-                    i < tenants.length - 1 ? "border-b" : ""
+                  className={`grid grid-cols-[1fr_90px_90px_120px_80px] gap-4 items-center px-4 py-3 text-sm hover:bg-black/[0.02] transition-colors group ${
+                    i < tenants.length - 1 ? "border-b border-black/[0.04]" : ""
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">

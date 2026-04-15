@@ -53,8 +53,8 @@ export function ApiKeysPanel({ tenantId }: { tenantId: string }) {
       <CardContent className="space-y-4">
         {/* One-time key reveal banner */}
         {newKeyValue && (
-          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
-            <p className="font-medium text-amber-600 dark:text-amber-400 mb-1">
+          <div className="rounded-xl border border-[#FF9500]/20 bg-[#FF9500]/5 p-3 text-sm">
+            <p className="font-medium text-[#FF9500] mb-1">
               Copy your new API key — it won&apos;t be shown again
             </p>
             <div className="flex items-center gap-2">

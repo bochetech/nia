@@ -8,19 +8,19 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 }
 
 const badgeVariants = {
-  default: "bg-primary/10 text-primary border-primary/20",
-  secondary: "bg-secondary text-secondary-foreground border-secondary",
-  destructive: "bg-destructive/10 text-destructive border-destructive/20",
-  outline: "bg-transparent text-foreground border-border",
-  success: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-400",
-  warning: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-400",
+  default: "bg-primary/8 text-primary border-transparent",
+  secondary: "bg-secondary text-secondary-foreground border-transparent",
+  destructive: "bg-red-50 text-red-600 border-transparent dark:bg-red-950 dark:text-red-400",
+  outline: "bg-transparent text-muted-foreground border-border",
+  success: "bg-emerald-50 text-emerald-600 border-transparent dark:bg-emerald-950 dark:text-emerald-400",
+  warning: "bg-orange-50 text-orange-600 border-transparent dark:bg-orange-950 dark:text-orange-400",
 };
 
 export function Badge({ className, variant = "default", ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold transition-colors",
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium tracking-tight transition-colors",
         badgeVariants[variant],
         className
       )}

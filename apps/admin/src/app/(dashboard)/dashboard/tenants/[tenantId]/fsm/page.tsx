@@ -92,10 +92,10 @@ const INTENT_WILDCARD = "__wildcard__";
 // Sentinel for "from any state" (from_states: [])
 const FROM_ANY = "__any__";
 
-/** Resolve an action key → hex color. Handles conversational__ sub-skills (always pink). */
+/** Resolve an action key → hex color. Handles conversational__ sub-skills (always Apple pink). */
 function actionColor(action: string): string {
-  if (action.startsWith("conversational__")) return "#ec4899";
-  return ACTION_COLORS[action] ?? "#94a3b8";
+  if (action.startsWith("conversational__")) return "#FF2D55";
+  return ACTION_COLORS[action] ?? "#8E8E93";
 }
 
 /** Resolve an action key → display label. Handles conversational__ sub-skills. */
@@ -151,7 +151,7 @@ function StateNode({
 
       {/* Active pulse indicator */}
       {data.isActive && (
-        <div className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-violet-500 animate-pulse shadow-lg" />
+        <div className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-[#007AFF] animate-pulse shadow-lg" />
       )}
     </div>
   );
@@ -284,7 +284,7 @@ export default function FSMPage({
             source: fromState,
             target,
             label: `${t.intent} → ${actionLabel(t.action, customSkills)}`,
-            labelStyle: { fontSize: 10, fill: "#374151" },
+            labelStyle: { fontSize: 10, fill: "#636366" },
             labelBgStyle: { fill: "white", fillOpacity: 0.9 },
             labelBgPadding: [4, 4] as [number, number],
             labelBgBorderRadius: 4,
@@ -455,7 +455,7 @@ export default function FSMPage({
           source: src,
           target,
           label: `${flowT.intent || "*"} → ${actionLabel(flowT.action, customSkills)}`,
-          labelStyle: { fontSize: 10, fill: "#374151" },
+          labelStyle: { fontSize: 10, fill: "#636366" },
           labelBgStyle: { fill: "white", fillOpacity: 0.9 },
           labelBgPadding: [4, 4] as [number, number],
           labelBgBorderRadius: 4,
@@ -528,9 +528,9 @@ export default function FSMPage({
           fitViewOptions={{ padding: 0.2 }}
           defaultEdgeOptions={{ type: "straight", animated: false }}
         >
-          <Background gap={16} size={1} color="#e5e7eb" />
+          <Background gap={16} size={1} color="#e8e8ed" />
           <Controls />
-          <MiniMap nodeColor={() => "#94a3b8"} />
+          <MiniMap nodeColor={() => "#8E8E93"} />
         </ReactFlow>
 
         {/* Canvas toolbar */}
@@ -728,8 +728,8 @@ export default function FSMPage({
                 )}
               </div>
               {traceConnected && (
-                <div className="flex items-center gap-1.5 text-xs text-emerald-600">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <div className="flex items-center gap-1.5 text-xs text-[#34C759]">
+                  <span className="h-2 w-2 rounded-full bg-[#34C759] animate-pulse" />
                   Streaming live trace events
                 </div>
               )}
@@ -899,7 +899,7 @@ function TransitionEditor({
                 {customSkills.map((skill) => (
                   <SelectItem key={skill.action} value={skill.action} className="text-xs">
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full" style={{ backgroundColor: "#ec4899" }} />
+                      <div className="h-2 w-2 rounded-full" style={{ backgroundColor: "#FF2D55" }} />
                       {skill.name ?? skill.action.replace("conversational__", "").replace(/_/g, " ")}
                     </div>
                   </SelectItem>
@@ -939,10 +939,10 @@ function TransitionEditor({
 
 function TraceEventCard({ event, stateLabels }: { event: any; stateLabels: Record<string, string> }) {
   const typeColors: Record<string, string> = {
-    intent_detected: "bg-blue-50 border-blue-200 text-blue-700",
-    fsm_transition: "bg-violet-50 border-violet-200 text-violet-700",
-    skill_call: "bg-emerald-50 border-emerald-200 text-emerald-700",
-    connected: "bg-slate-50 border-slate-200 text-slate-500",
+    intent_detected: "bg-[#007AFF]/8 border-[#007AFF]/15 text-[#007AFF]",
+    fsm_transition: "bg-[#AF52DE]/8 border-[#AF52DE]/15 text-[#AF52DE]",
+    skill_call: "bg-[#34C759]/8 border-[#34C759]/15 text-[#34C759]",
+    connected: "bg-[#8E8E93]/8 border-[#8E8E93]/15 text-[#636366]",
   };
 
   const icons: Record<string, React.ReactNode> = {
@@ -951,7 +951,7 @@ function TraceEventCard({ event, stateLabels }: { event: any; stateLabels: Recor
     skill_call: <Zap className="h-3 w-3" />,
   };
 
-  const colorClass = typeColors[event.type] ?? "bg-slate-50 border-slate-200";
+  const colorClass = typeColors[event.type] ?? "bg-[#8E8E93]/8 border-[#8E8E93]/15";
 
   return (
     <div className={cn("rounded border p-2 font-mono", colorClass)}>
@@ -970,7 +970,7 @@ function TraceEventCard({ event, stateLabels }: { event: any; stateLabels: Recor
         <div className="text-[10px] space-y-0.5">
           <div>→ <strong>{stateLabels[event.to] ?? event.to}</strong></div>
           <div>Action: {actionLabel(event.action)}</div>
-          {event.handoff && <div className="text-amber-600 font-semibold">Handoff triggered</div>}
+          {event.handoff && <div className="text-[#FF9500] font-semibold">Handoff triggered</div>}
         </div>
       )}
       {event.type === "skill_call" && (

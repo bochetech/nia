@@ -71,20 +71,20 @@ export const FSM_STATE_LABELS: Record<string, string> = {
 };
 
 export const FSM_STATE_COLORS: Record<string, string> = {
-  idle: "#6b7280",
-  pre_chat: "#8b5cf6",
-  greeting: "#3b82f6",
-  discovery: "#06b6d4",
-  faq_answer: "#10b981",
-  recommending: "#f59e0b",
-  product_selected: "#f97316",
-  checkout_init: "#ef4444",
-  awaiting_payment: "#ec4899",
-  payment_failed: "#dc2626",
-  confirmed: "#16a34a",
-  post_chat: "#64748b",
-  handoff_active: "#d97706",
-  closed: "#374151",
+  idle: "#8E8E93",          // Apple systemGray
+  pre_chat: "#AF52DE",      // Apple purple
+  greeting: "#007AFF",      // Apple blue
+  discovery: "#5AC8FA",     // Apple tealBlue
+  faq_answer: "#34C759",    // Apple green
+  recommending: "#FF9500",  // Apple orange
+  product_selected: "#FF9500", // Apple orange
+  checkout_init: "#FF3B30", // Apple red
+  awaiting_payment: "#FF2D55", // Apple pink
+  payment_failed: "#FF3B30",// Apple red
+  confirmed: "#34C759",     // Apple green
+  post_chat: "#8E8E93",     // Apple systemGray
+  handoff_active: "#FF9500",// Apple orange
+  closed: "#636366",        // Apple systemGray2
 };
 
 export const ACTION_LABELS: Record<string, string> = {
@@ -99,12 +99,12 @@ export const ACTION_LABELS: Record<string, string> = {
 };
 
 export const ACTION_COLORS: Record<string, string> = {
-  faq: "#10b981",
-  recommend: "#f59e0b",
-  handoff: "#d97706",
-  nps: "#3b82f6",
-  complaint: "#ef4444",
-  static_reply: "#6b7280",
-  discovery: "#8b5cf6",
-  conversational: "#ec4899",
+  faq: "#34C759",           // Apple green
+  recommend: "#FF9500",     // Apple orange
+  handoff: "#FF9500",       // Apple orange
+  nps: "#007AFF",           // Apple blue
+  complaint: "#FF3B30",     // Apple red
+  static_reply: "#8E8E93",  // Apple systemGray
+  discovery: "#AF52DE",     // Apple purple
+  conversational: "#FF2D55",// Apple pink
 };

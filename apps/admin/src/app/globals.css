@@ -4,92 +4,94 @@
 
 @layer base {
   :root {
-    /* NIA Brand — warm dark slate */
-    --background: 220 20% 97%;
-    --foreground: 222 47% 11%;
+    /* ── Apple-inspired light palette ──────────────────── */
+    --background: 0 0% 98%;
+    --foreground: 0 0% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card-foreground: 0 0% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 0 0% 9%;
 
-    --primary: 253 91% 58%;        /* violet-600 */
+    --primary: 211 100% 50%;          /* #007AFF — Apple system blue */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 220 9% 94%;
+    --secondary-foreground: 0 0% 22%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 220 9% 94%;
+    --muted-foreground: 220 9% 46%;
 
-    --accent: 220 14% 94%;
-    --accent-foreground: 222 47% 11%;
+    --accent: 220 9% 95%;
+    --accent-foreground: 0 0% 9%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 72% 51%;        /* #DC3545 */
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 253 91% 58%;
+    --border: 220 9% 90%;
+    --input: 220 9% 90%;
+    --ring: 211 100% 50%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
-    /* Sidebar */
-    --sidebar: 222 47% 11%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 253 91% 68%;
+    /* ── Sidebar (light, Apple-style) ─────────────────── */
+    --sidebar: 220 9% 96%;
+    --sidebar-foreground: 0 0% 22%;
+    --sidebar-primary: 211 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 17%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 17%;
-    --sidebar-ring: 253 91% 68%;
+    --sidebar-accent: 211 100% 96%;
+    --sidebar-accent-foreground: 211 100% 40%;
+    --sidebar-border: 220 9% 90%;
+    --sidebar-ring: 211 100% 50%;
+    --sidebar-muted: 220 9% 56%;
 
-    /* FSM state colors */
-    --state-idle: 215 16% 47%;
-    --state-active: 253 91% 58%;
-    --state-terminal: 142 71% 45%;
-    --state-error: 0 84% 60%;
-    --state-handoff: 38 92% 50%;
+    /* ── FSM canvas ───────────────────────────────────── */
+    --state-idle: 220 9% 56%;
+    --state-active: 211 100% 50%;
+    --state-terminal: 142 60% 45%;
+    --state-error: 0 72% 51%;
+    --state-handoff: 32 95% 50%;
   }
 
   .dark {
-    --background: 222 47% 8%;
-    --foreground: 210 40% 98%;
+    --background: 220 10% 8%;
+    --foreground: 0 0% 95%;
 
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 10% 11%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 10% 11%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 253 91% 68%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 211 100% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 10% 16%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 220 10% 16%;
+    --muted-foreground: 220 9% 56%;
 
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 220 10% 16%;
+    --accent-foreground: 0 0% 95%;
 
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 95%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 253 91% 68%;
+    --border: 220 10% 18%;
+    --input: 220 10% 18%;
+    --ring: 211 100% 55%;
 
-    --sidebar: 222 47% 7%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 253 91% 68%;
+    --sidebar: 220 10% 6%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 211 100% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 14%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 14%;
-    --sidebar-ring: 253 91% 68%;
+    --sidebar-accent: 220 10% 13%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 220 10% 13%;
+    --sidebar-ring: 211 100% 55%;
+    --sidebar-muted: 220 9% 46%;
   }
 }
 
@@ -99,20 +101,21 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
 /* React Flow global overrides */
 .react-flow__node {
-  font-family: var(--font-geist-sans, system-ui);
+  font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, system-ui, sans-serif);
 }
 
 .react-flow__edge-path {
-  stroke-width: 2;
+  stroke-width: 1.5;
 }
 
-/* Scrollbar styling */
+/* Scrollbar — Apple-thin */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

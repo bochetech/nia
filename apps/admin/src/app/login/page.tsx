@@ -45,15 +45,15 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted/50 p-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-[#f5f5f7] p-4">
+      <div className="w-full max-w-[360px]">
         {/* Brand */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-14 w-14 rounded-2xl bg-primary mb-4 shadow-lg shadow-primary/20">
-            <span className="text-white font-bold text-2xl">N</span>
+          <div className="inline-flex items-center justify-center h-16 w-16 rounded-[18px] bg-gradient-to-b from-primary to-primary/85 mb-5 shadow-apple-md">
+            <span className="text-white font-semibold text-2xl">N</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">NIA Admin</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-[22px] font-semibold tracking-tight text-foreground">NIA Admin</h1>
+          <p className="text-[13px] text-muted-foreground mt-1.5">
             Sign in to manage your AI assistants
           </p>
         </div>
@@ -61,7 +61,7 @@ function LoginForm() {
         {/* Form */}
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="space-y-4 rounded-2xl border bg-card p-6 shadow-sm"
+          className="space-y-4 rounded-2xl border border-black/[0.04] bg-white p-7 shadow-apple-md"
         >
           {error && (
             <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">
@@ -97,12 +97,12 @@ function LoginForm() {
             )}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
+          <Button type="submit" className="w-full h-10 text-[14px] font-medium" disabled={isSubmitting}>
             {isSubmitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>
 
-        <p className="text-center text-xs text-muted-foreground mt-4">
+        <p className="text-center text-[11px] text-muted-foreground/60 mt-5">
           NIA Platform · Admin Console
         </p>
       </div>

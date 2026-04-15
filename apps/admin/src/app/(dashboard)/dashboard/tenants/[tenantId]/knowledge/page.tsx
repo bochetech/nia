@@ -207,13 +207,13 @@ export default function KnowledgePage({
                   <div
                     key={doc.doc_id}
                     className={cn(
-                      "grid grid-cols-[1fr_100px_100px_80px] gap-4 items-center px-4 py-3 text-sm hover:bg-accent/40 transition-colors group",
+                      "grid grid-cols-[1fr_100px_100px_80px] gap-4 items-center px-4 py-3 text-sm hover:bg-black/[0.02] transition-colors group",
                       i < documents.length - 1 && "border-b"
                     )}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="rounded-md bg-blue-50 p-1.5 shrink-0">
-                        <FileText className="h-3.5 w-3.5 text-blue-600" />
+                      <div className="rounded-lg bg-[#007AFF]/8 p-1.5 shrink-0">
+                        <FileText className="h-3.5 w-3.5 text-[#007AFF]" />
                       </div>
                       <span className="font-medium truncate text-sm">{doc.filename}</span>
                     </div>
@@ -347,8 +347,8 @@ export default function KnowledgePage({
                 {queryResult && (
                   <div className="space-y-3">
                     {/* Answer */}
-                    <div className="rounded-lg border bg-emerald-50 p-4">
-                      <div className="flex items-center gap-2 text-xs font-medium text-emerald-700 mb-2">
+                    <div className="rounded-xl border border-[#34C759]/15 bg-[#34C759]/5 p-4">
+                      <div className="flex items-center gap-2 text-xs font-medium text-[#34C759] mb-2">
                         <MessageSquare className="h-3.5 w-3.5" />
                         Answer
                         <Badge variant="secondary" className="ml-auto text-[10px]">
@@ -449,7 +449,7 @@ function ChunkViewerDialog({
       <DialogContent className="sm:max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
-            <FileText className="h-4 w-4 text-blue-600" />
+            <FileText className="h-4 w-4 text-[#007AFF]" />
             {doc.filename}
           </DialogTitle>
           <DialogDescription>
@@ -532,13 +532,13 @@ function FileStatusRow({
   return (
     <div className="flex items-center gap-2.5 text-xs rounded-lg border px-3 py-2.5">
       {status === "uploading" && <Loader2 className="h-3.5 w-3.5 text-blue-500 animate-spin shrink-0" />}
-      {status === "done" && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />}
+      {status === "done" && <CheckCircle2 className="h-3.5 w-3.5 text-[#34C759] shrink-0" />}
       {status === "failed" && <AlertCircle className="h-3.5 w-3.5 text-destructive shrink-0" />}
       <span className="font-mono truncate flex-1">{name}</span>
       <span className={cn(
         "text-[10px] font-medium",
-        status === "uploading" ? "text-blue-500" :
-        status === "done" ? "text-emerald-600" :
+        status === "uploading" ? "text-[#007AFF]" :
+        status === "done" ? "text-[#34C759]" :
         "text-destructive"
       )}>
         {status === "uploading" ? "Processing…" : status === "done" ? "Ingested" : "Failed"}

@@ -104,7 +104,7 @@ function WidgetTab({ tenantId, uiConfig }: { tenantId: string; uiConfig: UIConfi
     defaultValues: uiConfig,
   });
 
-  const primaryColor = watch("primary_color") ?? "#4f46e5";
+  const primaryColor = watch("primary_color") ?? "#007AFF";
   const chatTitle = watch("chat_title") ?? "NIA Assistant";
   const welcomeMsg = watch("welcome_message") ?? "Hi! How can I help you today?";
 

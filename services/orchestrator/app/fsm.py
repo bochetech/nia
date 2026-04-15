@@ -106,9 +106,16 @@ async def process_message(
         )
 
     # 4. Captura de lead (si no está capturado y el lead form está habilitado)
+    #    - Sólo si lead_config.enabled está explícitamente True (default False)
+    #    - Sólo si "pre_chat" no fue ocultado en fsm_config.hidden_states
     lead_config = tenant_config.get("lead_config", {})
+    hidden_states = tenant_config.get("fsm_config", {}).get("hidden_states", [])
+    lead_enabled = lead_config.get("enabled", False)
+    pre_chat_hidden = "pre_chat" in hidden_states
+
     if (
-        lead_config.get("enabled", True)
+        lead_enabled
+        and not pre_chat_hidden
         and not session.lead_captured
         and session.fsm_state == ConversationFSMState.IDLE
     ):

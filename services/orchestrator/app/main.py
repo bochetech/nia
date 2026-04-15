@@ -8,7 +8,7 @@ import time
 import uuid
 
 import httpx
-from fastapi import FastAPI, HTTPException, Request, status
+from fastapi import FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
@@ -19,9 +19,10 @@ from slowapi.util import get_remote_address
 from app.fsm import process_message
 from app.session import get_or_create_session, load_session, transition_state
 from app.settings import OrchestratorSettings, get_settings
-from shared.db.redis_client import close_redis, init_redis
+from shared.db.redis_client import close_redis, get_redis, init_redis
 from shared.models.domain import ConversationFSMState
-from shared.security.tenant import TenantCtx
+from shared.security.jwt import verify_widget_token
+from shared.security.tenant import TenantCtx, _get_tenant_jwt_secret
 from shared.utils.health import build_health_router
 from shared.utils.logging import get_logger, setup_logging
 from shared.utils.responses import APIResponse
@@ -278,7 +279,7 @@ async def get_session(session_id: str, ctx: TenantCtx) -> APIResponse[SessionSta
 async def session_trace_stream(
     session_id: str,
     request: Request,
-    ctx: TenantCtx,
+    token: str = Query(..., description="Widget JWT (EventSource cannot send headers)"),
 ):
     """
     Server-Sent Events stream that publishes FSM state transitions and skill
@@ -287,14 +288,29 @@ async def session_trace_stream(
     Subscribes to the Redis pub/sub channel `nia:trace:{tenant_id}:{session_id}`.
     Events are published by the orchestrator during `process_message`.
 
-    Event format:
-    ```
-    data: {"type": "fsm_transition", "from": "DISCOVERY", "to": "FAQ_ANSWER", "ts": 1234567890}
-    data: {"type": "skill_call", "action": "faq", "latency_ms": 320, "ts": 1234567890}
-    data: {"type": "session_end", "final_state": "CLOSED", "ts": 1234567890}
-    ```
+    **Auth**: The widget JWT is passed as `?token=` query parameter because the
+    browser's `EventSource` API does not support custom headers.
     """
-    tenant_id = ctx.tenant_id
+    # ── Manually validate the widget JWT from query param ─────────
+    import jose.jwt as _jwt
+    from jose import JWTError
+
+    try:
+        unverified = _jwt.get_unverified_claims(token)
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Malformed token")
+
+    tid = unverified.get("tid")
+    if not tid:
+        raise HTTPException(status_code=401, detail="Missing tenant in token")
+
+    secret = await _get_tenant_jwt_secret(tid, request)
+    try:
+        claims = verify_widget_token(token, secret)
+    except JWTError as exc:
+        raise HTTPException(status_code=401, detail=f"Invalid token: {exc}")
+
+    tenant_id = claims.tid
     channel = f"nia:trace:{tenant_id}:{session_id}"
 
     async def event_generator():

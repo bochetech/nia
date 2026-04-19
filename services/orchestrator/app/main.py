@@ -108,6 +108,7 @@ class ChatResponse(BaseModel):
     handoff_triggered: bool = False
     checkout_url: str | None = None
     tokens_used: int = 0
+    suggested_replies: list[str] = []
 
 
 class SessionStateResponse(BaseModel):
@@ -190,6 +191,7 @@ async def chat(
         handoff_triggered=result.handoff_triggered,
         checkout_url=result.checkout_url,
         tokens_used=result.session.tokens_used,
+        suggested_replies=result.suggested_replies,
     ))
 
 

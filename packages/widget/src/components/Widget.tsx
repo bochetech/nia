@@ -76,6 +76,7 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
     leadEmail,
     error: chatError,
     addMessage,
+    suggestedReplies,
   } = useChat({
     apiUrl,
     token: branding.token,
@@ -237,7 +238,14 @@ export function Widget({ tenantId, apiUrl, tenantManagerUrl, position = "bottom-
               {/* Message area */}
               <div class="nia-body">
                 <MessageList messages={messages} loading={loading} />
-                {/* Preguntas sugeridas: solo mientras el usuario no ha enviado nada */}
+                {/* Quick-reply chips from the last bot turn (FSM suggested_replies) */}
+                {!loading && suggestedReplies.length > 0 && (
+                  <SuggestedQuestions
+                    questions={suggestedReplies}
+                    onSelect={send}
+                  />
+                )}
+                {/* Static suggested questions: only before the user has sent any message */}
                 {branding.suggestedQuestions.length > 0 && !messages.some((m) => m.role === "user") && (
                   <SuggestedQuestions
                     questions={branding.suggestedQuestions}

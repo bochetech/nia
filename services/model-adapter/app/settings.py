@@ -1,7 +1,7 @@
 """
 Model Adapter settings — extiende BaseServiceSettings con config LLM.
 """
-from pydantic import Field
+from pydantic import Field, model_validator
 
 from shared.config.base import BaseServiceSettings
 
@@ -10,8 +10,18 @@ class ModelAdapterSettings(BaseServiceSettings):
     service_name: str = "model-adapter"
     port: int = 8005
 
-    # Tenant manager (to read per-tenant ai_config connection settings)
-    tenant_manager_url: str = "http://nia_tenant_manager:8001/v1/tenants"
+    # Tenant manager API base (with /api/tenants path).
+    # Built from tenant_manager_url inherited from BaseServiceSettings
+    # so that TENANT_MANAGER_URL env var is honoured automatically.
+    # Override the whole path via TENANT_MANAGER_TENANTS_URL if needed.
+    tenant_manager_tenants_url: str = ""
+
+    @model_validator(mode="after")
+    def _build_tenants_url(self) -> "ModelAdapterSettings":
+        if not self.tenant_manager_tenants_url:
+            base = self.tenant_manager_url.rstrip("/")
+            self.tenant_manager_tenants_url = f"{base}/api/tenants"
+        return self
 
     # LM Studio
     lm_studio_base_url: str = "http://localhost:1234"

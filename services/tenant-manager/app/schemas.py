@@ -9,6 +9,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from shared.models.domain import (
     AIConfig,
+    ChatwootConfig,
     EmailConfig,
     FSMConfig,
     LeadConfig,
@@ -99,6 +100,10 @@ class TenantCreateRequest(BaseModel):
         default_factory=TelegramConfig,
         description="Canal de Telegram: bot token, webhook secret, lista de chats permitidos. Desactivado por defecto.",
     )
+    chatwoot_config: ChatwootConfig = Field(
+        default_factory=ChatwootConfig,
+        description="Canal Chatwoot: instancia, inbox, tokens y grupos de agentes para handoff. Desactivado por defecto.",
+    )
 
 
 class TenantUpdateRequest(BaseModel):
@@ -121,6 +126,7 @@ class TenantUpdateRequest(BaseModel):
     fsm_config: FSMConfig | None = Field(None, description="Reemplaza toda la configuración del FSM, incluidas las transiciones.")
     payment_config: PaymentConfig | None = Field(None, description="Reemplaza toda la configuración de pagos.")
     telegram_config: TelegramConfig | None = Field(None, description="Reemplaza toda la configuración del canal de Telegram.")
+    chatwoot_config: ChatwootConfig | None = Field(None, description="Reemplaza toda la configuración del canal Chatwoot.")
 
 
 class TenantResponse(BaseModel):
@@ -143,6 +149,7 @@ class TenantResponse(BaseModel):
     fsm_config: dict
     payment_config: dict
     telegram_config: dict = Field(default_factory=dict)
+    chatwoot_config: dict = Field(default_factory=dict)
     created_at: datetime
     updated_at: datetime
 

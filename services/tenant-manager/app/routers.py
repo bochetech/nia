@@ -6,6 +6,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +29,7 @@ from shared.security.jwt import create_widget_token
 from shared.db.redis_client import RedisKeys, get_redis
 from shared.models.domain import (
     ActionType,
+    ChatwootConfig,
     ConversationFSMState,
     FlowTransition,
     IntentDefinition,
@@ -348,8 +350,63 @@ async def get_tenant_config(
         fsm_config=FSMConfig(**tenant.fsm_config) if tenant.fsm_config else FSMConfig(),
         payment_config=PaymentConfig(**tenant.payment_config) if tenant.payment_config else PaymentConfig(),
         telegram_config=TelegramConfig(**tenant.telegram_config) if tenant.telegram_config else TelegramConfig(),
+        chatwoot_config=ChatwootConfig(**tenant.chatwoot_config) if tenant.chatwoot_config else ChatwootConfig(),
     )
     return APIResponse(data=config)
+
+
+# ─────────────────────────────────────────────────────────────────
+# AI Config — dedicated endpoint for the admin console
+# ─────────────────────────────────────────────────────────────────
+
+class AIConfigUpdateRequest(BaseModel):
+    """Partial update for ai_config only — all fields optional."""
+    primary_provider: str | None = None
+    primary_model: str | None = None
+    primary_endpoint_url: str | None = None
+    primary_api_key: str | None = None
+    fallback_provider: str | None = None
+    fallback_model: str | None = None
+    fallback_endpoint_url: str | None = None
+    fallback_api_key: str | None = None
+    temperature: float | None = None
+    max_tokens: int | None = None
+    top_p: float | None = None
+    system_prompt_override: str | None = None
+    enable_caching: bool | None = None
+    cost_optimization: bool | None = None
+    input_cost_per_million: float | None = None
+    output_cost_per_million: float | None = None
+
+
+@router.patch(
+    "/{tenant_id}/ai-config",
+    response_model=APIResponse[AIConfig],
+    summary="Update AI model connection config for a tenant",
+)
+async def update_ai_config(
+    tenant_id: str,
+    data: AIConfigUpdateRequest,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+        admin.require_admin()
+
+    tenant = await crud.get_tenant(tenant_id, db)
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Tenant '{tenant_id}' not found")
+
+    # Merge patch into existing ai_config
+    current = AIConfig(**(tenant.ai_config or {}))
+    patch = data.model_dump(exclude_none=True)
+    merged = AIConfig(**{**current.model_dump(), **patch})
+
+    from app.schemas import TenantUpdateRequest
+    updated = await crud.update_tenant(tenant_id, TenantUpdateRequest(ai_config=merged), db)
+    result = AIConfig(**(updated.ai_config or {}))
+    return APIResponse(data=result)
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -1246,6 +1303,32 @@ async def update_telegram_config(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
 
     return APIResponse(data=TelegramConfig(**(tenant.telegram_config or {})))
+
+
+@router.patch(
+    "/{tenant_id}/chatwoot-config",
+    response_model=APIResponse[ChatwootConfig],
+    summary="Update Chatwoot channel configuration",
+)
+async def update_chatwoot_config(
+    tenant_id: str,
+    config: ChatwootConfig,
+    admin: AdminCtx,
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Actualizar configuración del canal Chatwoot (instancia, inbox, token, grupos de handoff)."""
+    if not admin.is_super_admin:
+        require_same_tenant_admin(admin, tenant_id)
+        admin.require_admin()
+
+    update_data = TenantUpdateRequest(chatwoot_config=config)
+
+    try:
+        tenant = await crud.update_tenant(tenant_id, update_data, db)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc))
+
+    return APIResponse(data=ChatwootConfig(**(tenant.chatwoot_config or {})))
 
 
 # ─────────────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import type {
   UIConfig,
   AIConfig,
   TelegramConfig,
+  ChatwootConfig,
   TeamsConfig,
   PaymentConfig,
   FSMConfig,
@@ -338,6 +339,20 @@ export function useUpdateTelegramConfig(tenantId: string) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tenantConfig", tenantId] });
       toast.success("Telegram config saved");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useUpdateChatwootConfig(tenantId: string) {
+  const token = useToken();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (config: Partial<ChatwootConfig>) =>
+      tenantManagerApi.updateChatwootConfig(token, tenantId, config),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tenantConfig", tenantId] });
+      toast.success("Chatwoot config saved");
     },
     onError: (e: Error) => toast.error(e.message),
   });

@@ -44,6 +44,8 @@ export interface ChatResponse {
   recommendations: RecommendationItem[] | null;
   handoff_triggered: boolean;
   checkout_url: string | null;
+  /** Quick-reply chips to show after this bot message. Empty = no chips. */
+  suggested_replies: string[];
 }
 
 export async function fetchWidgetToken(

@@ -910,6 +910,22 @@ class FlowTransition(BaseModel):
         default=None,
         description="Mensaje fijo a devolver cuando action='static_reply'",
     )
+    bot_prompt: str | None = Field(
+        default=None,
+        description=(
+            "Mensaje proactivo que el bot envía ANTES de ejecutar la acción cuando "
+            "esta transición se dispara. Útil para guiar al usuario al siguiente estado "
+            "del funnel (ej: 'Bienvenido a Concha y Toro, déjame mostrarte nuestras experiencias')."
+        ),
+    )
+    suggested_replies: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Opciones de respuesta sugeridas que se muestran al usuario como chips "
+            "clickeables después del mensaje del bot. Permiten guiar la conversación "
+            "hacia el siguiente intent deseado sin que el usuario tenga que escribir."
+        ),
+    )
     enabled: bool = True
 
 
@@ -1027,6 +1043,100 @@ class TelegramConfig(BaseModel):
     )
 
 
+# ─── Chatwoot ─────────────────────────────────────────────────────────────────
+
+class ChatwootHandoffAgent(BaseModel):
+    """Define un grupo de agentes en Chatwoot al que el bot puede transferir casos."""
+    label: str = Field(
+        description="Nombre visible del grupo. Ej: 'Soporte Técnico', 'Ventas'.",
+    )
+    inbox_id: int = Field(
+        description="ID del inbox de Chatwoot al que se asignará la conversación en el handoff.",
+    )
+    team_id: int | None = Field(
+        default=None,
+        description="ID del equipo de Chatwoot (opcional). Si se proporciona, se asignará al equipo dentro del inbox.",
+    )
+    assignee_id: int | None = Field(
+        default=None,
+        description="ID del agente individual a asignar (opcional). Si se omite, el inbox/team decide la asignación.",
+    )
+    fsm_trigger_state: str = Field(
+        default="",
+        description=(
+            "Estado FSM que activa este handoff. Ej: 'handoff_sales'. "
+            "Si está vacío, se usa como destino por defecto."
+        ),
+    )
+
+
+class ChatwootConfig(BaseModel):
+    """
+    Integración con Chatwoot como canal de mensajería y plataforma de handoff.
+
+    Flujo:
+      Usuario en Chatwoot → webhook → NIA procesa → responde vía Chatwoot API.
+      Si se activa handoff → NIA asigna la conversación a un inbox/equipo en Chatwoot.
+    """
+
+    enabled: bool = Field(
+        default=False,
+        description="Activa o desactiva el canal de Chatwoot para este tenant.",
+    )
+    instance_url: str = Field(
+        default="",
+        description=(
+            "URL base de la instancia de Chatwoot. "
+            "Ej: 'https://app.chatwoot.com' (cloud) o 'https://chat.miempresa.com' (self-hosted)."
+        ),
+    )
+    account_id: int = Field(
+        default=0,
+        description="ID numérico de la cuenta en Chatwoot. Se encuentra en Ajustes → Cuenta.",
+    )
+    bot_inbox_id: int = Field(
+        default=0,
+        description=(
+            "ID del inbox de Chatwoot donde el bot recibe mensajes. "
+            "El webhook de Chatwoot debe apuntar al endpoint /webhooks/chatwoot/{tenant_id} de NIA."
+        ),
+    )
+    api_access_token: str = Field(
+        default="",
+        description=(
+            "Token de acceso de la API de Chatwoot. "
+            "Se obtiene en Perfil → Tokens de Acceso. Debe tener permisos de agente."
+        ),
+    )
+    webhook_hmac_token: str = Field(
+        default="",
+        description=(
+            "Token HMAC para verificar la autenticidad de los webhooks entrantes de Chatwoot. "
+            "Se configura en Ajustes → Integraciones → Webhooks de Chatwoot."
+        ),
+    )
+    # Handoff
+    handoff_enabled: bool = Field(
+        default=False,
+        description="Permite que el bot transfiera conversaciones a agentes humanos en Chatwoot.",
+    )
+    handoff_agents: list[ChatwootHandoffAgent] = Field(
+        default_factory=list,
+        description=(
+            "Lista de grupos de agentes disponibles para handoff. "
+            "El bot elegirá el grupo cuyo fsm_trigger_state coincida con el estado activo, "
+            "o usará el primero como destino por defecto."
+        ),
+    )
+    handoff_bot_agent_id: int | None = Field(
+        default=None,
+        description=(
+            "ID del agente-bot en Chatwoot. Cuando NIA toma el control, "
+            "la conversación se asigna a este agente. Al hacer handoff, se reasigna al grupo humano."
+        ),
+    )
+
+
 class TenantConfigDTO(BaseModel):
     tenant_id: str
     version: int
@@ -1040,4 +1150,5 @@ class TenantConfigDTO(BaseModel):
     fsm_config: FSMConfig = Field(default_factory=FSMConfig)
     payment_config: PaymentConfig = Field(default_factory=PaymentConfig)
     telegram_config: TelegramConfig = Field(default_factory=TelegramConfig)
+    chatwoot_config: ChatwootConfig = Field(default_factory=ChatwootConfig)
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))

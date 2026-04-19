@@ -65,7 +65,7 @@ def create_provider_for_tenant(tenant_id: str, settings: ModelAdapterSettings) -
     """
     try:
         resp = httpx.get(
-            f"{settings.tenant_manager_url}/{tenant_id}/config",
+            f"{settings.tenant_manager_tenants_url}/{tenant_id}/config",
             timeout=2.0,
         )
         if resp.status_code != 200:

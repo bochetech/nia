@@ -30,6 +30,13 @@ async function apiFetch(
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
+    if (res.status === 401) {
+      // Token expired or revoked — sign out so the user is prompted to re-login.
+      // Dynamic import avoids pulling next-auth into server-side bundles.
+      import("next-auth/react")
+        .then(({ signOut }) => signOut({ callbackUrl: "/login" }))
+        .catch(() => {});
+    }
     throw new Error(`API ${res.status}: ${text}`);
   }
   return res.json() as Promise<T>;
@@ -169,6 +176,10 @@ export interface FlowTransition {
   to_state: string;
   action: string;
   static_message?: string;
+  /** Proactive bot message sent before executing the action when this transition fires. */
+  bot_prompt?: string;
+  /** Quick-reply chips shown to the user after the bot message. */
+  suggested_replies?: string[];
   enabled: boolean;
 }
 
@@ -230,6 +241,26 @@ export interface PaymentConfig {
   webhook_secret: string;
 }
 
+export interface ChatwootHandoffAgent {
+  label: string;
+  inbox_id: number;
+  team_id?: number | null;
+  assignee_id?: number | null;
+  fsm_trigger_state: string;
+}
+
+export interface ChatwootConfig {
+  enabled: boolean;
+  instance_url: string;
+  account_id: number;
+  bot_inbox_id: number;
+  api_access_token: string;
+  webhook_hmac_token: string;
+  handoff_enabled: boolean;
+  handoff_agents: ChatwootHandoffAgent[];
+  handoff_bot_agent_id?: number | null;
+}
+
 export interface TenantConfigDTO {
   tenant_id: string;
   version: number;
@@ -242,6 +273,7 @@ export interface TenantConfigDTO {
   teams_config: TeamsConfig;
   email_config: EmailConfig;
   payment_config: PaymentConfig;
+  chatwoot_config: ChatwootConfig;
   updated_at: string;
 }
 
@@ -431,6 +463,19 @@ export const tenantManagerApi = {
       }
     );
     return json<APIResponse<TelegramConfig>>(res);
+  },
+
+  updateChatwootConfig: async (token: string, tenantId: string, config: Partial<ChatwootConfig>) => {
+    const res = await apiFetch(
+      `${TENANT_MANAGER}/api/tenants/${tenantId}/chatwoot-config`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config),
+        token,
+      }
+    );
+    return json<APIResponse<ChatwootConfig>>(res);
   },
 
   updateTeamsConfig: async (token: string, tenantId: string, config: Partial<TeamsConfig>) => {

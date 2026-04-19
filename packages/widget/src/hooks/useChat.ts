@@ -36,6 +36,8 @@ export function useChat({ apiUrl, token, sessionId, tenantId, transcriptUrl, cha
   const [handoffActive, setHandoffActive] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Quick-reply chips from the last bot turn — cleared when the user sends a message. */
+  const [suggestedReplies, setSuggestedReplies] = useState<string[]>([]);
   /** Email del lead capturado — disponible para pre-rellenar la oferta de transcript */
   const [leadEmail, setLeadEmail] = useState<string>("");
 
@@ -53,6 +55,7 @@ export function useChat({ apiUrl, token, sessionId, tenantId, transcriptUrl, cha
     async (text: string) => {
       if (!text.trim() || loading) return;
       setError(null);
+      setSuggestedReplies([]); // clear chips as soon as the user sends a message
       addMessage("user", text);
       setLoading(true);
 
@@ -62,6 +65,7 @@ export function useChat({ apiUrl, token, sessionId, tenantId, transcriptUrl, cha
         setShowLeadForm(resp.show_lead_form);
         setHandoffActive(resp.handoff_triggered);
         setCheckoutUrl(resp.checkout_url);
+        setSuggestedReplies(resp.suggested_replies ?? []);
 
         addMessage("assistant", resp.response, {
           recommendations: resp.recommendations ?? undefined,
@@ -119,6 +123,7 @@ export function useChat({ apiUrl, token, sessionId, tenantId, transcriptUrl, cha
     checkoutUrl,
     error,
     leadEmail,
+    suggestedReplies,
     send,
     submitLeadForm,
     sendTranscript,

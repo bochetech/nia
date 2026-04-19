@@ -77,6 +77,7 @@ class FSMResult:
         checkout_url: str | None = None,
         show_lead_form: bool = False,
         metadata: dict[str, Any] | None = None,
+        suggested_replies: list[str] | None = None,
     ):
         self.response_text = response_text
         self.new_state = new_state
@@ -87,6 +88,8 @@ class FSMResult:
         self.checkout_url = checkout_url
         self.show_lead_form = show_lead_form
         self.metadata = metadata or {}
+        # Quick-reply chips sent to the widget after the bot message
+        self.suggested_replies: list[str] = suggested_replies or []
 
 
 async def process_message(
@@ -371,7 +374,7 @@ async def _route_by_intent(
         return await _handle_complaint(session, settings, message, skill=skill)
 
     if matched.action == "faq":
-        return await _handle_faq(
+        result = await _handle_faq(
             query=message,
             session=session,
             tenant_config=tenant_config,
@@ -379,9 +382,10 @@ async def _route_by_intent(
             tenant_name=tenant_name,
             skill=skill,
         )
+        return _apply_guidance(result, matched)
 
     if matched.action == "recommend":
-        return await _handle_recommendation_flow(
+        result = await _handle_recommendation_flow(
             message=message,
             entities=entities,
             raw_entities=raw_entities,
@@ -390,27 +394,34 @@ async def _route_by_intent(
             settings=settings,
             skill=skill,
         )
+        return _apply_guidance(result, matched)
 
     if matched.action == "static_reply":
         # Resolver estado final (__same__ = mantener estado actual, o custom state)
         final_state = _resolve_fsm_state(matched.to_state, session.fsm_state)
+        # For static_reply the bot_prompt IS the message (or prepends it)
+        text = matched.static_message or "No tengo información sobre eso."
+        if matched.bot_prompt:
+            text = f"{matched.bot_prompt}\n\n{text}"
         return FSMResult(
-            response_text=matched.static_message or "No tengo información sobre eso.",
+            response_text=text,
             new_state=final_state,
             session=session,
+            suggested_replies=matched.suggested_replies or [],
         )
 
     if matched.action == "discovery":
-        return await _handle_discovery(
+        result = await _handle_discovery(
             message=message,
             session=session,
             tenant_config=tenant_config,
             settings=settings,
             tenant_name=tenant_name,
         )
+        return _apply_guidance(result, matched)
 
     if matched.action == "conversational" or matched.action.startswith("conversational__"):
-        return await _handle_conversational(
+        result = await _handle_conversational(
             message=message,
             session=session,
             tenant_config=tenant_config,
@@ -418,6 +429,7 @@ async def _route_by_intent(
             skill=skill,
             to_state=matched.to_state,
         )
+        return _apply_guidance(result, matched)
 
     # Acción desconocida → fallback seguro
     logger.error(
@@ -431,6 +443,20 @@ async def _route_by_intent(
         new_state=session.fsm_state,
         session=session,
     )
+
+
+def _apply_guidance(result: FSMResult, transition: FlowTransition) -> FSMResult:
+    """
+    If the matched transition has a bot_prompt or suggested_replies,
+    apply them to the FSMResult:
+      - bot_prompt is prepended to the action's response text
+      - suggested_replies are attached for the widget to render as chips
+    """
+    if transition.bot_prompt:
+        result.response_text = f"{transition.bot_prompt}\n\n{result.response_text}"
+    if transition.suggested_replies:
+        result.suggested_replies = transition.suggested_replies
+    return result
 
 
 async def _handle_conversational(

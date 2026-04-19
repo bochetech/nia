@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 
 const TENANT_NAV = (id: string) => [
   { href: `/dashboard/tenants/${id}/config`, icon: Bot, label: "Configuration" },
-  { href: `/dashboard/tenants/${id}/fsm`, icon: GitBranch, label: "FSM Flow" },
+  { href: `/dashboard/tenants/${id}/fsm`, icon: GitBranch, label: "Conversation Flow" },
   { href: `/dashboard/tenants/${id}/skills`, icon: Zap, label: "Skills" },
   { href: `/dashboard/tenants/${id}/knowledge`, icon: BookOpen, label: "Knowledge" },
   { href: `/dashboard/tenants/${id}/channels`, icon: Puzzle, label: "Channels" },

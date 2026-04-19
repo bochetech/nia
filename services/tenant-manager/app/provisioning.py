@@ -15,6 +15,7 @@ from app.settings import TenantManagerSettings
 from shared.db.redis_client import RedisKeys, get_redis
 from shared.models.domain import (
     AIConfig,
+    ChatwootConfig,
     EmailConfig,
     FSMConfig,
     LeadConfig,
@@ -232,6 +233,7 @@ async def _cache_tenant_config(tenant: Tenant) -> None:
         fsm_config=FSMConfig(**tenant.fsm_config) if tenant.fsm_config else FSMConfig(),
         payment_config=PaymentConfig(**tenant.payment_config) if tenant.payment_config else PaymentConfig(),
         telegram_config=TelegramConfig(**tenant.telegram_config) if tenant.telegram_config else TelegramConfig(),
+        chatwoot_config=ChatwootConfig(**tenant.chatwoot_config) if tenant.chatwoot_config else ChatwootConfig(),
     )
     # Incluir jwt_secret para que el middleware pueda verificar tokens
     raw = config.model_dump()

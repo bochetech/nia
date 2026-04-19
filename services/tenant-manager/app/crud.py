@@ -7,6 +7,7 @@ import secrets
 import uuid
 
 from sqlalchemy import select
+from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Tenant, TenantApiKey
@@ -61,6 +62,7 @@ async def create_tenant(
         fsm_config=data.fsm_config.model_dump(),
         payment_config=data.payment_config.model_dump(),
         telegram_config=data.telegram_config.model_dump(),
+        chatwoot_config=data.chatwoot_config.model_dump(),
         config_version=1,
     )
 
@@ -118,24 +120,37 @@ async def update_tenant(
         tenant.plan = data.plan.value
     if data.ui_config is not None:
         tenant.ui_config = data.ui_config.model_dump()
+        flag_modified(tenant, "ui_config")
     if data.lead_config is not None:
         tenant.lead_config = data.lead_config.model_dump()
+        flag_modified(tenant, "lead_config")
     if data.limits_config is not None:
         tenant.limits_config = data.limits_config.model_dump()
+        flag_modified(tenant, "limits_config")
     if data.rag_config is not None:
         tenant.rag_config = data.rag_config.model_dump()
+        flag_modified(tenant, "rag_config")
     if data.teams_config is not None:
         tenant.teams_config = data.teams_config.model_dump()
+        flag_modified(tenant, "teams_config")
     if data.email_config is not None:
         tenant.email_config = data.email_config.model_dump()
+        flag_modified(tenant, "email_config")
     if data.ai_config is not None:
         tenant.ai_config = data.ai_config.model_dump()
+        flag_modified(tenant, "ai_config")
     if data.fsm_config is not None:
         tenant.fsm_config = data.fsm_config.model_dump()
+        flag_modified(tenant, "fsm_config")
     if data.payment_config is not None:
         tenant.payment_config = data.payment_config.model_dump()
+        flag_modified(tenant, "payment_config")
     if data.telegram_config is not None:
         tenant.telegram_config = data.telegram_config.model_dump()
+        flag_modified(tenant, "telegram_config")
+    if data.chatwoot_config is not None:
+        tenant.chatwoot_config = data.chatwoot_config.model_dump()
+        flag_modified(tenant, "chatwoot_config")
 
     tenant.config_version += 1
 

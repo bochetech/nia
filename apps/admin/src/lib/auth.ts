@@ -47,12 +47,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.accessToken = (user as any).accessToken;
         token.role = (user as any).role;
+        // Record when this token was issued so we can detect expiry
+        token.accessTokenIssuedAt = Date.now();
       }
       return token;
     },
     async session({ session, token }) {
       (session as any).accessToken = token.accessToken;
       (session as any).role = token.role;
+      // Expose token age so the client can warn before it expires
+      (session as any).accessTokenIssuedAt = token.accessTokenIssuedAt;
       return session;
     },
   },

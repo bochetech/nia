@@ -1,6 +1,14 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactNode } from "react";
+import {
+  use,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import ReactFlow, {
   Background,
   Controls,
@@ -12,11 +20,16 @@ import ReactFlow, {
   ConnectionMode,
   useReactFlow,
   ReactFlowProvider,
+  getBezierPath,
+  BaseEdge,
+  EdgeLabelRenderer,
   type Node,
   type Edge,
   type Connection,
   type NodeTypes,
+  type EdgeTypes,
   type Viewport,
+  type EdgeProps,
   Handle,
   Position,
 } from "reactflow";
@@ -34,198 +47,272 @@ import {
   useCreateFSMState,
   useDeleteFSMState,
 } from "@/hooks/use-api";
-import type { FlowTransition, IntentDefinition, ActionCatalogItem, SkillConfig } from "@/lib/api";
+import type {
+  FlowTransition,
+  IntentDefinition,
+  ActionCatalogItem,
+  SkillConfig,
+} from "@/lib/api";
 import { ACTION_COLORS, ACTION_LABELS, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import {
   Save,
   Plus,
   Trash2,
-  GitBranch,
-  Zap,
   Edit,
   Brain,
   Layers,
-  HelpCircle,
   X,
+  ChevronDown,
+  ArrowRight,
+  Circle,
+  Workflow,
+  Undo2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 
-// ─── FSM state layout ─────────────────────────────────────────
-//
-// ALL states are fetched dynamically from GET /{tenant_id}/states.
-// Positions are saved to localStorage keyed by tenantId so layout persists.
-// Only "idle" and the virtual "★ ANY" node are immutable.
-
-/** Virtual node ID used to represent wildcard "from any state" transitions. */
 const ANY_NODE_ID = "__any__";
-const ANY_NODE_POSITION = { x: 20, y: 20 };
-
-/** Auto-position states in a grid layout (fallback when no saved position). */
-function autoPosition(index: number): { x: number; y: number } {
-  const cols = 4;
-  const col = index % cols;
-  const row = Math.floor(index / cols);
-  return { x: 80 + col * 220, y: 60 + row * 130 };
-}
-
-// ─── Layout persistence (localStorage) ───────────────────────
+const INTENT_WILDCARD = "__wildcard__";
+const FROM_ANY = "__any__";
 
 interface SavedLayout {
   positions: Record<string, { x: number; y: number }>;
-  viewport: Viewport;
+  viewport?: Viewport;
 }
 
-function layoutKey(tenantId: string) {
-  return `nia_fsm_layout_${tenantId}`;
+function layoutKey(tid: string) {
+  return `nia_flow_layout_v2_${tid}`;
 }
 
-function loadLayout(tenantId: string): SavedLayout | null {
+function loadLayout(tid: string): SavedLayout | null {
   try {
-    const raw = localStorage.getItem(layoutKey(tenantId));
+    const raw = localStorage.getItem(layoutKey(tid));
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
 }
 
-function saveLayout(tenantId: string, positions: Record<string, { x: number; y: number }>, viewport: Viewport) {
+function persistLayout(
+  tid: string,
+  positions: Record<string, { x: number; y: number }>,
+  viewport?: Viewport,
+) {
   try {
-    localStorage.setItem(layoutKey(tenantId), JSON.stringify({ positions, viewport }));
+    localStorage.setItem(layoutKey(tid), JSON.stringify({ positions, viewport }));
   } catch {
-    // storage quota — ignore
+    /* quota */
   }
 }
 
-// Sentinel value used in the intent Select to represent "wildcard / no filter"
-const INTENT_WILDCARD = "__wildcard__";
-// Sentinel for "from any state" (from_states: [])
-const FROM_ANY = "__any__";
+function autoPos(idx: number, total: number): { x: number; y: number } {
+  if (total <= 1) return { x: 400, y: 300 };
+  const r = Math.max(200, total * 45);
+  const a = (idx / total) * 2 * Math.PI - Math.PI / 2;
+  return { x: 400 + Math.cos(a) * r, y: 300 + Math.sin(a) * r };
+}
 
-/** Resolve an action key → display label. Handles conversational__ sub-skills. */
-function actionLabel(action: string, customSkills?: { action: string; name?: string }[]): string {
+function actLabel(
+  action: string,
+  custom?: { action: string; name?: string }[],
+): string {
   if (action.startsWith("conversational__")) {
-    const skill = customSkills?.find((s) => s.action === action);
-    if (skill?.name) return skill.name;
+    const s = custom?.find((c) => c.action === action);
+    if (s?.name) return s.name;
     return action.replace("conversational__", "").replace(/_/g, " ");
   }
   return ACTION_LABELS[action] ?? action;
 }
 
-// ─── Custom state node ─────────────────────────────────────────
+function actColor(action: string): string {
+  if (action.startsWith("conversational__"))
+    return ACTION_COLORS.conversational ?? "#FF2D55";
+  return ACTION_COLORS[action] ?? "#8E8E93";
+}
 
-/** Visible dot on each edge of a node for precise connection targeting (draw.io style). */
-const HANDLE_DOT: React.CSSProperties = {
-  width: 10,
-  height: 10,
-  background: "#818cf8",
+const DOT: React.CSSProperties = {
+  width: 8,
+  height: 8,
   border: "2px solid #fff",
   borderRadius: "50%",
-  boxShadow: "0 0 0 1px #818cf8",
   opacity: 0,
-  transition: "opacity 0.15s",
+  transition: "opacity .2s",
 };
 
-const HANDLE_HOVER_CLASS =
-  "group-hover/node:[&_.react-flow__handle]:opacity-100";
+function StateNode({ data, selected }: { data: any; selected: boolean }) {
+  const { isGhost, isAny } = data;
+  const dotBg = isAny ? "#f59e0b" : "#007AFF";
+  const tgtBg = "#34C759";
 
-function StateNode({
-  data,
-}: {
-  data: {
-    label: string;
-    state: string;
-    isActive: boolean;
-    transitionCount: number;
-    isGhost?: boolean;
-  };
-}) {
   return (
     <div
       className={cn(
-        "group/node rounded-xl border-2 px-4 py-3 min-w-[148px] text-center transition-all duration-300 relative",
-        HANDLE_HOVER_CLASS,
-        data.isGhost
+        "group/node relative rounded-2xl px-5 py-3.5 min-w-[160px] text-center transition-all duration-200",
+        "border-[1.5px] [&_.react-flow__handle]:hover:opacity-100",
+        isAny
+          ? "bg-amber-50 border-amber-300 shadow-sm"
+          : isGhost
           ? "bg-slate-50 border-dashed border-slate-300"
-          : "bg-white",
-        data.isActive
-          ? "border-violet-500 scale-105 shadow-[0_0_0_4px_rgba(124,58,237,0.15),0_4px_16px_rgba(124,58,237,0.1)]"
-          : data.isGhost
-          ? ""
-          : "border-slate-200 shadow-sm hover:shadow-md hover:border-violet-300"
+          : selected
+          ? "bg-white border-primary shadow-[0_0_0_3px_rgba(0,122,255,.12),0_4px_12px_rgba(0,0,0,.08)]"
+          : "bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300",
       )}
     >
-      {/* ── Source handles (outgoing) ── */}
-      <Handle type="source" position={Position.Top}    id="s-top"    style={{ ...HANDLE_DOT, top: -5, left: "50%", transform: "translateX(-50%)" }} />
-      <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ ...HANDLE_DOT, bottom: -5, left: "50%", transform: "translateX(-50%)" }} />
-      <Handle type="source" position={Position.Left}   id="s-left"   style={{ ...HANDLE_DOT, left: -5, top: "50%", transform: "translateY(-50%)" }} />
-      <Handle type="source" position={Position.Right}  id="s-right"  style={{ ...HANDLE_DOT, right: -5, top: "50%", transform: "translateY(-50%)" }} />
+      <Handle type="source" position={Position.Top} id="top"
+        style={{ ...DOT, background: dotBg, boxShadow: `0 0 0 1px ${dotBg}`, top: -4 }} />
+      <Handle type="source" position={Position.Bottom} id="bottom"
+        style={{ ...DOT, background: dotBg, boxShadow: `0 0 0 1px ${dotBg}`, bottom: -4 }} />
+      <Handle type="source" position={Position.Left} id="left"
+        style={{ ...DOT, background: dotBg, boxShadow: `0 0 0 1px ${dotBg}`, left: -4 }} />
+      <Handle type="source" position={Position.Right} id="right"
+        style={{ ...DOT, background: dotBg, boxShadow: `0 0 0 1px ${dotBg}`, right: -4 }} />
 
-      {/* ── Target handles (incoming) — small, inline with border ── */}
-      <Handle type="target" position={Position.Top}    id="t-top"    style={{ ...HANDLE_DOT, background: "#34d399", boxShadow: "0 0 0 1px #34d399", top: -5, left: "35%", transform: "translateX(-50%)" }} />
-      <Handle type="target" position={Position.Bottom} id="t-bottom" style={{ ...HANDLE_DOT, background: "#34d399", boxShadow: "0 0 0 1px #34d399", bottom: -5, left: "35%", transform: "translateX(-50%)" }} />
-      <Handle type="target" position={Position.Left}   id="t-left"   style={{ ...HANDLE_DOT, background: "#34d399", boxShadow: "0 0 0 1px #34d399", left: -5, top: "35%", transform: "translateY(-50%)" }} />
-      <Handle type="target" position={Position.Right}  id="t-right"  style={{ ...HANDLE_DOT, background: "#34d399", boxShadow: "0 0 0 1px #34d399", right: -5, top: "35%", transform: "translateY(-50%)" }} />
+      <Handle type="target" position={Position.Top} id="t-top"
+        style={{ ...DOT, background: tgtBg, boxShadow: `0 0 0 1px ${tgtBg}`, top: -4 }} />
+      <Handle type="target" position={Position.Bottom} id="t-bottom"
+        style={{ ...DOT, background: tgtBg, boxShadow: `0 0 0 1px ${tgtBg}`, bottom: -4 }} />
+      <Handle type="target" position={Position.Left} id="t-left"
+        style={{ ...DOT, background: tgtBg, boxShadow: `0 0 0 1px ${tgtBg}`, left: -4 }} />
+      <Handle type="target" position={Position.Right} id="t-right"
+        style={{ ...DOT, background: tgtBg, boxShadow: `0 0 0 1px ${tgtBg}`, right: -4 }} />
 
-      <div className={cn("font-semibold text-[11px] uppercase tracking-wide", data.isGhost ? "text-slate-400" : "text-slate-700")}>
+      {isAny && <div className="text-amber-500 text-lg mb-1">★</div>}
+
+      <div
+        className={cn(
+          "font-semibold text-[13px] tracking-tight",
+          isAny ? "text-amber-700" : isGhost ? "text-slate-400" : "text-slate-800",
+        )}
+      >
         {data.label}
       </div>
 
-      {data.isGhost ? (
-        <div className="text-[9px] text-slate-400 mt-0.5 italic">not in states list</div>
+      {isAny ? (
+        <div className="text-[10px] text-amber-500 mt-0.5">Any state (wildcard)</div>
+      ) : isGhost ? (
+        <div className="text-[10px] text-slate-400 mt-0.5 italic">Referenced but not created</div>
       ) : data.transitionCount > 0 ? (
-        <div className="text-[10px] text-slate-400 mt-0.5">{data.transitionCount} transition{data.transitionCount !== 1 ? "s" : ""}</div>
+        <div className="text-[10px] text-slate-400 mt-0.5">
+          {data.transitionCount} transition{data.transitionCount !== 1 ? "s" : ""}
+        </div>
       ) : null}
 
-      {/* Active pulse indicator */}
       {data.isActive && (
-        <div className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 rounded-full bg-[#007AFF] animate-pulse shadow-lg" />
+        <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#34C759] animate-pulse ring-2 ring-white" />
       )}
     </div>
   );
 }
 
-const nodeTypes: NodeTypes = { stateNode: StateNode, anyNode: AnyStateNode };
+function FlowEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  data,
+  selected,
+  markerEnd,
+}: EdgeProps) {
+  const color = data?.color ?? "#8E8E93";
+  const isWild = data?.isWildcard;
+  const offset: number = data?.offset ?? 0;
 
-// ─── Virtual "★ Any State" node ────────────────────────────────
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const ox = (-dy / len) * offset;
+  const oy = (dx / len) * offset;
 
-function AnyStateNode() {
+  const [path, lx, ly] = getBezierPath({
+    sourceX: sourceX + ox,
+    sourceY: sourceY + oy,
+    targetX: targetX + ox,
+    targetY: targetY + oy,
+    sourcePosition,
+    targetPosition,
+    curvature: 0.25,
+  });
+
   return (
-    <div className={cn("group/node rounded-xl border-2 border-dashed border-amber-400 bg-amber-50/80 px-5 py-3 min-w-[120px] text-center shadow-sm relative", HANDLE_HOVER_CLASS)}>
-      <Handle type="source" position={Position.Top}    id="s-top"    style={{ ...HANDLE_DOT, top: -5, left: "50%", transform: "translateX(-50%)", background: "#f59e0b", boxShadow: "0 0 0 1px #f59e0b" }} />
-      <Handle type="source" position={Position.Bottom} id="s-bottom" style={{ ...HANDLE_DOT, bottom: -5, left: "50%", transform: "translateX(-50%)", background: "#f59e0b", boxShadow: "0 0 0 1px #f59e0b" }} />
-      <Handle type="source" position={Position.Left}   id="s-left"   style={{ ...HANDLE_DOT, left: -5, top: "50%", transform: "translateY(-50%)", background: "#f59e0b", boxShadow: "0 0 0 1px #f59e0b" }} />
-      <Handle type="source" position={Position.Right}  id="s-right"  style={{ ...HANDLE_DOT, right: -5, top: "50%", transform: "translateY(-50%)", background: "#f59e0b", boxShadow: "0 0 0 1px #f59e0b" }} />
-      <div className="font-semibold text-[12px] text-amber-700 tracking-wide">★ ANY STATE</div>
-      <div className="text-[9px] text-amber-500 mt-0.5">wildcard source</div>
-    </div>
+    <>
+      <path d={path} fill="none" stroke="transparent" strokeWidth={20} className="react-flow__edge-interaction" />
+      <BaseEdge
+        id={id}
+        path={path}
+        markerEnd={markerEnd}
+        style={{
+          stroke: color,
+          strokeWidth: selected ? 2.5 : isWild ? 1.5 : 2,
+          strokeDasharray: isWild ? "6 4" : undefined,
+          opacity: isWild ? 0.7 : 1,
+          transition: "stroke .2s, stroke-width .2s",
+        }}
+      />
+      <EdgeLabelRenderer>
+        <div
+          className={cn(
+            "absolute pointer-events-auto cursor-pointer transition-all duration-200",
+            "rounded-lg px-2.5 py-1.5 text-[10px] font-medium leading-tight",
+            "border shadow-sm",
+            selected
+              ? "bg-white border-slate-300 shadow-md scale-105"
+              : "bg-white/95 border-slate-200 hover:border-slate-300 hover:shadow",
+          )}
+          style={{
+            transform: `translate(-50%, -50%) translate(${lx}px,${ly}px)`,
+            borderLeftColor: color,
+            borderLeftWidth: 3,
+          }}
+        >
+          <div className="text-slate-500">{data?.intentLabel || "Any intent"}</div>
+          <div className="font-semibold" style={{ color }}>{data?.actionLabel || "Action"}</div>
+        </div>
+      </EdgeLabelRenderer>
+    </>
   );
 }
 
-// ─── Main page ─────────────────────────────────────────────────
+const nodeTypes: NodeTypes = { stateNode: StateNode };
+const edgeTypes: EdgeTypes = { flow: FlowEdge };
 
-export default function FSMPage({
-  params,
-}: {
-  params: Promise<{ tenantId: string }>;
-}) {
+interface EditTrans {
+  fromState: string;
+  to_state: string;
+  intent: string;
+  action: string;
+  static_message?: string;
+  bot_prompt?: string;
+  suggested_replies?: string[];
+  enabled: boolean;
+}
+
+export default function FSMPage({ params }: { params: Promise<{ tenantId: string }> }) {
   const { tenantId } = use(params);
   return (
     <ReactFlowProvider>
-      <FSMCanvas tenantId={tenantId} />
+      <FlowCanvas tenantId={tenantId} />
     </ReactFlowProvider>
   );
 }
 
-function FSMCanvas({ tenantId }: { tenantId: string }) {
+function FlowCanvas({ tenantId }: { tenantId: string }) {
   const { data: session } = useSession();
-  const token = (session as any)?.accessToken as string | undefined;
   const { setViewport } = useReactFlow();
 
   const { data: intentsData } = useIntents(tenantId);
@@ -238,1055 +325,747 @@ function FSMCanvas({ tenantId }: { tenantId: string }) {
   const intents: IntentDefinition[] = intentsData?.data ?? [];
   const actions: ActionCatalogItem[] = actionsData?.data ?? [];
   const transitions: FlowTransition[] = transitionsData?.data ?? [];
-  // Custom conversational sub-skills (action key = "conversational__slug")
   const customSkills: SkillConfig[] = useMemo(
     () => (skillsData?.data ?? []).filter((s: SkillConfig) => s.action.startsWith("conversational__")),
-    [skillsData]
+    [skillsData],
   );
 
-  // Dynamic state list from backend — while loading, show just "idle"
-  const fsmStateItems: { key: string; label: string; is_default?: boolean }[] = useMemo(() => {
+  const fsmStates: { key: string; label: string; is_default?: boolean }[] = useMemo(() => {
     if (statesData?.data?.length) return statesData.data;
     return [{ key: "idle", label: "Idle" }];
   }, [statesData]);
 
-  // Collect ALL states referenced in transitions (to auto-create ghost nodes for unknown ones)
-  const allReferencedStateKeys: string[] = useMemo(() => {
-    const knownKeys = new Set(fsmStateItems.map((s) => s.key));
-    const extra = new Set<string>();
+  const allStates = useMemo(() => {
+    const known = new Set(fsmStates.map((s) => s.key));
+    const ghosts = new Set<string>();
     transitions.forEach((t) => {
-      t.from_states.forEach((s) => { if (!knownKeys.has(s)) extra.add(s); });
-      if (t.to_state && t.to_state !== "__same__" && !knownKeys.has(t.to_state)) extra.add(t.to_state);
+      t.from_states.forEach((s) => { if (!known.has(s)) ghosts.add(s); });
+      if (t.to_state && t.to_state !== "__same__" && !known.has(t.to_state)) ghosts.add(t.to_state);
     });
-    return [...extra];
-  }, [fsmStateItems, transitions]);
+    return [
+      ...fsmStates.map((s) => ({ ...s, isGhost: false })),
+      ...[...ghosts].map((k) => ({
+        key: k,
+        label: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+        is_default: false,
+        isGhost: true,
+      })),
+    ];
+  }, [fsmStates, transitions]);
 
-  // Combined state list: known states + ghost states for orphaned transition targets
-  const allStateItems: { key: string; label: string; is_default?: boolean; isGhost?: boolean }[] = useMemo(() => {
-    const ghost = allReferencedStateKeys.map((k) => ({
-      key: k,
-      label: k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-      is_default: false,
-      isGhost: true,
-    }));
-    return [...fsmStateItems, ...ghost];
-  }, [fsmStateItems, allReferencedStateKeys]);
+  const hasWild = useMemo(() => transitions.some((t) => t.from_states.length === 0), [transitions]);
 
-  // State label lookup: key → display name
-  const FSM_STATE_LABELS_DYNAMIC: Record<string, string> = useMemo(
-    () => Object.fromEntries(allStateItems.map((s) => [s.key, s.label])),
-    [allStateItems]
-  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const saved = useMemo(() => loadLayout(tenantId), []);
 
-  // Position lookup: saved layout first, then auto-grid fallback
-  const savedLayout = useMemo(() => loadLayout(tenantId), []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const STATE_POSITIONS_DYNAMIC: Record<string, { x: number; y: number }> = useMemo(() => {
-    return Object.fromEntries(
-      allStateItems.map((s, i) => [
-        s.key,
-        savedLayout?.positions?.[s.key] ?? autoPosition(i),
-      ])
-    );
-  }, [allStateItems, savedLayout]);
-
-  // Live trace state (active state highlight only — no SSE panel in this page)
-  const [activeState, setActiveState] = useState<string | null>(null);
-
-  // Editor state
-  const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
-  const [editingTransition, setEditingTransition] = useState<Partial<EditingTransition> | null>(null);
-  const [showIntentDialog, setShowIntentDialog] = useState(false);
-  const [showStatesDialog, setShowStatesDialog] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
+  const [selEdgeId, setSelEdgeId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<EditTrans | null>(null);
+  const [panel, setPanel] = useState<"none" | "transition" | "intents" | "states">("none");
   const [isDirty, setIsDirty] = useState(false);
-  const pendingSaveRef = useRef(false);
 
-  // Build React Flow nodes
-  const transitionCountMap = useMemo(() => {
+  const tCountMap = useMemo(() => {
     const m: Record<string, number> = {};
     transitions.forEach((t) => {
-      t.from_states.forEach((s) => {
-        m[s] = (m[s] ?? 0) + 1;
-      });
+      t.from_states.forEach((s) => { m[s] = (m[s] ?? 0) + 1; });
+      if (t.from_states.length === 0) m[ANY_NODE_ID] = (m[ANY_NODE_ID] ?? 0) + 1;
     });
     return m;
   }, [transitions]);
 
-  const hasWildcards = useMemo(
-    () => transitions.some((t) => t.from_states.length === 0),
-    [transitions]
-  );
+  const offsetMap = useMemo(() => {
+    const pc: Record<string, number> = {};
+    const pi: Record<string, number> = {};
+    const off: Record<string, number> = {};
+    const keys: { id: string; pk: string }[] = [];
 
-  const initialNodes: Node[] = useMemo(() => {
-    const stateNodes = allStateItems.map((stateItem) => ({
-      id: stateItem.key,
-      type: "stateNode",
-      position: STATE_POSITIONS_DYNAMIC[stateItem.key],
-      data: {
-        label: stateItem.label,
-        state: stateItem.key,
-        isActive: false,
-        transitionCount: transitionCountMap[stateItem.key] ?? 0,
-        isGhost: stateItem.isGhost ?? false,
-      },
-    }));
-
-    // Add virtual ★ ANY node when there are wildcard transitions
-    if (hasWildcards) {
-      stateNodes.unshift({
-        id: ANY_NODE_ID,
-        type: "anyNode" as any,
-        position: ANY_NODE_POSITION,
-        data: { label: "★ Any State", state: ANY_NODE_ID, isActive: false, transitionCount: 0, isGhost: false },
+    transitions.forEach((t, ti) => {
+      const srcs = t.from_states.length === 0 ? [ANY_NODE_ID] : t.from_states;
+      srcs.forEach((src, si) => {
+        const tgt = t.to_state === "__same__" ? (t.from_states.length === 0 ? null : src) : t.to_state;
+        if (!tgt) return;
+        const a = src < tgt ? src : tgt;
+        const b = src < tgt ? tgt : src;
+        const pk = `${a}|${b}`;
+        pc[pk] = (pc[pk] ?? 0) + 1;
+        keys.push({ id: `e-${ti}-${si}`, pk });
       });
+    });
+
+    keys.forEach(({ id, pk }) => {
+      const count = pc[pk];
+      if (count <= 1) { off[id] = 0; return; }
+      const idx = pi[pk] ?? 0;
+      pi[pk] = idx + 1;
+      off[id] = (idx - (count - 1) / 2) * 20;
+    });
+    return off;
+  }, [transitions]);
+
+  const initNodes: Node[] = useMemo(() => {
+    const total = allStates.length + (hasWild ? 1 : 0);
+    let idx = 0;
+    const ns: Node[] = [];
+
+    if (hasWild) {
+      ns.push({
+        id: ANY_NODE_ID,
+        type: "stateNode",
+        position: saved?.positions?.[ANY_NODE_ID] ?? { x: 60, y: 60 },
+        data: { label: "\u2605 Any State", state: ANY_NODE_ID, isActive: false, transitionCount: tCountMap[ANY_NODE_ID] ?? 0, isGhost: false, isAny: true },
+      });
+      idx++;
     }
 
-    return stateNodes;
-  }, [allStateItems, transitionCountMap, STATE_POSITIONS_DYNAMIC, hasWildcards]);
+    allStates.forEach((s) => {
+      ns.push({
+        id: s.key,
+        type: "stateNode",
+        position: saved?.positions?.[s.key] ?? autoPos(idx, total),
+        data: { label: s.label, state: s.key, isActive: false, transitionCount: tCountMap[s.key] ?? 0, isGhost: s.isGhost, isAny: false },
+      });
+      idx++;
+    });
+    return ns;
+  }, [allStates, tCountMap, saved, hasWild]);
 
-  const initialEdges: Edge[] = useMemo(
+  const initEdges: Edge[] = useMemo(
     () =>
       transitions.flatMap((t, ti) => {
-        const isWildcard = t.from_states.length === 0;
-        const sources: string[] = isWildcard ? [ANY_NODE_ID] : t.from_states;
-        return sources.flatMap((fromState: string, si: number) => {
-          const target = t.to_state === "__same__"
-            ? (isWildcard ? null : fromState)
-            : t.to_state;
-          if (!target) return []; // skip __same__ from ANY
-          if (!target.trim()) return [];
-          const isSelf = target === fromState;
-          const edgeColor = isWildcard ? "#D1A23B" : "#636366";
+        const wild = t.from_states.length === 0;
+        const srcs = wild ? [ANY_NODE_ID] : t.from_states;
+        return srcs.flatMap((src, si) => {
+          const tgt = t.to_state === "__same__" ? (wild ? null : src) : t.to_state;
+          if (!tgt?.trim()) return [];
+          const eid = `e-${ti}-${si}`;
+          const c = actColor(t.action);
+          const iDef = intents.find((i) => i.key === t.intent);
           return [{
-            id: `e-${ti}-${si}`,
-            type: "straight",
-            source: fromState,
-            target,
-            label: `${t.intent || "*"} → ${actionLabel(t.action, customSkills)}`,
-            labelStyle: { fontSize: 10, fill: "#636366" },
-            labelBgStyle: { fill: "white", fillOpacity: 0.9 },
-            labelBgPadding: [4, 4] as [number, number],
-            labelBgBorderRadius: 4,
-            markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
-            style: {
-              stroke: edgeColor,
-              strokeWidth: isWildcard ? 1.5 : 2,
-              strokeDasharray: isWildcard ? "6 3" : (isSelf ? "4 3" : undefined),
-              opacity: isWildcard ? 0.6 : 1,
+            id: eid,
+            type: "flow",
+            source: src,
+            target: tgt,
+            markerEnd: { type: MarkerType.ArrowClosed, color: c, width: 16, height: 16 },
+            data: {
+              transition: t, fromState: src, isWildcard: wild, color: c,
+              offset: offsetMap[eid] ?? 0,
+              intentLabel: t.intent ? iDef?.name ?? t.intent : undefined,
+              actionLabel: actLabel(t.action, customSkills),
             },
-            data: { transition: t, fromState, isWildcard },
           }];
         });
       }),
-    [transitions, customSkills] // eslint-disable-line react-hooks/exhaustive-deps
+    [transitions, intents, customSkills, offsetMap],
   );
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(initNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges);
 
-  // Track whether we've done the first load so we don't re-init on every render
-  const loadedTransitionsRef = useRef<string>("");
-  const loadedNodesRef = useRef<string>("");
+  const loadedTRef = useRef("");
+  const loadedNRef = useRef("");
 
-  // Restore saved viewport once on first mount
-  const viewportRestoredRef = useRef(false);
+  const vpRef = useRef(false);
   useEffect(() => {
-    if (viewportRestoredRef.current) return;
-    viewportRestoredRef.current = true;
-    if (savedLayout?.viewport) {
-      setViewport(savedLayout.viewport);
-    }
-  }, [savedLayout, setViewport]);
+    if (vpRef.current) return;
+    vpRef.current = true;
+    if (saved?.viewport) setViewport(saved.viewport);
+  }, [saved, setViewport]);
 
-  // Sync transitions → edges only when the server data actually changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    const key = JSON.stringify(transitions);
-    if (key === loadedTransitionsRef.current) return;
-    loadedTransitionsRef.current = key;
-    setEdges(initialEdges);
+    const k = JSON.stringify(transitions);
+    if (k === loadedTRef.current) return;
+    loadedTRef.current = k;
+    setEdges(initEdges);
     setIsDirty(false);
-  }, [transitions]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [transitions]);
 
-  // Sync nodes whenever the state list or transition counts change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    const key = JSON.stringify(allStateItems) + JSON.stringify(transitionCountMap) + String(hasWildcards);
-    if (key === loadedNodesRef.current) return;
-    loadedNodesRef.current = key;
-    setNodes(initialNodes);
-  }, [allStateItems, transitionCountMap, hasWildcards]); // eslint-disable-line react-hooks/exhaustive-deps
+    const k = JSON.stringify(allStates) + JSON.stringify(tCountMap) + String(hasWild);
+    if (k === loadedNRef.current) return;
+    loadedNRef.current = k;
+    setNodes(initNodes);
+  }, [allStates, tCountMap, hasWild]);
 
-  // Sync active node highlight into node data
-  useEffect(() => {
-    setNodes((ns) =>
-      ns.map((n) => ({
-        ...n,
-        data: { ...n.data, isActive: activeState === n.id },
-      }))
-    );
-  }, [activeState, setNodes]);
-
-  // Persist node positions whenever they change (debounced 500ms)
-  const layoutSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const onNodesChangeWithPersist = useCallback(
+  const lTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const onNC = useCallback(
     (changes: Parameters<typeof onNodesChange>[0]) => {
       onNodesChange(changes);
-      // Debounce layout save
-      if (layoutSaveTimerRef.current) clearTimeout(layoutSaveTimerRef.current);
-      layoutSaveTimerRef.current = setTimeout(() => {
-        setNodes((currentNodes) => {
-          const positions: Record<string, { x: number; y: number }> = {};
-          currentNodes.forEach((n) => { positions[n.id] = n.position; });
-          // We don't have viewport here easily, save what we have; viewport is saved onMoveEnd
-          const existing = loadLayout(tenantId);
-          saveLayout(tenantId, positions, existing?.viewport ?? { x: 0, y: 0, zoom: 1 });
-          return currentNodes;
+      if (lTimer.current) clearTimeout(lTimer.current);
+      lTimer.current = setTimeout(() => {
+        setNodes((ns) => {
+          const pos: Record<string, { x: number; y: number }> = {};
+          ns.forEach((n) => (pos[n.id] = n.position));
+          const ex = loadLayout(tenantId);
+          persistLayout(tenantId, pos, ex?.viewport);
+          return ns;
         });
-      }, 500);
+      }, 400);
     },
-    [onNodesChange, setNodes, tenantId]
+    [onNodesChange, setNodes, tenantId],
   );
 
-  // ── Edge click → edit transition ───────────────────────────
+  const onEdgeClick = useCallback((_: any, edge: Edge) => {
+    setSelEdgeId(edge.id);
+    const t: FlowTransition = edge.data?.transition ?? {};
+    setEditing({
+      fromState: edge.data?.fromState ?? (t.from_states?.length ? t.from_states[0] : ""),
+      to_state: t.to_state ?? "",
+      intent: t.intent ?? "",
+      action: t.action ?? "faq",
+      static_message: t.static_message,
+      bot_prompt: t.bot_prompt,
+      suggested_replies: t.suggested_replies ?? [],
+      enabled: t.enabled ?? true,
+    });
+    setPanel("transition");
+  }, []);
 
-  const onEdgeClick = useCallback(
-    (_: MouseEvent, edge: Edge) => {
-      setSelectedEdge(edge);
-      const t: FlowTransition = edge.data?.transition ?? {};
-      // Map FlowTransition → EditingTransition
-      // from_states: [] = wildcard → fromState: "" (displayed as FROM_ANY sentinel)
-      setEditingTransition({
-        fromState: edge.data?.fromState ?? (t.from_states?.length > 0 ? t.from_states[0] : ""),
-        to_state: t.to_state ?? "",
-        intent: t.intent ?? "",
-        action: t.action ?? "faq",
-        static_message: t.static_message,
-        enabled: t.enabled ?? true,
-      });
-    },
-    []
-  );
-
-  const onConnect = useCallback(
-    (connection: Connection) => {
-      const isFromAny = connection.source === ANY_NODE_ID;
-      const newEdge: Edge = {
-        ...connection,
-        id: `e-new-${Date.now()}`,
-        source: connection.source ?? "idle",
-        target: connection.target ?? "idle",
-        label: "new",
-        markerEnd: { type: MarkerType.ArrowClosed },
-        data: {
-          transition: {
-            from_states: isFromAny ? [] : [connection.source ?? "idle"],
-            to_state: connection.target ?? "idle",
-            intent: "",
-            action: "faq",
-            enabled: true,
-          } satisfies FlowTransition,
-          fromState: connection.source,
-          isWildcard: isFromAny,
-        },
-      };
-      setEdges((es) => addEdge(newEdge, es));
-      setSelectedEdge(newEdge);
-      // Map to EditingTransition for the editor panel
-      setEditingTransition({
-        fromState: connection.source ?? "",
-        to_state: connection.target ?? "",
-        intent: "",
-        action: "faq",
-        enabled: true,
-      });
-      setIsDirty(true);
-    },
-    [setEdges]
-  );
-
-  const saveEdgeTransition = useCallback(() => {
-    if (!editingTransition) return;
-
-    // Convert EditingTransition → FlowTransition
-    // fromState: "" means wildcard → from_states: []
-    const fromState = editingTransition.fromState ?? "";
-    const flowT: FlowTransition = {
-      intent: editingTransition.intent ?? "",
-      from_states: fromState ? [fromState] : [],
-      to_state: editingTransition.to_state ?? "__same__",
-      action: editingTransition.action ?? "faq",
-      static_message: editingTransition.static_message,
-      enabled: editingTransition.enabled ?? true,
+  const onConnect = useCallback((conn: Connection) => {
+    const fromAny = conn.source === ANY_NODE_ID;
+    const tr: FlowTransition = {
+      intent: "", from_states: fromAny ? [] : [conn.source ?? "idle"],
+      to_state: conn.target ?? "idle", action: "faq", enabled: true, suggested_replies: [],
     };
+    const c = actColor("faq");
+    const ne: Edge = {
+      id: `e-new-${Date.now()}`, type: "flow",
+      source: conn.source ?? "idle", target: conn.target ?? "idle",
+      markerEnd: { type: MarkerType.ArrowClosed, color: c, width: 16, height: 16 },
+      data: { transition: tr, fromState: conn.source, isWildcard: fromAny, color: c, offset: 0, actionLabel: actLabel("faq", customSkills) },
+    };
+    setEdges((es) => addEdge(ne, es));
+    setSelEdgeId(ne.id);
+    setEditing({
+      fromState: conn.source ?? "", to_state: conn.target ?? "",
+      intent: "", action: "faq", suggested_replies: [], enabled: true,
+    });
+    setPanel("transition");
+    setIsDirty(true);
+  }, [setEdges, customSkills]);
 
-    if (!selectedEdge) {
-      // ── New transition (created via button, not canvas drag) ──
-      const isWildcard = flowT.from_states.length === 0;
-      const sources = isWildcard ? [ANY_NODE_ID] : flowT.from_states;
-      const newEdges: Edge[] = sources.flatMap((src, si) => {
-        const target = flowT.to_state === "__same__" ? (isWildcard ? flowT.to_state : src) : flowT.to_state;
-        if (target === "__same__" && isWildcard) return [];
-        if (!target || !src) return [];
-        const edgeColor = isWildcard ? "#D1A23B" : "#636366";
-        return [{
-          id: `e-new-${Date.now()}-${si}`,
-          type: "straight",
-          source: src,
-          target,
-          label: `${flowT.intent || "*"} → ${actionLabel(flowT.action, customSkills)}`,
-          labelStyle: { fontSize: 10, fill: "#636366" },
-          labelBgStyle: { fill: "white", fillOpacity: 0.9 },
-          labelBgPadding: [4, 4] as [number, number],
-          labelBgBorderRadius: 4,
-          markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
-          style: { stroke: edgeColor, strokeWidth: isWildcard ? 1.5 : 2, strokeDasharray: isWildcard ? "6 3" : undefined, opacity: isWildcard ? 0.55 : 1 },
-          data: { transition: flowT, fromState: src, isWildcard },
-        }];
-      });
-      // If adding a wildcard transition and no ANY node exists yet, add it
-      if (isWildcard) {
+  const applyEdit = useCallback((upd: EditTrans) => {
+    setEditing(upd);
+    if (!selEdgeId) return;
+    const c = actColor(upd.action);
+    const iDef = intents.find((i) => i.key === upd.intent);
+    setEdges((es) => es.map((e) => {
+      if (e.id !== selEdgeId) return e;
+      const ft: FlowTransition = {
+        intent: upd.intent, from_states: upd.fromState ? [upd.fromState] : [],
+        to_state: upd.to_state || "__same__", action: upd.action,
+        static_message: upd.static_message, bot_prompt: upd.bot_prompt,
+        suggested_replies: upd.suggested_replies?.filter(Boolean) ?? [], enabled: upd.enabled,
+      };
+      return {
+        ...e,
+        data: { ...e.data, transition: ft, color: c, intentLabel: upd.intent ? iDef?.name ?? upd.intent : undefined, actionLabel: actLabel(upd.action, customSkills) },
+        markerEnd: { type: MarkerType.ArrowClosed, color: c, width: 16, height: 16 },
+      };
+    }));
+    setIsDirty(true);
+  }, [selEdgeId, setEdges, intents, customSkills]);
+
+  const createNew = useCallback(() => {
+    setSelEdgeId(null);
+    setEditing({ fromState: "", to_state: "", intent: "", action: "faq", suggested_replies: [], enabled: true });
+    setPanel("transition");
+  }, []);
+
+  const saveTrans = useCallback(() => {
+    if (!editing) return;
+    if (!selEdgeId) {
+      if (!editing.to_state) { toast.error("Select a target state"); return; }
+      const wild = !editing.fromState;
+      const src = wild ? ANY_NODE_ID : editing.fromState;
+      const c = actColor(editing.action);
+      const iDef = intents.find((i) => i.key === editing.intent);
+      const ft: FlowTransition = {
+        intent: editing.intent, from_states: wild ? [] : [editing.fromState],
+        to_state: editing.to_state, action: editing.action,
+        static_message: editing.static_message, bot_prompt: editing.bot_prompt,
+        suggested_replies: editing.suggested_replies?.filter(Boolean) ?? [], enabled: editing.enabled,
+      };
+      if (wild) {
         setNodes((ns) => {
           if (ns.find((n) => n.id === ANY_NODE_ID)) return ns;
-          return [{
-            id: ANY_NODE_ID,
-            type: "anyNode" as any,
-            position: ANY_NODE_POSITION,
-            data: { label: "★ Any State", state: ANY_NODE_ID, isActive: false, transitionCount: 0 },
-          }, ...ns];
+          return [{ id: ANY_NODE_ID, type: "stateNode", position: { x: 60, y: 60 },
+            data: { label: "\u2605 Any State", state: ANY_NODE_ID, isActive: false, transitionCount: 0, isGhost: false, isAny: true } }, ...ns];
         });
       }
-      setEdges((es) => [...es, ...newEdges]);
+      const ne: Edge = {
+        id: `e-new-${Date.now()}`, type: "flow", source: src, target: editing.to_state,
+        markerEnd: { type: MarkerType.ArrowClosed, color: c, width: 16, height: 16 },
+        data: { transition: ft, fromState: src, isWildcard: wild, color: c, offset: 0,
+          intentLabel: editing.intent ? iDef?.name ?? editing.intent : undefined, actionLabel: actLabel(editing.action, customSkills) },
+      };
+      setEdges((es) => [...es, ne]);
       setIsDirty(true);
-      pendingSaveRef.current = true;
-      setEditingTransition(null);
-      return;
+      toast.success("Transition added");
     }
+    setPanel("none");
+    setSelEdgeId(null);
+    setEditing(null);
+  }, [editing, selEdgeId, intents, customSkills, setEdges, setNodes]);
 
-    // ── Editing existing edge ──
-    setEdges((es) =>
-      es.map((e) => {
-        if (e.id !== selectedEdge.id) return e;
-        const isWild = e.data?.isWildcard;
-        const edgeColor = isWild ? "#D1A23B" : "#636366";
-        return {
-          ...e,
-          label: `${flowT.intent || "*"} → ${actionLabel(flowT.action, customSkills)}`,
-          style: { stroke: edgeColor, strokeWidth: isWild ? 1.5 : 2, strokeDasharray: isWild ? "6 3" : undefined, opacity: isWild ? 0.55 : 1 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: edgeColor },
-          data: { transition: flowT, fromState: e.data?.fromState, isWildcard: isWild },
-        };
-      })
-    );
-    setIsDirty(true);
-    pendingSaveRef.current = true;
-    setSelectedEdge(null);
-    setEditingTransition(null);
-  }, [selectedEdge, editingTransition, setEdges]);
-
-  const deleteEdge = useCallback(() => {
-    if (!selectedEdge) return;
-    setEdges((es) => es.filter((e) => e.id !== selectedEdge.id));
-    setIsDirty(true);
-    pendingSaveRef.current = true;
-    setSelectedEdge(null);
-    setEditingTransition(null);
-  }, [selectedEdge, setEdges]);
-
-  // ── Save all transitions ────────────────────────────────────
+  const deleteTrans = useCallback(() => {
+    if (selEdgeId) {
+      setEdges((es) => es.filter((e) => e.id !== selEdgeId));
+      setIsDirty(true);
+      toast.success("Transition removed");
+    }
+    setSelEdgeId(null);
+    setEditing(null);
+    setPanel("none");
+  }, [selEdgeId, setEdges]);
 
   const saveAll = useCallback(async () => {
-    // Sanitize: strip "__any__" sentinel from from_states before sending to backend
-    const newTransitions: FlowTransition[] = edges
-      .map((e) => e.data?.transition)
-      .filter(Boolean)
-      .map((t: FlowTransition) => ({
-        ...t,
-        from_states: t.from_states.filter((s: string) => s !== "__any__"),
-      }));
+    setNodes((ns) => {
+      const pos: Record<string, { x: number; y: number }> = {};
+      ns.forEach((n) => (pos[n.id] = n.position));
+      const ex = loadLayout(tenantId);
+      persistLayout(tenantId, pos, ex?.viewport);
+      return ns;
+    });
+    const newT: FlowTransition[] = edges
+      .map((e) => e.data?.transition).filter(Boolean)
+      .map((t: FlowTransition) => ({ ...t, from_states: t.from_states.filter((s: string) => s !== ANY_NODE_ID) }));
     try {
-      await replaceTransitions.mutateAsync(newTransitions);
+      await replaceTransitions.mutateAsync(newT);
       setIsDirty(false);
-      toast.success("FSM transitions saved");
+      toast.success("Conversation flow saved");
     } catch {
-      toast.error("Failed to save transitions");
+      toast.error("Failed to save flow");
     }
-  }, [edges, replaceTransitions]);
+  }, [edges, replaceTransitions, tenantId, setNodes]);
 
-  // Auto-save when edges are modified (add / edit / delete) via the overlay editor
-  useEffect(() => {
-    if (!pendingSaveRef.current) return;
-    pendingSaveRef.current = false;
-    saveAll();
-  }, [edges]); // eslint-disable-line react-hooks/exhaustive-deps
+  const closePanel = useCallback(() => { setPanel("none"); setSelEdgeId(null); setEditing(null); }, []);
+  const panelOpen = panel !== "none";
 
   return (
-    <div className="relative h-[calc(100vh-4rem)] overflow-hidden">
-      {/* ── Full-canvas ReactFlow ──────────────────────── */}
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={onNodesChangeWithPersist}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onEdgeClick={onEdgeClick}
-        nodeTypes={nodeTypes}
-        connectionMode={ConnectionMode.Loose}
-        fitView={!savedLayout}
-        fitViewOptions={{ padding: 0.18 }}
-        defaultEdgeOptions={{ type: "straight", animated: false }}
-        onPaneClick={() => { setSelectedEdge(null); setEditingTransition(null); }}
-        onMoveEnd={(_, viewport) => {
-          // Persist viewport (zoom + pan) after the user stops moving
-          setNodes((currentNodes) => {
-            const positions: Record<string, { x: number; y: number }> = {};
-            currentNodes.forEach((n) => { positions[n.id] = n.position; });
-            saveLayout(tenantId, positions, viewport);
-            return currentNodes;
-          });
-        }}
-      >
-        <Background gap={16} size={1} color="#e8e8ed" />
-        <Controls position="bottom-left" />
-        <MiniMap nodeColor={(n) => n.data?.isGhost ? "#e2e8f0" : "#c7d2fe"} position="bottom-right" />
-      </ReactFlow>
+    <div className="relative h-[calc(100vh-4rem)] flex overflow-hidden bg-slate-50">
+      <div className={cn("flex-1 transition-all duration-300 ease-out", panelOpen && "mr-[380px]")}>
+        <ReactFlow
+          nodes={nodes} edges={edges}
+          onNodesChange={onNC} onEdgesChange={onEdgesChange}
+          onConnect={onConnect} onEdgeClick={onEdgeClick}
+          nodeTypes={nodeTypes} edgeTypes={edgeTypes}
+          connectionMode={ConnectionMode.Loose}
+          fitView={!saved} fitViewOptions={{ padding: 0.2 }}
+          defaultEdgeOptions={{ type: "flow" }}
+          onNodeClick={(_, n) => { if (!n.data?.isAny) setPanel("states"); }}
+          onPaneClick={() => { if (panel !== "transition") setSelEdgeId(null); }}
+          onMoveEnd={(_, vp) => {
+            setNodes((ns) => {
+              const pos: Record<string, { x: number; y: number }> = {};
+              ns.forEach((n) => (pos[n.id] = n.position));
+              persistLayout(tenantId, pos, vp);
+              return ns;
+            });
+          }}
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background gap={20} size={1} color="#e2e8f0" />
+          <Controls position="bottom-left" showInteractive={false}
+            className="!bg-white !border-slate-200 !shadow-sm !rounded-xl overflow-hidden [&>button]:!border-slate-100 [&>button]:!bg-white [&>button:hover]:!bg-slate-50" />
+          <MiniMap
+            nodeColor={(n) => n.data?.isAny ? "#fbbf24" : n.data?.isGhost ? "#e2e8f0" : "#93c5fd"}
+            maskColor="rgba(0,0,0,.05)" position="bottom-right"
+            className="!bg-white !border-slate-200 !shadow-sm !rounded-xl" />
+        </ReactFlow>
 
-      {/* ── Top toolbar ──────────────────────────────── */}
-      <div className="absolute top-4 left-4 flex items-center gap-2 z-10">
-        <Button
-          size="sm"
-          variant={isDirty ? "default" : "outline"}
-          className="shadow-sm"
-          onClick={saveAll}
-          disabled={!isDirty}
-        >
-          <Save className="h-3.5 w-3.5 mr-1.5" />
-          {isDirty ? "Save Changes" : "Saved"}
-        </Button>
+        <div className="absolute top-4 left-4 flex items-center gap-3 z-10">
+          <div className="flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-xl border border-slate-200 shadow-sm px-4 py-2">
+            <Workflow className="h-4 w-4 text-primary" />
+            <span className="text-sm font-semibold text-slate-800">Conversation Flow</span>
+          </div>
+          <Button size="sm" variant={isDirty ? "default" : "outline"}
+            className={cn("shadow-sm h-9 rounded-xl transition-all", isDirty && "animate-pulse")}
+            onClick={saveAll} disabled={!isDirty || replaceTransitions.isPending}>
+            <Save className="h-3.5 w-3.5 mr-1.5" />
+            {replaceTransitions.isPending ? "Saving\u2026" : isDirty ? "Save Changes" : "Saved"}
+          </Button>
+          {isDirty && (
+            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]">
+              Unsaved changes
+            </Badge>
+          )}
+        </div>
 
-        <div className="h-4 w-px bg-slate-200" />
-
-        <Button
-          size="sm"
-          variant="outline"
-          className="shadow-sm bg-white"
-          onClick={() => { setSelectedEdge(null); setEditingTransition({ intent: "", action: "faq", fromState: "", to_state: "", enabled: true }); }}
-        >
-          <Plus className="h-3.5 w-3.5 mr-1.5" />
-          New Transition
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="shadow-sm bg-white"
-          onClick={() => setShowIntentDialog(true)}
-        >
-          <Brain className="h-3.5 w-3.5 mr-1.5" />
-          Intents
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="shadow-sm bg-white"
-          onClick={() => setShowStatesDialog(true)}
-        >
-          <Layers className="h-3.5 w-3.5 mr-1.5" />
-          States
-        </Button>
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={createNew}
+            className={cn("shadow-sm h-9 rounded-xl bg-white/95 backdrop-blur-sm", panel === "transition" && !selEdgeId && "ring-2 ring-primary/20 border-primary")}>
+            <Plus className="h-3.5 w-3.5 mr-1.5" />Transition
+          </Button>
+          <Button size="sm" variant="outline"
+            className={cn("shadow-sm h-9 rounded-xl bg-white/95 backdrop-blur-sm", panel === "intents" && "ring-2 ring-primary/20 border-primary")}
+            onClick={() => setPanel((p) => p === "intents" ? "none" : "intents")}>
+            <Brain className="h-3.5 w-3.5 mr-1.5" />Intents
+          </Button>
+          <Button size="sm" variant="outline"
+            className={cn("shadow-sm h-9 rounded-xl bg-white/95 backdrop-blur-sm", panel === "states" && "ring-2 ring-primary/20 border-primary")}
+            onClick={() => setPanel((p) => p === "states" ? "none" : "states")}>
+            <Layers className="h-3.5 w-3.5 mr-1.5" />States
+          </Button>
+        </div>
       </div>
 
-      {/* ── Help button (top-right) ───────────────────── */}
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-        {!editingTransition && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="shadow-sm bg-white/95 backdrop-blur-sm gap-1.5"
-            onClick={() => setShowHelp((v) => !v)}
-          >
-            <HelpCircle className="h-3.5 w-3.5" />
-            Help
-          </Button>
+      <div className={cn(
+        "absolute top-0 right-0 h-full w-[380px] bg-white border-l border-slate-200 shadow-lg z-20",
+        "transform transition-transform duration-300 ease-out",
+        panelOpen ? "translate-x-0" : "translate-x-full",
+      )}>
+        {panel === "transition" && editing && (
+          <TransPanel t={editing} isNew={!selEdgeId} intents={intents} actions={actions}
+            customSkills={customSkills} allStates={fsmStates} onChange={applyEdit}
+            onSave={saveTrans} onDelete={deleteTrans} onClose={closePanel} />
+        )}
+        {panel === "intents" && (
+          <IntentPanel tenantId={tenantId} intents={intents} onClose={closePanel} />
+        )}
+        {panel === "states" && (
+          <StatesPanel tenantId={tenantId} states={fsmStates} onClose={closePanel} />
         )}
       </div>
-
-      {/* ── Help popover ─────────────────────────────── */}
-      {showHelp && !editingTransition && (
-        <div className="absolute top-14 right-4 z-30 w-80 bg-white rounded-2xl border shadow-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b bg-slate-50">
-            <div className="font-semibold text-sm text-slate-800">FSM Editor — How it works</div>
-            <button
-              onClick={() => setShowHelp(false)}
-              className="rounded-md p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="p-4 space-y-4 text-sm text-slate-700">
-            <HelpSection icon="🔵" title="Nodes = States">
-              Each box represents a conversation state (e.g. <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">faq_answer</code>, <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">checkout</code>). Drag nodes freely — positions are saved automatically.
-            </HelpSection>
-            <HelpSection icon="➡️" title="Arrows = Transitions">
-              An arrow means: <em>"when intent X is detected in state A, execute action Y and move to state B"</em>. Click any arrow to edit it.
-            </HelpSection>
-            <HelpSection icon="🟡" title="★ ANY STATE node">
-              Transitions originating from <strong>★ ANY</strong> apply regardless of the current state — useful for global intents like <em>goodbye</em> or <em>complaint</em>.
-            </HelpSection>
-            <HelpSection icon="🟣" title="Connection handles">
-              Hover a node to reveal <span className="text-violet-500 font-medium">purple dots</span> (source) and <span className="text-emerald-500 font-medium">green dots</span> (target) on each side. Drag from any dot to create a connection — just like draw.io.
-            </HelpSection>
-            <HelpSection icon="💾" title="Layout persistence">
-              Node positions, zoom, and pan are saved in your browser automatically. Use <strong>Save Changes</strong> (top-left) to commit transition rules to the server.
-            </HelpSection>
-            <HelpSection icon="🎯" title="Intent wildcard">
-              Leave Intent blank (wildcard) on a transition to match <em>any</em> detected intent from that state.
-            </HelpSection>
-          </div>
-        </div>
-      )}
-
-      {/* ── Transition editor overlay ─────────────────── */}
-      {editingTransition && (
-        <div className="absolute top-4 right-4 z-20">
-          <TransitionEditor
-            transition={editingTransition}
-            intents={intents}
-            actions={actions}
-            customSkills={customSkills}
-            allStates={fsmStateItems}
-            onChange={setEditingTransition}
-            onSave={saveEdgeTransition}
-            onDelete={deleteEdge}
-            onCancel={() => { setSelectedEdge(null); setEditingTransition(null); }}
-          />
-        </div>
-      )}
-
-      {/* ── Intent manager dialog ─────────────────────── */}
-      <IntentManagerDialog
-        tenantId={tenantId}
-        open={showIntentDialog}
-        onClose={() => setShowIntentDialog(false)}
-        intents={intents}
-      />
-
-      {/* ── States manager dialog ─────────────────────── */}
-      <StatesManagerDialog
-        tenantId={tenantId}
-        open={showStatesDialog}
-        onClose={() => setShowStatesDialog(false)}
-        states={fsmStateItems as { key: string; label: string; is_default?: boolean }[]}
-      />
     </div>
   );
 }
 
-// ─── Help section sub-component ───────────────────────────────
-
-function HelpSection({ icon, title, children }: { icon: string; title: string; children: ReactNode }) {
-  return (
-    <div className="flex gap-3">
-      <span className="text-base shrink-0 mt-0.5">{icon}</span>
-      <div>
-        <div className="font-semibold text-slate-800 mb-0.5">{title}</div>
-        <div className="text-slate-500 text-xs leading-relaxed">{children}</div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Transition editor ─────────────────────────────────────────
-
-// When editing, we work with a single from/to state pair + the transition data.
-// The FlowTransition.from_states[] is managed at save time.
-interface EditingTransition {
-  /** "" means wildcard (any state) — maps to from_states: [] */
-  fromState: string;
-  to_state: string;
-  intent: string;
-  action: string;
-  static_message?: string;
-  enabled: boolean;
-}
-
-function TransitionEditor({
-  transition,
-  intents,
-  actions,
-  customSkills,
-  allStates,
-  onChange,
-  onSave,
-  onDelete,
-  onCancel,
-}: {
-  transition: Partial<EditingTransition>;
-  intents: IntentDefinition[];
-  actions: ActionCatalogItem[];
-  customSkills: SkillConfig[];
+function TransPanel({ t, isNew, intents, actions, customSkills, allStates, onChange, onSave, onDelete, onClose }: {
+  t: EditTrans; isNew: boolean;
+  intents: IntentDefinition[]; actions: ActionCatalogItem[]; customSkills: SkillConfig[];
   allStates: { key: string; label: string }[];
-  onChange: (t: Partial<EditingTransition>) => void;
-  onSave: () => void;
-  onDelete: () => void;
-  onCancel: () => void;
+  onChange: (t: EditTrans) => void; onSave: () => void; onDelete: () => void; onClose: () => void;
 }) {
-
   return (
-    <div className="w-[300px] bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
-        <div className="flex items-center gap-2">
-          <GitBranch className="h-4 w-4 text-violet-500" />
-          <span className="font-semibold text-sm text-slate-800">Edit Transition</span>
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: actColor(t.action) + "15" }}>
+            <ArrowRight className="h-4 w-4" style={{ color: actColor(t.action) }} />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">{isNew ? "New Transition" : "Edit Transition"}</h3>
+            <p className="text-[11px] text-slate-400">{isNew ? "Define how the conversation flows" : "Changes update live on the canvas"}</p>
+          </div>
         </div>
-        <button
-          onClick={onCancel}
-          className="rounded-md p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-        >
+        <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
           <X className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Body */}
-      <div className="p-4 space-y-4">
-        {/* From State */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-slate-700">
-            From State
-            <span className="ml-1.5 text-slate-400 font-normal">(Any = applies from every state)</span>
-          </Label>
-          <Select
-            value={transition.fromState || FROM_ANY}
-            onValueChange={(v) => onChange({ ...transition, fromState: v === FROM_ANY ? "" : v })}
-          >
-            <SelectTrigger className="h-9 text-sm border-slate-200 focus:ring-violet-500 focus:border-violet-400">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={FROM_ANY} className="text-sm">
-                <span className="text-amber-600 font-medium">✦ Any State</span>
-                <span className="ml-1.5 text-slate-400 text-xs">(wildcard)</span>
-              </SelectItem>
-              {allStates.map((s) => (
-                <SelectItem key={s.key} value={s.key} className="text-sm">
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="flex-1 overflow-y-auto p-5 space-y-5">
+        <Section title="Route">
+          <FG label="From State" hint="(Any = global)">
+            <Select value={t.fromState || FROM_ANY} onValueChange={(v) => onChange({ ...t, fromState: v === FROM_ANY ? "" : v })}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={FROM_ANY}><span className="text-amber-600 font-medium">{"\u2605"} Any State</span></SelectItem>
+                {allStates.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </FG>
+          <div className="flex items-center justify-center text-slate-300"><ChevronDown className="h-4 w-4" /></div>
+          <FG label="To State">
+            <Select value={t.to_state || ""} onValueChange={(v) => onChange({ ...t, to_state: v })}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select target\u2026" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__same__"><div className="flex items-center gap-2"><Undo2 className="h-3 w-3 text-slate-400" /><span className="text-slate-500">Same State</span></div></SelectItem>
+                {allStates.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </FG>
+        </Section>
 
-        {/* Arrow visual */}
-        <div className="flex items-center gap-2 text-slate-300 text-xs">
-          <div className="flex-1 h-px bg-slate-100" />
-          <span className="shrink-0">↓ transitions to</span>
-          <div className="flex-1 h-px bg-slate-100" />
-        </div>
+        <Section title="When">
+          <FG label="Intent detected" hint="(blank = any)">
+            <Select value={t.intent || INTENT_WILDCARD} onValueChange={(v) => onChange({ ...t, intent: v === INTENT_WILDCARD ? "" : v })}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={INTENT_WILDCARD}><span className="text-slate-400">Any intent (wildcard)</span></SelectItem>
+                {intents.map((i) => <SelectItem key={i.key} value={i.key}>{i.name ?? i.key}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </FG>
+        </Section>
 
-        {/* To State */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-slate-700">To State</Label>
-          <Select
-            value={transition.to_state || ""}
-            onValueChange={(v) => onChange({ ...transition, to_state: v })}
-          >
-            <SelectTrigger className="h-9 text-sm border-slate-200 focus:ring-violet-500 focus:border-violet-400">
-              <SelectValue placeholder="Select target state…" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__same__" className="text-sm">
-                <span className="text-slate-500">↩ Same State</span>
-                <span className="ml-1.5 text-slate-400 text-xs">(no change)</span>
-              </SelectItem>
-              {allStates.map((s) => (
-                <SelectItem key={s.key} value={s.key} className="text-sm">
-                  {s.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        <Section title="Then">
+          <FG label="Execute action">
+            <Select value={t.action} onValueChange={(v) => onChange({ ...t, action: v })}>
+              <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(actions.length > 0 ? actions.map((a) => a.key) : Object.keys(ACTION_LABELS)).map((a) => (
+                  <SelectItem key={a} value={a}>
+                    <div className="flex items-center gap-2">
+                      <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: ACTION_COLORS[a] ?? "#94a3b8" }} />
+                      {ACTION_LABELS[a] ?? a}
+                    </div>
+                  </SelectItem>
+                ))}
+                {customSkills.length > 0 && (
+                  <>
+                    <div className="px-3 pt-3 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-widest border-t mt-1">Custom Personas</div>
+                    {customSkills.map((sk) => (
+                      <SelectItem key={sk.action} value={sk.action}>
+                        <div className="flex items-center gap-2">
+                          <div className="h-2.5 w-2.5 rounded-full shrink-0 bg-rose-500" />
+                          {sk.name ?? sk.action.replace("conversational__", "").replace(/_/g, " ")}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </FG>
+          {t.action === "static_reply" && (
+            <FG label="Message text">
+              <Input className="text-sm h-9" placeholder="Type the static message\u2026" value={t.static_message ?? ""}
+                onChange={(e) => onChange({ ...t, static_message: e.target.value })} />
+            </FG>
+          )}
+        </Section>
 
-        <div className="h-px bg-slate-100" />
+        <Section title="Bot Message" initClosed>
+          <FG label="Prompt" hint="Sent before the action response">
+            <Textarea className="text-sm resize-none min-h-[80px]"
+              placeholder="e.g. Hello! Welcome"
+              value={t.bot_prompt ?? ""} onChange={(e) => onChange({ ...t, bot_prompt: e.target.value })} />
+          </FG>
+        </Section>
 
-        {/* Intent */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-slate-700">
-            Intent
-            <span className="ml-1.5 text-slate-400 font-normal">(blank = any intent)</span>
-          </Label>
-          <Select
-            value={transition.intent || INTENT_WILDCARD}
-            onValueChange={(v) => onChange({ ...transition, intent: v === INTENT_WILDCARD ? "" : v })}
-          >
-            <SelectTrigger className="h-9 text-sm border-slate-200 focus:ring-violet-500 focus:border-violet-400">
-              <SelectValue placeholder="Any intent" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={INTENT_WILDCARD} className="text-sm text-slate-500">
-                — Any intent (wildcard)
-              </SelectItem>
-              {intents.map((i) => (
-                <SelectItem key={i.key} value={i.key} className="text-sm">
-                  {i.name ?? i.key}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Action */}
-        <div className="space-y-1.5">
-          <Label className="text-xs font-medium text-slate-700">Action</Label>
-          <Select
-            value={transition.action}
-            onValueChange={(v) => onChange({ ...transition, action: v })}
-          >
-            <SelectTrigger className="h-9 text-sm border-slate-200 focus:ring-violet-500 focus:border-violet-400">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {/* Built-in catalog actions */}
-              {(actions.length > 0 ? actions.map((a) => a.key) : Object.keys(ACTION_LABELS)).map((a) => (
-                <SelectItem key={a} value={a} className="text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: ACTION_COLORS[a] ?? "#94a3b8" }} />
-                    {ACTION_LABELS[a] ?? a}
-                  </div>
-                </SelectItem>
-              ))}
-              {/* Custom conversational personas */}
-              {customSkills.length > 0 && (
-                <>
-                  <div className="px-3 pt-3 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-widest border-t mt-1">
-                    Custom Personas
-                  </div>
-                  {customSkills.map((skill) => (
-                    <SelectItem key={skill.action} value={skill.action} className="text-sm">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 rounded-full shrink-0 bg-rose-500" />
-                        {skill.name ?? skill.action.replace("conversational__", "").replace(/_/g, " ")}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </>
-              )}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Static message (only for static_reply) */}
-        {transition.action === "static_reply" && (
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-slate-700">Static Message</Label>
-            <Input
-              className="text-sm h-9 border-slate-200 focus-visible:ring-violet-500"
-              placeholder="Message to send…"
-              value={transition.static_message ?? ""}
-              onChange={(e) => onChange({ ...transition, static_message: e.target.value })}
-            />
+        <Section title="Quick Replies" initClosed>
+          <div className="space-y-2">
+            {(t.suggested_replies ?? []).map((r, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <Input className="text-xs h-8 flex-1" placeholder={`Reply ${i + 1}\u2026`} value={r}
+                  onChange={(e) => { const n = [...(t.suggested_replies ?? [])]; n[i] = e.target.value; onChange({ ...t, suggested_replies: n }); }} />
+                <button onClick={() => onChange({ ...t, suggested_replies: (t.suggested_replies ?? []).filter((_, j) => j !== i) })}
+                  className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"><X className="h-3 w-3" /></button>
+              </div>
+            ))}
+            <button onClick={() => onChange({ ...t, suggested_replies: [...(t.suggested_replies ?? []), ""] })}
+              className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors">
+              <Plus className="h-3 w-3" />Add reply chip
+            </button>
           </div>
-        )}
+        </Section>
+
+        <div className="flex items-center justify-between py-2">
+          <Label className="text-sm text-slate-700">Enabled</Label>
+          <Switch checked={t.enabled} onCheckedChange={(v) => onChange({ ...t, enabled: v })} />
+        </div>
       </div>
 
-      {/* Footer */}
-      <div className="px-4 pb-4 flex items-center gap-2">
-        <Button
-          size="sm"
-          className="flex-1 h-9 bg-violet-600 hover:bg-violet-700 text-white font-medium"
-          onClick={onSave}
-        >
-          <Save className="h-3.5 w-3.5 mr-1.5" />
-          Apply
+      <div className="p-4 border-t border-slate-100 flex items-center gap-2">
+        <Button size="sm" className="flex-1 h-10 font-medium rounded-xl" onClick={onSave}>
+          {isNew ? <><Plus className="h-4 w-4 mr-1.5" />Add Transition</> : <><Save className="h-4 w-4 mr-1.5" />Done</>}
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          className="h-9 w-9 p-0 border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300 hover:text-red-600"
-          onClick={onDelete}
-          title="Delete transition"
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
+        {!isNew && (
+          <Button size="sm" variant="outline" className="h-10 w-10 p-0 rounded-xl border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300"
+            onClick={onDelete} title="Delete transition"><Trash2 className="h-4 w-4" /></Button>
+        )}
       </div>
     </div>
   );
 }
 
-// ─── Intent manager dialog ─────────────────────────────────────
-
-function IntentManagerDialog({
-  tenantId,
-  open,
-  onClose,
-  intents,
-}: {
-  tenantId: string;
-  open: boolean;
-  onClose: () => void;
-  intents: IntentDefinition[];
-}) {
+function IntentPanel({ tenantId, intents, onClose }: { tenantId: string; intents: IntentDefinition[]; onClose: () => void }) {
   const createIntent = useCreateIntent(tenantId);
   const updateIntent = useUpdateIntent(tenantId);
   const deleteIntent = useDeleteIntent(tenantId);
-  const [newName, setNewName] = useState("");
-  const [newDisplay, setNewDisplay] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValues, setEditValues] = useState<Partial<IntentDefinition>>({});
+  const [mode, setMode] = useState<null | "new" | string>(null);
+  const [draft, setDraft] = useState<Partial<IntentDefinition>>({});
+  const isPending = createIntent.isPending || updateIntent.isPending;
 
-  const handleCreate = async () => {
-    if (!newName.trim()) return;
-    await createIntent.mutateAsync({
-      key: newName.trim(),
-      name: newDisplay.trim() || newName.trim(),
-      description: "",
-      examples: [],
-      enabled: true,
-      priority: 50,
-    });
-    setNewName("");
-    setNewDisplay("");
-    toast.success("Intent created");
-  };
+  function openNew() { setDraft({ key: "", name: "", description: "", examples: [], enabled: true, priority: 50 }); setMode("new"); }
+  function openEdit(i: IntentDefinition) { setDraft({ ...i }); setMode(i.key); }
 
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Manage Intents</DialogTitle>
-        </DialogHeader>
-
-        <div className="space-y-3">
-          {/* Create new intent */}
-          <div className="rounded-lg border p-3 space-y-2">
-            <div className="text-xs font-medium text-muted-foreground uppercase">New Intent</div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">Name (slug)</Label>
-                <Input
-                  className="h-8 text-xs font-mono"
-                  placeholder="ask_price"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value.toLowerCase().replace(/\s+/g, "_"))}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Display Name</Label>
-                <Input
-                  className="h-8 text-xs"
-                  placeholder="Ask about price"
-                  value={newDisplay}
-                  onChange={(e) => setNewDisplay(e.target.value)}
-                />
-              </div>
-            </div>
-            <Button
-              size="sm"
-              onClick={handleCreate}
-              loading={createIntent.isPending}
-              disabled={!newName.trim()}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              Create Intent
-            </Button>
-          </div>
-
-          {/* Intent list */}
-          <div className="space-y-2">
-            {intents.map((intent) => (
-              <div key={intent.key} className="rounded-lg border p-3">
-                {editingId === intent.key ? (
-                  <div className="space-y-2">
-                    <Input
-                      className="h-8 text-xs"
-                      value={editValues.name ?? intent.name}
-                      onChange={(e: any) => setEditValues((v) => ({ ...v, name: e.target.value }))}
-                    />
-                    <Input
-                      className="h-8 text-xs"
-                      placeholder="Description"
-                      value={editValues.description ?? intent.description}
-                      onChange={(e: any) => setEditValues((v) => ({ ...v, description: e.target.value }))}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="h-7 text-xs"
-                        loading={updateIntent.isPending}
-                        onClick={async () => {
-                          await updateIntent.mutateAsync({ key: intent.key, updates: editValues });
-                          setEditingId(null);
-                        }}
-                      >
-                        Save
-                      </Button>
-                      <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setEditingId(null)}>
-                        Cancel
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-medium">{intent.name ?? intent.key}</div>
-                      <div className="text-xs font-mono text-muted-foreground">{intent.key}</div>
-                      {intent.description && (
-                        <div className="text-xs text-muted-foreground mt-0.5">{intent.description}</div>
-                      )}
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        onClick={() => { setEditingId(intent.key); setEditValues(intent); }}
-                      >
-                        <Edit className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-destructive hover:text-destructive"
-                        loading={deleteIntent.isPending}
-                        onClick={() => deleteIntent.mutate(intent.key)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Close</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ─── States manager dialog ─────────────────────────────────────
-
-function StatesManagerDialog({
-  tenantId,
-  open,
-  onClose,
-  states,
-}: {
-  tenantId: string;
-  open: boolean;
-  onClose: () => void;
-  states: { key: string; label: string; is_default?: boolean }[];
-}) {
-  const createState = useCreateFSMState(tenantId);
-  const deleteState = useDeleteFSMState(tenantId);
-  const [newKey, setNewKey] = useState("");
-  const [newLabel, setNewLabel] = useState("");
-
-  const slug = newKey
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]+/g, "_")
-    .replace(/^_+|_+$/g, "")
-    .slice(0, 40);
-
-  const conflict = slug ? states.some((s) => s.key === slug) : false;
-
-  async function handleCreate() {
-    if (!slug || conflict) return;
-    await createState.mutateAsync({ key: slug, label: newLabel.trim() || slug.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) });
-    setNewKey("");
-    setNewLabel("");
+  async function handleSave() {
+    if (mode === "new") {
+      if (!draft.key?.trim()) return;
+      await createIntent.mutateAsync({ key: draft.key.trim().toLowerCase().replace(/\s+/g, "_"), name: draft.name?.trim() || draft.key.trim(), description: draft.description?.trim() || "", examples: draft.examples ?? [], enabled: draft.enabled ?? true, priority: draft.priority ?? 50 });
+      toast.success("Intent created");
+    } else {
+      await updateIntent.mutateAsync({ key: mode as string, updates: draft });
+      toast.success("Intent updated");
+    }
+    setMode(null);
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[80vh] flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Layers className="h-4 w-4" />
-            Manage FSM States
-          </DialogTitle>
-          <DialogDescription>
-            Add or remove states in your conversation flow. Only <strong>idle</strong> is required and cannot be removed.
-          </DialogDescription>
-        </DialogHeader>
-
-        {/* Add new state */}
-        <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
-          <div className="text-xs font-medium">Add Custom State</div>
-          <div className="flex gap-2">
-            <Input
-              placeholder="State key (e.g. upselling)"
-              value={newKey}
-              onChange={(e) => setNewKey(e.target.value)}
-              className="text-xs h-8 font-mono flex-1"
-            />
-            <Input
-              placeholder="Display label (optional)"
-              value={newLabel}
-              onChange={(e) => setNewLabel(e.target.value)}
-              className="text-xs h-8 flex-1"
-            />
-            <Button
-              size="sm"
-              className="h-8 shrink-0"
-              disabled={!slug || conflict || createState.isPending}
-              loading={createState.isPending}
-              onClick={handleCreate}
-            >
-              <Plus className="h-3.5 w-3.5 mr-1" />
-              Add
-            </Button>
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center"><Brain className="h-4 w-4 text-violet-500" /></div>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">{mode === null ? "Intents" : mode === "new" ? "New Intent" : "Edit Intent"}</h3>
+            <p className="text-[11px] text-slate-400">{mode === null ? `${intents.length} intent${intents.length !== 1 ? "s" : ""} configured` : "Define when this intent triggers"}</p>
           </div>
-          {slug && (
-            <div className="text-[11px] font-mono text-muted-foreground">
-              Key: <span className={conflict ? "text-destructive" : "text-foreground"}>{slug}</span>
-              {conflict && <span className="text-destructive ml-1">(already exists)</span>}
-            </div>
-          )}
         </div>
+        <div className="flex items-center gap-1">
+          {mode !== null && <button onClick={() => setMode(null)} className="rounded-lg px-2.5 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors">{"\u2190"} Back</button>}
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"><X className="h-4 w-4" /></button>
+        </div>
+      </div>
 
-        {/* States list */}
-        <div className="flex-1 overflow-y-auto space-y-1 min-h-0">
-          {states.map((s) => {
-            const isImmutable = s.key === "idle";
-            return (
-              <div
-                key={s.key}
-                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="h-2 w-2 rounded-full bg-slate-400 shrink-0" />
-                  <span className="font-medium truncate">{s.label}</span>
-                  <span className="text-[10px] font-mono text-muted-foreground">{s.key}</span>
-                  {isImmutable && (
-                    <Badge variant="secondary" className="text-[9px] h-4 px-1.5">required</Badge>
+      <div className="flex-1 overflow-y-auto">
+        {mode === null && (
+          <div className="p-4 space-y-2">
+            <button onClick={openNew} className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/20 text-primary hover:border-primary/40 hover:bg-primary/5 transition-all py-3 text-sm font-medium">
+              <Plus className="h-4 w-4" />New Intent
+            </button>
+            {intents.length === 0 && <p className="text-xs text-slate-400 text-center py-6">No intents configured yet.</p>}
+            {intents.map((intent) => (
+              <button key={intent.key} onClick={() => openEdit(intent)} className="w-full text-left rounded-xl border border-slate-200 hover:border-primary/30 hover:bg-primary/[.02] transition-all p-3.5 group">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-slate-800 truncate">{intent.name ?? intent.key}</div>
+                    <div className="text-[10px] font-mono text-slate-400 mt-0.5">{intent.key}</div>
+                    {intent.description && <div className="text-[11px] text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">{intent.description}</div>}
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Edit className="h-3.5 w-3.5 text-slate-400" />
+                    <button onClick={(e) => { e.stopPropagation(); deleteIntent.mutate(intent.key); }} className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+        {mode !== null && (
+          <div className="p-5 space-y-4">
+            {mode === "new" && (
+              <FG label="Key" hint="(slug, e.g. ask_price)">
+                <Input className="text-sm h-9 font-mono" placeholder="ask_availability" value={draft.key ?? ""} autoFocus
+                  onChange={(e) => setDraft((d) => ({ ...d, key: e.target.value.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "") }))} />
+              </FG>
+            )}
+            {mode !== "new" && <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-mono text-slate-500">{mode}</div>}
+            <FG label="Display Name"><Input className="text-sm h-9" placeholder="Ask about availability" value={draft.name ?? ""} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} /></FG>
+            <FG label="Description" hint="Detection instructions for the LLM">
+              <Textarea className="text-sm resize-none min-h-[100px]" placeholder="Describe when this intent should trigger\u2026"
+                value={draft.description ?? ""} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} />
+            </FG>
+          </div>
+        )}
+      </div>
+
+      {mode !== null && (
+        <div className="p-4 border-t border-slate-100 flex items-center gap-2">
+          <Button size="sm" className="flex-1 h-10 font-medium rounded-xl" onClick={handleSave} disabled={isPending || (mode === "new" && !draft.key?.trim())}>
+            <Save className="h-4 w-4 mr-1.5" />{isPending ? "Saving\u2026" : mode === "new" ? "Create Intent" : "Save Changes"}
+          </Button>
+          <Button size="sm" variant="outline" className="h-10 rounded-xl" onClick={() => setMode(null)}>Cancel</Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatesPanel({ tenantId, states, onClose }: { tenantId: string; states: { key: string; label: string; is_default?: boolean }[]; onClose: () => void }) {
+  const createState = useCreateFSMState(tenantId);
+  const deleteState = useDeleteFSMState(tenantId);
+  const [mode, setMode] = useState<null | "new">(null);
+  const [nk, setNK] = useState("");
+  const [nl, setNL] = useState("");
+  const slug = nk.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40);
+  const dup = slug ? states.some((s) => s.key === slug) : false;
+
+  async function handleCreate() {
+    if (!slug || dup) return;
+    await createState.mutateAsync({ key: slug, label: nl.trim() || slug.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()) });
+    setNK(""); setNL(""); setMode(null);
+    toast.success("State created");
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center"><Layers className="h-4 w-4 text-blue-500" /></div>
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900">{mode === "new" ? "New State" : "States"}</h3>
+            <p className="text-[11px] text-slate-400">{mode === "new" ? "Create a conversation state" : `${states.length} state${states.length !== 1 ? "s" : ""}`}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1">
+          {mode !== null && <button onClick={() => setMode(null)} className="rounded-lg px-2.5 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors">{"\u2190"} Back</button>}
+          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"><X className="h-4 w-4" /></button>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {mode === null && (
+          <div className="p-4 space-y-2">
+            <button onClick={() => { setNK(""); setNL(""); setMode("new"); }}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/20 text-primary hover:border-primary/40 hover:bg-primary/5 transition-all py-3 text-sm font-medium">
+              <Plus className="h-4 w-4" />New State
+            </button>
+            {states.map((s) => {
+              const immut = s.key === "idle";
+              return (
+                <div key={s.key} className={cn("flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 group transition-all", immut ? "opacity-60" : "hover:border-slate-300 hover:bg-slate-50/50")}>
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <Circle className={cn("h-3 w-3 shrink-0", immut ? "fill-primary text-primary" : "fill-slate-300 text-slate-300 group-hover:fill-primary group-hover:text-primary transition-colors")} />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-slate-800 truncate">{s.label}</div>
+                      <div className="text-[10px] font-mono text-slate-400">{s.key}</div>
+                    </div>
+                  </div>
+                  {immut ? (
+                    <Badge variant="secondary" className="text-[9px] h-5 px-2">default</Badge>
+                  ) : (
+                    <button onClick={() => deleteState.mutate(s.key)} className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100" title="Delete state"><Trash2 className="h-3.5 w-3.5" /></button>
                   )}
                 </div>
-                {!isImmutable && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-muted-foreground hover:text-destructive shrink-0"
-                    loading={deleteState.isPending}
-                    onClick={() => deleteState.mutate(s.key)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                )}
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
+        {mode === "new" && (
+          <div className="p-5 space-y-4">
+            <FG label="Key" hint="(auto-slugified)">
+              <Input className="text-sm h-9 font-mono" placeholder="e.g. upselling" value={nk} onChange={(e) => setNK(e.target.value)} autoFocus />
+              {slug && <div className="text-[11px] font-mono text-slate-400 mt-1">Key: <span className={dup ? "text-red-500" : "text-slate-600"}>{slug}</span>{dup && <span className="text-red-500 ml-1">{"\u2014"} already exists</span>}</div>}
+            </FG>
+            <FG label="Display Label" hint="(optional)">
+              <Input className="text-sm h-9" placeholder="Upselling" value={nl} onChange={(e) => setNL(e.target.value)} />
+            </FG>
+          </div>
+        )}
+      </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Close</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      {mode === "new" && (
+        <div className="p-4 border-t border-slate-100 flex items-center gap-2">
+          <Button size="sm" className="flex-1 h-10 font-medium rounded-xl" onClick={handleCreate} disabled={!slug || dup || createState.isPending}>
+            <Plus className="h-4 w-4 mr-1.5" />{createState.isPending ? "Creating\u2026" : "Create State"}
+          </Button>
+          <Button size="sm" variant="outline" className="h-10 rounded-xl" onClick={() => setMode(null)}>Cancel</Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Section({ title, children, initClosed }: { title: string; children: ReactNode; initClosed?: boolean }) {
+  const [closed, setClosed] = useState(initClosed ?? false);
+  return (
+    <div className="rounded-xl border border-slate-100 overflow-hidden">
+      <button onClick={() => setClosed((v) => !v)} className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:bg-slate-50 transition-colors">
+        {title}
+        <ChevronDown className={cn("h-3.5 w-3.5 text-slate-400 transition-transform duration-200", closed && "-rotate-90")} />
+      </button>
+      {!closed && <div className="px-4 pb-4 space-y-3">{children}</div>}
+    </div>
+  );
+}
+
+function FG({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-xs font-medium text-slate-700">{label}{hint && <span className="ml-1.5 text-slate-400 font-normal">{hint}</span>}</Label>
+      {children}
+    </div>
   );
 }

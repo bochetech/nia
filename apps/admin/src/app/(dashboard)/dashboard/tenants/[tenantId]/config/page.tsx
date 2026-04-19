@@ -275,21 +275,29 @@ function ConnectionBlock({
 
 function AIConfigForm({ tenantId, config }: { tenantId: string; config: AIConfig }) {
   const update = useUpdateAIConfig(tenantId);
+
+  // If fields are blank (tenant created before these fields existed), pre-fill
+  // with the known provider defaults so the form reflects reality from the start.
+  const primaryProvider  = config.primary_provider  ?? "lmstudio";
+  const fallbackProvider = config.fallback_provider ?? "openai";
+
   const { register, handleSubmit, setValue, watch, control, formState: { isDirty, isSubmitting } } = useForm({
     resolver: zodResolver(aiSchema),
     defaultValues: {
       ...config,
-      primary_endpoint_url:  config.primary_endpoint_url  ?? "",
+      primary_provider:      primaryProvider,
+      primary_endpoint_url:  config.primary_endpoint_url  || PROVIDER_DEFAULTS[primaryProvider]?.url  || "",
       primary_api_key:       config.primary_api_key       ?? "",
-      fallback_endpoint_url: config.fallback_endpoint_url ?? "",
+      fallback_provider:     fallbackProvider,
+      fallback_endpoint_url: config.fallback_endpoint_url || PROVIDER_DEFAULTS[fallbackProvider]?.url || "",
       fallback_api_key:      config.fallback_api_key      ?? "",
       input_cost_per_million:  config.input_cost_per_million  ?? 0.15,
       output_cost_per_million: config.output_cost_per_million ?? 0.60,
     },
   });
 
-  const primaryProvider  = watch("primary_provider");
-  const fallbackProvider = watch("fallback_provider");
+  const watchedPrimary  = watch("primary_provider");
+  const watchedFallback = watch("fallback_provider");
 
   return (
     <form onSubmit={handleSubmit((d) => update.mutateAsync(d))} className="space-y-5">
@@ -303,7 +311,7 @@ function AIConfigForm({ tenantId, config }: { tenantId: string; config: AIConfig
         modelField="primary_model"
         urlField="primary_endpoint_url"
         keyField="primary_api_key"
-        providerValue={primaryProvider}
+        providerValue={watchedPrimary}
         onProviderChange={(v) => setValue("primary_provider", v, { shouldDirty: true })}
         register={register}
         setValue={setValue}
@@ -318,7 +326,7 @@ function AIConfigForm({ tenantId, config }: { tenantId: string; config: AIConfig
         modelField="fallback_model"
         urlField="fallback_endpoint_url"
         keyField="fallback_api_key"
-        providerValue={fallbackProvider}
+        providerValue={watchedFallback}
         onProviderChange={(v) => setValue("fallback_provider", v, { shouldDirty: true })}
         register={register}
         setValue={setValue}

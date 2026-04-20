@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./design-tokens.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from "sonner";
 

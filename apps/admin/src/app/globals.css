@@ -4,80 +4,68 @@
 
 @layer base {
   :root {
-    /* ── Apple-inspired light palette ──────────────────── */
-    --background: 0 0% 98%;
-    --foreground: 0 0% 9%;
+    /* ── Light theme ───────────────────────────────────── */
+    --background: 240 20% 98%;
+    --foreground: 240 10% 10%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
+    --card-foreground: 240 10% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    --popover-foreground: 240 10% 10%;
 
-    --primary: 211 100% 50%;          /* #007AFF — Apple system blue */
+    /* same indigo primary as dark */
+    --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 9% 94%;
-    --secondary-foreground: 0 0% 22%;
+    --secondary: 240 10% 95%;
+    --secondary-foreground: 240 10% 20%;
 
-    --muted: 220 9% 94%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 240 10% 95%;
+    --muted-foreground: 240 5% 50%;
 
-    --accent: 220 9% 95%;
-    --accent-foreground: 0 0% 9%;
+    --accent: 240 10% 95%;
+    --accent-foreground: 240 10% 10%;
 
-    --destructive: 0 72% 51%;        /* #DC3545 */
+    --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 9% 90%;
-    --input: 220 9% 90%;
-    --ring: 211 100% 50%;
+    --border: 240 10% 88%;
+    --input: 240 10% 88%;
+    --ring: 239 84% 67%;
 
     --radius: 0.75rem;
 
-    /* ── Sidebar (light, Apple-style) ─────────────────── */
-    --sidebar: 220 9% 96%;
-    --sidebar-foreground: 0 0% 22%;
-    --sidebar-primary: 211 100% 50%;
+    /* ── Sidebar (light) ───────────────────────────────── */
+    --sidebar: 240 20% 97%;
+    --sidebar-foreground: 240 10% 20%;
+    --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 211 100% 96%;
-    --sidebar-accent-foreground: 211 100% 40%;
-    --sidebar-border: 220 9% 90%;
-    --sidebar-ring: 211 100% 50%;
-    --sidebar-muted: 220 9% 56%;
-
-    /* ── FSM canvas ───────────────────────────────────── */
-    --state-idle: 220 9% 56%;
-    --state-active: 211 100% 50%;
-    --state-terminal: 142 60% 45%;
-    --state-error: 0 72% 51%;
-    --state-handoff: 32 95% 50%;
+    --sidebar-accent: 239 84% 67% / 0.1;
+    --sidebar-accent-foreground: 239 84% 50%;
+    --sidebar-border: 240 10% 88%;
+    --sidebar-ring: 239 84% 67%;
+    --sidebar-muted: 240 5% 50%;
   }
 
   .dark {
-    /* ── Designer palette (IBM Plex, dark indigo) ─────────── */
-    /* body bg #09090f */
+    /* ── Dark theme (designer palette) ──────────────────── */
     --background: 240 15% 4%;
-    /* text #e2e2f0 */
     --foreground: 240 7% 91%;
 
-    /* card #111118 */
     --card: 240 13% 8%;
     --card-foreground: 240 7% 91%;
 
     --popover: 240 13% 8%;
     --popover-foreground: 240 7% 91%;
 
-    /* primary #6366f1 */
     --primary: 239 84% 67%;
     --primary-foreground: 0 0% 100%;
 
-    /* secondary backgrounds rgba(255,255,255,.07) */
     --secondary: 240 13% 12%;
     --secondary-foreground: 240 7% 91%;
 
     --muted: 240 13% 12%;
-    /* muted text #666 */
     --muted-foreground: 240 4% 44%;
 
     --accent: 240 13% 12%;
@@ -86,7 +74,6 @@
     --destructive: 0 63% 45%;
     --destructive-foreground: 0 0% 100%;
 
-    /* borders rgba(255,255,255,.08) */
     --border: 240 10% 14%;
     --input: 240 10% 14%;
     --ring: 239 84% 67%;
@@ -94,12 +81,9 @@
     /* sidebar #0a0a10 */
     --sidebar: 240 20% 6%;
     --sidebar-foreground: 240 7% 91%;
-    /* active #818cf8 */
     --sidebar-primary: 239 84% 67%;
     --sidebar-primary-foreground: 0 0% 100%;
-    /* active bg rgba(99,102,241,.15) */
     --sidebar-accent: 239 40% 14%;
-    /* active text #818cf8 */
     --sidebar-accent-foreground: 240 75% 76%;
     --sidebar-border: 240 13% 10%;
     --sidebar-ring: 239 84% 67%;

@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { TenantHeader } from "@/components/layout/tenant-header";
 
 export default async function TenantLayout({
   children,
@@ -11,8 +12,12 @@ export default async function TenantLayout({
   const session = await auth();
   if (!session) redirect("/login");
 
-  // tenantId is available for future use (e.g. breadcrumbs via server context)
-  await params;
+  const { tenantId } = await params;
 
-  return <>{children}</>;
+  return (
+    <div className="flex flex-col h-full">
+      <TenantHeader tenantId={tenantId} />
+      <main className="flex-1 overflow-auto">{children}</main>
+    </div>
+  );
 }

@@ -83,6 +83,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 
 const ANY_NODE_ID = "__any__";
 const INTENT_WILDCARD = "__wildcard__";
@@ -153,10 +154,21 @@ const DOT: React.CSSProperties = {
 };
 
 function StateNode({ data, selected }: { data: any; selected: boolean }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const { isGhost, isAny } = data;
   const accentColor = isAny ? "#f59e0b" : isGhost ? "#4b5563" : "#6366f1";
   const dotBg = accentColor;
   const tgtBg = "#10b981";
+
+  const nodeBg = isGhost
+    ? (isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)")
+    : (isDark ? "#111118" : "#ffffff");
+  const nodeBorder = selected ? accentColor : (isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)");
+  const textMain = isGhost ? (isDark ? "#555" : "#94a3b8") : isAny ? "#f59e0b" : (isDark ? "#e2e2f0" : "#0f172a");
+  const textMuted = isDark ? "#444" : "#94a3b8";
+  const textKey = isDark ? "#555" : "#64748b";
+  const ghostBar = isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.06)";
 
   return (
     <div
@@ -165,11 +177,11 @@ function StateNode({ data, selected }: { data: any; selected: boolean }) {
         minWidth: 164,
         borderRadius: 10,
         overflow: "hidden",
-        border: `1px solid ${selected ? accentColor : "rgba(255,255,255,0.08)"}`,
-        background: isGhost ? "rgba(255,255,255,0.02)" : "#111118",
+        border: `1px solid ${nodeBorder}`,
+        background: nodeBg,
         boxShadow: selected
           ? `0 0 0 2px ${accentColor}33, 0 4px 16px rgba(0,0,0,.4)`
-          : "0 2px 8px rgba(0,0,0,0.3)",
+          : isDark ? "0 2px 8px rgba(0,0,0,0.3)" : "0 2px 8px rgba(0,0,0,0.08)",
         transition: "border .15s, box-shadow .15s",
         cursor: "pointer",
       }}
@@ -179,7 +191,7 @@ function StateNode({ data, selected }: { data: any; selected: boolean }) {
         style={{
           position: "absolute", left: 0, top: 0, bottom: 0, width: 3,
           background: isGhost
-            ? "rgba(255,255,255,0.06)"
+            ? ghostBar
             : `linear-gradient(180deg, ${accentColor}, ${accentColor}99)`,
         }}
       />
@@ -191,26 +203,26 @@ function StateNode({ data, selected }: { data: any; selected: boolean }) {
         <div
           style={{
             fontSize: 13, fontWeight: 600, lineHeight: 1.3,
-            color: isGhost ? "#555" : isAny ? "#f59e0b" : "#e2e2f0",
+            color: textMain,
           }}
         >
           {data.label}
         </div>
         {isGhost ? (
-          <div style={{ fontSize: 10, color: "#444", marginTop: 2, fontStyle: "italic" }}>
+          <div style={{ fontSize: 10, color: textMuted, marginTop: 2, fontStyle: "italic" }}>
             ghost — not created
           </div>
         ) : data.key && data.key !== data.label ? (
           <div
             style={{
-              fontSize: 10, color: "#555", marginTop: 2,
+              fontSize: 10, color: textKey, marginTop: 2,
               fontFamily: "'IBM Plex Mono', monospace",
             }}
           >
             {data.key}
           </div>
         ) : data.transitionCount > 0 ? (
-          <div style={{ fontSize: 10, color: "#444", marginTop: 2 }}>
+          <div style={{ fontSize: 10, color: textMuted, marginTop: 2 }}>
             {data.transitionCount} transition{data.transitionCount !== 1 ? "s" : ""}
           </div>
         ) : null}
@@ -253,6 +265,8 @@ function FlowEdge({
   selected,
   markerEnd,
 }: EdgeProps) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const color = data?.color ?? "#8E8E93";
   const isWild = data?.isWildcard;
   const offset: number = data?.offset ?? 0;
@@ -298,14 +312,14 @@ function FlowEdge({
             fontSize: 10,
             fontWeight: 500,
             lineHeight: 1.4,
-            background: "#111118",
-            border: `1px solid rgba(255,255,255,0.08)`,
+            background: isDark ? "#111118" : "#ffffff",
+            border: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)"}`,
             borderLeft: `3px solid ${color}`,
-            boxShadow: selected ? `0 0 0 1px ${color}44, 0 4px 12px rgba(0,0,0,.5)` : "0 2px 8px rgba(0,0,0,.4)",
+            boxShadow: selected ? `0 0 0 1px ${color}44, 0 4px 12px rgba(0,0,0,.5)` : isDark ? "0 2px 8px rgba(0,0,0,.4)" : "0 2px 8px rgba(0,0,0,.08)",
             whiteSpace: "nowrap",
           }}
         >
-          <div style={{ color: "#555" }}>{data?.intentLabel || "Any intent"}</div>
+          <div style={{ color: isDark ? "#555" : "#94a3b8" }}>{data?.intentLabel || "Any intent"}</div>
           <div style={{ color, fontWeight: 600 }}>{data?.actionLabel || "Action"}</div>
         </div>
       </EdgeLabelRenderer>
@@ -339,6 +353,18 @@ export default function FSMPage({ params }: { params: Promise<{ tenantId: string
 function FlowCanvas({ tenantId }: { tenantId: string }) {
   const { data: session } = useSession();
   const { setViewport } = useReactFlow();
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
+  // Theme-aware canvas tokens
+  const canvasBg = isDark ? "#09090f" : "#f1f5f9";
+  const cardBg = isDark ? "#111118" : "#ffffff";
+  const panelBg = isDark ? "#0e0e17" : "#ffffff";
+  const borderColor = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
+  const gridColor = isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.08)";
+  const textPrimary = isDark ? "#e2e2f0" : "#0f172a";
+  const textMuted = isDark ? "#888" : "#64748b";
+  const iconColor = isDark ? "#818cf8" : "#6366f1";
 
   const { data: intentsData } = useIntents(tenantId);
   const { data: actionsData } = useActions(tenantId);
@@ -668,7 +694,7 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
   const panelOpen = panel !== "none";
 
   return (
-    <div className="relative h-[calc(100vh-4rem)] flex overflow-hidden" style={{ background: "#09090f" }}>
+    <div className="relative h-[calc(100vh-4rem)] flex overflow-hidden" style={{ background: canvasBg }}>
       <div className={cn("flex-1 transition-all duration-300 ease-out", panelOpen && "mr-[380px]")}>
         <ReactFlow
           nodes={nodes} edges={edges}
@@ -690,14 +716,14 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
           }}
           proOptions={{ hideAttribution: true }}
         >
-          <Background gap={24} size={1} color="rgba(255,255,255,0.04)" />
+          <Background gap={24} size={1} color={gridColor} />
           <Controls position="bottom-left" showInteractive={false}
             className="!rounded-xl overflow-hidden"
-            style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.08)" } as React.CSSProperties} />
+            style={{ background: cardBg, border: `1px solid ${borderColor}` } as React.CSSProperties} />
           <MiniMap
-            nodeColor={(n) => n.data?.isAny ? "#f59e0b" : n.data?.isGhost ? "#2a2a3a" : "#6366f1"}
-            maskColor="rgba(0,0,0,.4)"
-            style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10 } as React.CSSProperties}
+            nodeColor={(n) => n.data?.isAny ? "#f59e0b" : n.data?.isGhost ? (isDark ? "#2a2a3a" : "#e2e8f0") : "#6366f1"}
+            maskColor={isDark ? "rgba(0,0,0,.4)" : "rgba(255,255,255,.6)"}
+            style={{ background: cardBg, border: `1px solid ${borderColor}`, borderRadius: 10 } as React.CSSProperties}
             position="bottom-right" />
         </ReactFlow>
 
@@ -705,10 +731,10 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
         <div className="absolute top-4 left-4 flex items-center gap-2.5 z-10">
           <div
             className="flex items-center gap-2 px-4 py-2 rounded-xl"
-            style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.08)" }}
+            style={{ background: cardBg, border: `1px solid ${borderColor}` }}
           >
-            <Workflow className="h-4 w-4" style={{ color: "#818cf8" }} />
-            <span style={{ fontSize: 13, fontWeight: 600, color: "#e2e2f0" }}>Conversation Flow</span>
+            <Workflow className="h-4 w-4" style={{ color: iconColor }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: textPrimary }}>Conversation Flow</span>
           </div>
           <button
             onClick={saveAll}
@@ -716,9 +742,9 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
             className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 transition-all"
             style={{
               fontSize: 13, fontWeight: 500,
-              background: isDirty ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "#111118",
-              border: isDirty ? "none" : "1px solid rgba(255,255,255,0.08)",
-              color: isDirty ? "#fff" : "#555",
+              background: isDirty ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : cardBg,
+              border: isDirty ? "none" : `1px solid ${borderColor}`,
+              color: isDirty ? "#fff" : textMuted,
               cursor: isDirty ? "pointer" : "not-allowed",
               opacity: replaceTransitions.isPending ? 0.7 : 1,
             }}
@@ -752,9 +778,9 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
               className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 transition-all"
               style={{
                 fontSize: 13, fontWeight: 500,
-                background: panel === key ? "rgba(99,102,241,0.15)" : "#111118",
-                border: `1px solid ${panel === key ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.08)"}`,
-                color: panel === key ? "#818cf8" : "#888",
+                background: panel === key ? "rgba(99,102,241,0.15)" : cardBg,
+                border: `1px solid ${panel === key ? "rgba(99,102,241,0.4)" : borderColor}`,
+                color: panel === key ? "#818cf8" : textMuted,
                 cursor: "pointer",
               }}
             >
@@ -770,7 +796,7 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
         "transform transition-transform duration-300 ease-out",
         panelOpen ? "translate-x-0" : "translate-x-full",
       )}
-        style={{ background: "#0e0e17", borderLeft: "1px solid rgba(255,255,255,0.08)" }}
+        style={{ background: panelBg, borderLeft: `1px solid ${borderColor}` }}
       >
         {panel === "transition" && editing && (
           <TransPanel t={editing} isNew={!selEdgeId} intents={intents} actions={actions}
@@ -796,17 +822,17 @@ function TransPanel({ t, isNew, intents, actions, customSkills, allStates, onCha
 }) {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: actColor(t.action) + "15" }}>
             <ArrowRight className="h-4 w-4" style={{ color: actColor(t.action) }} />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">{isNew ? "New Transition" : "Edit Transition"}</h3>
-            <p className="text-[11px] text-slate-400">{isNew ? "Define how the conversation flows" : "Changes update live on the canvas"}</p>
+            <h3 className="text-sm font-semibold text-foreground">{isNew ? "New Transition" : "Edit Transition"}</h3>
+            <p className="text-[11px] text-muted-foreground">{isNew ? "Define how the conversation flows" : "Changes update live on the canvas"}</p>
           </div>
         </div>
-        <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+        <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -898,7 +924,7 @@ function TransPanel({ t, isNew, intents, actions, customSkills, allStates, onCha
                 <Input className="text-xs h-8 flex-1" placeholder={`Reply ${i + 1}\u2026`} value={r}
                   onChange={(e) => { const n = [...(t.suggested_replies ?? [])]; n[i] = e.target.value; onChange({ ...t, suggested_replies: n }); }} />
                 <button onClick={() => onChange({ ...t, suggested_replies: (t.suggested_replies ?? []).filter((_, j) => j !== i) })}
-                  className="p-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors"><X className="h-3 w-3" /></button>
+                  className="p-1 rounded text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"><X className="h-3 w-3" /></button>
               </div>
             ))}
             <button onClick={() => onChange({ ...t, suggested_replies: [...(t.suggested_replies ?? []), ""] })}
@@ -909,17 +935,17 @@ function TransPanel({ t, isNew, intents, actions, customSkills, allStates, onCha
         </Section>
 
         <div className="flex items-center justify-between py-2">
-          <Label className="text-sm text-slate-700">Enabled</Label>
+          <Label className="text-sm text-foreground">Enabled</Label>
           <Switch checked={t.enabled} onCheckedChange={(v) => onChange({ ...t, enabled: v })} />
         </div>
       </div>
 
-      <div className="p-4 border-t border-slate-100 flex items-center gap-2">
+      <div className="p-4 border-t border-border flex items-center gap-2">
         <Button size="sm" className="flex-1 h-10 font-medium rounded-xl" onClick={onSave}>
           {isNew ? <><Plus className="h-4 w-4 mr-1.5" />Add Transition</> : <><Save className="h-4 w-4 mr-1.5" />Done</>}
         </Button>
         {!isNew && (
-          <Button size="sm" variant="outline" className="h-10 w-10 p-0 rounded-xl border-red-200 text-red-500 hover:bg-red-50 hover:border-red-300"
+          <Button size="sm" variant="outline" className="h-10 w-10 p-0 rounded-xl border-red-200 text-red-500 hover:bg-red-500/10 hover:border-red-300"
             onClick={onDelete} title="Delete transition"><Trash2 className="h-4 w-4" /></Button>
         )}
       </div>
@@ -952,17 +978,17 @@ function IntentPanel({ tenantId, intents, onClose }: { tenantId: string; intents
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-violet-50 flex items-center justify-center"><Brain className="h-4 w-4 text-violet-500" /></div>
+          <div className="h-8 w-8 rounded-lg bg-violet-500/10 flex items-center justify-center"><Brain className="h-4 w-4 text-violet-500" /></div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">{mode === null ? "Intents" : mode === "new" ? "New Intent" : "Edit Intent"}</h3>
-            <p className="text-[11px] text-slate-400">{mode === null ? `${intents.length} intent${intents.length !== 1 ? "s" : ""} configured` : "Define when this intent triggers"}</p>
+            <h3 className="text-sm font-semibold text-foreground">{mode === null ? "Intents" : mode === "new" ? "New Intent" : "Edit Intent"}</h3>
+            <p className="text-[11px] text-muted-foreground">{mode === null ? `${intents.length} intent${intents.length !== 1 ? "s" : ""} configured` : "Define when this intent triggers"}</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {mode !== null && <button onClick={() => setMode(null)} className="rounded-lg px-2.5 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors">{"\u2190"} Back</button>}
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"><X className="h-4 w-4" /></button>
+          {mode !== null && <button onClick={() => setMode(null)} className="rounded-lg px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">{"\u2190"} Back</button>}
+          <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><X className="h-4 w-4" /></button>
         </div>
       </div>
 
@@ -972,18 +998,18 @@ function IntentPanel({ tenantId, intents, onClose }: { tenantId: string; intents
             <button onClick={openNew} className="w-full flex items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/20 text-primary hover:border-primary/40 hover:bg-primary/5 transition-all py-3 text-sm font-medium">
               <Plus className="h-4 w-4" />New Intent
             </button>
-            {intents.length === 0 && <p className="text-xs text-slate-400 text-center py-6">No intents configured yet.</p>}
+            {intents.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">No intents configured yet.</p>}
             {intents.map((intent) => (
-              <button key={intent.key} onClick={() => openEdit(intent)} className="w-full text-left rounded-xl border border-slate-200 hover:border-primary/30 hover:bg-primary/[.02] transition-all p-3.5 group">
+              <button key={intent.key} onClick={() => openEdit(intent)} className="w-full text-left rounded-xl border border-border hover:border-primary/30 hover:bg-primary/[.02] transition-all p-3.5 group">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium text-slate-800 truncate">{intent.name ?? intent.key}</div>
-                    <div className="text-[10px] font-mono text-slate-400 mt-0.5">{intent.key}</div>
-                    {intent.description && <div className="text-[11px] text-slate-500 mt-1.5 line-clamp-2 leading-relaxed">{intent.description}</div>}
+                    <div className="text-sm font-medium text-foreground truncate">{intent.name ?? intent.key}</div>
+                    <div className="text-[10px] font-mono text-muted-foreground mt-0.5">{intent.key}</div>
+                    {intent.description && <div className="text-[11px] text-muted-foreground mt-1.5 line-clamp-2 leading-relaxed">{intent.description}</div>}
                   </div>
                   <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Edit className="h-3.5 w-3.5 text-slate-400" />
-                    <button onClick={(e) => { e.stopPropagation(); deleteIntent.mutate(intent.key); }} className="p-1 rounded text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <Edit className="h-3.5 w-3.5 text-muted-foreground" />
+                    <button onClick={(e) => { e.stopPropagation(); deleteIntent.mutate(intent.key); }} className="p-1 rounded text-muted-foreground/50 hover:text-red-500 hover:bg-red-500/10 transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
               </button>
@@ -998,7 +1024,7 @@ function IntentPanel({ tenantId, intents, onClose }: { tenantId: string; intents
                   onChange={(e) => setDraft((d) => ({ ...d, key: e.target.value.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "") }))} />
               </FG>
             )}
-            {mode !== "new" && <div className="rounded-lg bg-slate-50 px-3 py-2 text-xs font-mono text-slate-500">{mode}</div>}
+            {mode !== "new" && <div className="rounded-lg bg-muted px-3 py-2 text-xs font-mono text-muted-foreground">{mode}</div>}
             <FG label="Display Name"><Input className="text-sm h-9" placeholder="Ask about availability" value={draft.name ?? ""} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} /></FG>
             <FG label="Description" hint="Detection instructions for the LLM">
               <Textarea className="text-sm resize-none min-h-[100px]" placeholder="Describe when this intent should trigger\u2026"
@@ -1009,7 +1035,7 @@ function IntentPanel({ tenantId, intents, onClose }: { tenantId: string; intents
       </div>
 
       {mode !== null && (
-        <div className="p-4 border-t border-slate-100 flex items-center gap-2">
+        <div className="p-4 border-t border-border flex items-center gap-2">
           <Button size="sm" className="flex-1 h-10 font-medium rounded-xl" onClick={handleSave} disabled={isPending || (mode === "new" && !draft.key?.trim())}>
             <Save className="h-4 w-4 mr-1.5" />{isPending ? "Saving\u2026" : mode === "new" ? "Create Intent" : "Save Changes"}
           </Button>
@@ -1038,17 +1064,17 @@ function StatesPanel({ tenantId, states, onClose }: { tenantId: string; states: 
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-blue-50 flex items-center justify-center"><Layers className="h-4 w-4 text-blue-500" /></div>
+          <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center"><Layers className="h-4 w-4 text-blue-500" /></div>
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">{mode === "new" ? "New State" : "States"}</h3>
-            <p className="text-[11px] text-slate-400">{mode === "new" ? "Create a conversation state" : `${states.length} state${states.length !== 1 ? "s" : ""}`}</p>
+            <h3 className="text-sm font-semibold text-foreground">{mode === "new" ? "New State" : "States"}</h3>
+            <p className="text-[11px] text-muted-foreground">{mode === "new" ? "Create a conversation state" : `${states.length} state${states.length !== 1 ? "s" : ""}`}</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
-          {mode !== null && <button onClick={() => setMode(null)} className="rounded-lg px-2.5 py-1 text-xs text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors">{"\u2190"} Back</button>}
-          <button onClick={onClose} className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"><X className="h-4 w-4" /></button>
+          {mode !== null && <button onClick={() => setMode(null)} className="rounded-lg px-2.5 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors">{"\u2190"} Back</button>}
+          <button onClick={onClose} className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"><X className="h-4 w-4" /></button>
         </div>
       </div>
 
@@ -1062,18 +1088,18 @@ function StatesPanel({ tenantId, states, onClose }: { tenantId: string; states: 
             {states.map((s) => {
               const immut = s.key === "idle";
               return (
-                <div key={s.key} className={cn("flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 group transition-all", immut ? "opacity-60" : "hover:border-slate-300 hover:bg-slate-50/50")}>
+                <div key={s.key} className={cn("flex items-center justify-between rounded-xl border border-border px-4 py-3 group transition-all", immut ? "opacity-60" : "hover:border-border/80 hover:bg-muted/50")}>
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <Circle className={cn("h-3 w-3 shrink-0", immut ? "fill-primary text-primary" : "fill-slate-300 text-slate-300 group-hover:fill-primary group-hover:text-primary transition-colors")} />
+                    <Circle className={cn("h-3 w-3 shrink-0", immut ? "fill-primary text-primary" : "fill-muted-foreground/30 text-muted-foreground/30 group-hover:fill-primary group-hover:text-primary transition-colors")} />
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-slate-800 truncate">{s.label}</div>
-                      <div className="text-[10px] font-mono text-slate-400">{s.key}</div>
+                      <div className="text-sm font-medium text-foreground truncate">{s.label}</div>
+                      <div className="text-[10px] font-mono text-muted-foreground">{s.key}</div>
                     </div>
                   </div>
                   {immut ? (
                     <Badge variant="secondary" className="text-[9px] h-5 px-2">default</Badge>
                   ) : (
-                    <button onClick={() => deleteState.mutate(s.key)} className="p-1.5 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100" title="Delete state"><Trash2 className="h-3.5 w-3.5" /></button>
+                    <button onClick={() => deleteState.mutate(s.key)} className="p-1.5 rounded-lg text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100" title="Delete state"><Trash2 className="h-3.5 w-3.5" /></button>
                   )}
                 </div>
               );
@@ -1084,7 +1110,7 @@ function StatesPanel({ tenantId, states, onClose }: { tenantId: string; states: 
           <div className="p-5 space-y-4">
             <FG label="Key" hint="(auto-slugified)">
               <Input className="text-sm h-9 font-mono" placeholder="e.g. upselling" value={nk} onChange={(e) => setNK(e.target.value)} autoFocus />
-              {slug && <div className="text-[11px] font-mono text-slate-400 mt-1">Key: <span className={dup ? "text-red-500" : "text-slate-600"}>{slug}</span>{dup && <span className="text-red-500 ml-1">{"\u2014"} already exists</span>}</div>}
+              {slug && <div className="text-[11px] font-mono text-muted-foreground mt-1">Key: <span className={dup ? "text-red-500" : "text-foreground"}>{slug}</span>{dup && <span className="text-red-500 ml-1">{"\u2014"} already exists</span>}</div>}
             </FG>
             <FG label="Display Label" hint="(optional)">
               <Input className="text-sm h-9" placeholder="Upselling" value={nl} onChange={(e) => setNL(e.target.value)} />
@@ -1094,7 +1120,7 @@ function StatesPanel({ tenantId, states, onClose }: { tenantId: string; states: 
       </div>
 
       {mode === "new" && (
-        <div className="p-4 border-t border-slate-100 flex items-center gap-2">
+        <div className="p-4 border-t border-border flex items-center gap-2">
           <Button size="sm" className="flex-1 h-10 font-medium rounded-xl" onClick={handleCreate} disabled={!slug || dup || createState.isPending}>
             <Plus className="h-4 w-4 mr-1.5" />{createState.isPending ? "Creating\u2026" : "Create State"}
           </Button>
@@ -1108,16 +1134,14 @@ function StatesPanel({ tenantId, states, onClose }: { tenantId: string; states: 
 function Section({ title, children, initClosed }: { title: string; children: ReactNode; initClosed?: boolean }) {
   const [closed, setClosed] = useState(initClosed ?? false);
   return (
-    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
+    <div className="rounded-xl overflow-hidden border border-border">
       <button
         onClick={() => setClosed((v) => !v)}
-        className="w-full flex items-center justify-between px-4 py-2.5 transition-colors"
-        style={{ fontSize: 10, fontWeight: 600, color: "#555", letterSpacing: ".08em", textTransform: "uppercase" }}
-        onMouseOver={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
-        onMouseOut={e => (e.currentTarget.style.background = "transparent")}
+        className="w-full flex items-center justify-between px-4 py-2.5 transition-colors hover:bg-muted/50 text-muted-foreground"
+        style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase" }}
       >
         {title}
-        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", closed && "-rotate-90")} style={{ color: "#444" }} />
+        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200 text-muted-foreground/60", closed && "-rotate-90")} />
       </button>
       {!closed && <div className="px-4 pb-4 space-y-3">{children}</div>}
     </div>
@@ -1127,8 +1151,8 @@ function Section({ title, children, initClosed }: { title: string; children: Rea
 function FG({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium" style={{ color: "#888" }}>
-        {label}{hint && <span className="ml-1.5 font-normal" style={{ color: "#555" }}>{hint}</span>}
+      <Label className="text-xs font-medium text-muted-foreground">
+        {label}{hint && <span className="ml-1.5 font-normal text-muted-foreground/60">{hint}</span>}
       </Label>
       {children}
     </div>

@@ -43,38 +43,39 @@ export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
   const isInsideTenant = !!tenantId;
 
   return (
-    <aside className="flex h-screen w-[220px] flex-col bg-sidebar border-r border-sidebar-border select-none">
+  <aside className="flex h-screen w-[240px] flex-col bg-sidebar border-r border-sidebar-border select-none">
       {/* Logo */}
-      <div className="flex items-center gap-2.5 px-5 h-14 border-b border-sidebar-border">
-        <Link href="/dashboard" className="flex items-center gap-2.5">
-          <div className="h-7 w-7 rounded-[8px] bg-gradient-to-b from-primary to-primary/80 flex items-center justify-center shadow-apple-sm">
-            <span className="text-white font-semibold text-xs">N</span>
+      <div className="flex items-center gap-3 px-6 h-16 border-b border-sidebar-border">
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-lg bg-gradient-to-b from-primary to-primary/90 flex items-center justify-center shadow-apple-sm">
+            <span className="text-white font-semibold text-sm">N</span>
           </div>
-          <span className="font-semibold text-sidebar-foreground text-[13px] tracking-tight">
-            NIA Admin
-          </span>
+          <div className="flex flex-col leading-tight">
+            <span className="font-semibold text-sidebar-foreground text-sm">NIA</span>
+            <span className="text-[11px] text-sidebar-foreground/60">Admin Console</span>
+          </div>
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3">
+  <nav className="flex-1 overflow-y-auto px-4 py-4">
         {isInsideTenant ? (
           /* ── Tenant context ────────────────────────────── */
           <>
             {/* Back to overview */}
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 rounded-lg px-2.5 py-[7px] text-[12px] font-medium text-sidebar-foreground/45 hover:text-sidebar-foreground hover:bg-black/[0.04] transition-all duration-150 mb-3"
+              className="flex items-center gap-2 rounded-lg px-2.5 py-[7px] text-[12px] font-medium text-sidebar-foreground/45 hover:text-sidebar-foreground hover:bg-white/[0.04] transition-all duration-150 mb-3"
             >
-              <ChevronLeft className="h-3.5 w-3.5" />
-              All Tenants
+              <ChevronLeft className="h-4 w-4" />
+              <span className="text-sm">All Tenants</span>
             </Link>
 
             {/* Tenant identity card */}
-            <div className="rounded-xl bg-sidebar-accent/60 border border-sidebar-border px-3 py-2.5 mb-4">
+            <div className="rounded-xl bg-sidebar-accent/70 border border-sidebar-border px-3 py-3 mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-lg bg-primary/12 flex items-center justify-center shrink-0">
-                  <span className="text-[11px] font-bold text-primary">
+                <div className="h-10 w-10 rounded-lg bg-primary/12 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-bold text-primary">
                     {(tenantName ?? tenantId ?? "T")[0].toUpperCase()}
                   </span>
                 </div>
@@ -90,7 +91,7 @@ export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
             </div>
 
             {/* Tenant navigation */}
-            <div className="space-y-0.5">
+              <div className="space-y-1">
               {TENANT_NAV(tenantId).map(({ href, icon: Icon, label }) => {
                 const active = pathname.startsWith(href);
                 return (
@@ -98,14 +99,14 @@ export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
                     key={href}
                     href={href}
                     className={cn(
-                      "flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium transition-all duration-150",
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-medium transition-all duration-150",
                       active
                         ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-apple-sm"
-                        : "text-sidebar-foreground/60 hover:bg-black/[0.04] hover:text-sidebar-foreground"
+                        : "text-sidebar-foreground/60 hover:bg-white/[0.04] hover:text-sidebar-foreground"
                     )}
                   >
-                    <Icon className="h-[16px] w-[16px] shrink-0" strokeWidth={active ? 2 : 1.5} />
-                    <span className="flex-1">{label}</span>
+                    <Icon className="h-4 w-4 shrink-0" strokeWidth={active ? 2 : 1.5} />
+                    <span className="flex-1 text-sm">{label}</span>
                     {active && (
                       <ChevronRight className="h-3 w-3 text-sidebar-accent-foreground/40" />
                     )}
@@ -122,7 +123,7 @@ export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
               "flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13px] font-medium transition-all duration-150",
               pathname === "/dashboard"
                 ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-apple-sm"
-                : "text-sidebar-foreground/60 hover:bg-black/[0.04] hover:text-sidebar-foreground"
+                : "text-sidebar-foreground/60 hover:bg-white/[0.04] hover:text-sidebar-foreground"
             )}
           >
             <LayoutDashboard className="h-[16px] w-[16px] shrink-0" strokeWidth={pathname === "/dashboard" ? 2 : 1.5} />
@@ -132,28 +133,28 @@ export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
       </nav>
 
       {/* User */}
-      <div className="border-t border-sidebar-border px-3 py-3">
-        <div className="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5">
-          <div className="h-7 w-7 rounded-full bg-gradient-to-b from-primary/20 to-primary/10 flex items-center justify-center shrink-0">
-            <span className="text-[11px] font-semibold text-primary">
-              {(session?.user?.email ?? "A")[0].toUpperCase()}
-            </span>
+      <div className="border-t border-sidebar-border px-4 py-4">
+          <div className="flex items-center gap-3 rounded-lg px-2 py-1.5">
+            <div className="h-8 w-8 rounded-full bg-gradient-to-b from-primary/25 to-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-semibold text-primary">
+                {(session?.user?.email ?? "A")[0].toUpperCase()}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-sidebar-foreground truncate">
+                {session?.user?.email ?? "admin"}
+              </p>
+              <p className="text-[11px] text-sidebar-foreground/40">Admin</p>
+            </div>
+            <button
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-medium text-sidebar-foreground truncate">
-              {session?.user?.email ?? "admin"}
-            </p>
-            <p className="text-[11px] text-sidebar-foreground/40">Admin</p>
-          </div>
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="text-sidebar-foreground/30 hover:text-sidebar-foreground/60 transition-colors"
-            title="Sign out"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-          </button>
         </div>
-      </div>
     </aside>
   );
 }

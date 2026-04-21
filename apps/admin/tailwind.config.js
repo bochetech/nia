@@ -60,18 +60,16 @@ module.exports = {
       },
       fontFamily: {
         sans: [
+          "'IBM Plex Sans'",
           "-apple-system",
           "BlinkMacSystemFont",
-          "SF Pro Text",
-          "SF Pro Display",
-          "var(--font-geist-sans)",
           "system-ui",
           "sans-serif",
         ],
         mono: [
-          "SF Mono",
-          "var(--font-geist-mono)",
+          "'IBM Plex Mono'",
           "ui-monospace",
+          "SFMono-Regular",
           "monospace",
         ],
       },

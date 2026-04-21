@@ -43,7 +43,7 @@ export default function DashboardPage() {
             { label: "Professional+", value: tenants.filter((t) => t.plan !== "starter").length, icon: TrendingUp, bg: "bg-[#AF52DE]/8", fg: "text-[#AF52DE]" },
             { label: "Skills Running", value: active * 7, icon: Zap, bg: "bg-[#FF9500]/8", fg: "text-[#FF9500]" },
           ].map(({ label, value, icon: Icon, bg, fg }) => (
-            <div key={label} className="rounded-xl border border-black/[0.04] bg-white p-4 shadow-apple transition-shadow hover:shadow-apple-md">
+            <div key={label} className="rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-sm">
               <div className="flex items-center gap-3">
                 <div className={`rounded-xl p-2.5 ${bg}`}>
                   <Icon className={`h-4 w-4 ${fg}`} />
@@ -92,9 +92,9 @@ export default function DashboardPage() {
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-black/[0.04] bg-white shadow-apple overflow-hidden">
+            <div className="rounded-xl border border-border bg-card overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-[1fr_90px_90px_120px_80px] gap-4 px-4 py-2.5 bg-[#f5f5f7] text-[11px] font-medium text-muted-foreground border-b border-black/[0.04]">
+              <div className="grid grid-cols-[1fr_90px_90px_120px_80px] gap-4 px-4 py-2.5 bg-muted text-[11px] font-medium text-muted-foreground border-b border-border">
                 <span>Tenant</span>
                 <span>Status</span>
                 <span>Plan</span>
@@ -105,8 +105,8 @@ export default function DashboardPage() {
                 <Link
                   key={tenant.id}
                   href={`/dashboard/tenants/${tenant.id}/config`}
-                  className={`grid grid-cols-[1fr_90px_90px_120px_80px] gap-4 items-center px-4 py-3 text-sm hover:bg-black/[0.02] transition-colors group ${
-                    i < tenants.length - 1 ? "border-b border-black/[0.04]" : ""
+                  className={`grid grid-cols-[1fr_90px_90px_120px_80px] gap-4 items-center px-4 py-3 text-sm hover:bg-white/[0.03] transition-colors group ${
+                    i < tenants.length - 1 ? "border-b border-border" : ""
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">

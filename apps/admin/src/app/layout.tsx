@@ -18,8 +18,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-  <html lang="en" className="theme-wine dark" suppressHydrationWarning>
-      <body>
+  <html lang="en" className="dark" suppressHydrationWarning>
+      <body style={{ fontFamily: "'IBM Plex Sans', system-ui, -apple-system, sans-serif" }}>
         <Providers>
           {children}
           <Toaster position="bottom-right" richColors expand />

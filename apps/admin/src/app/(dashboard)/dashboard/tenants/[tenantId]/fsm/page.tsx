@@ -271,21 +271,39 @@ function FlowEdge({
   const isWild = data?.isWildcard;
   const offset: number = data?.offset ?? 0;
 
-  const dx = targetX - sourceX;
-  const dy = targetY - sourceY;
-  const len = Math.sqrt(dx * dx + dy * dy) || 1;
-  const ox = (-dy / len) * offset;
-  const oy = (dx / len) * offset;
+  // ── Self-loop detection ──────────────────────────────
+  const isSelfLoop = Math.abs(sourceX - targetX) < 2 && Math.abs(sourceY - targetY) < 2;
 
-  const [path, lx, ly] = getBezierPath({
-    sourceX: sourceX + ox,
-    sourceY: sourceY + oy,
-    targetX: targetX + ox,
-    targetY: targetY + oy,
-    sourcePosition,
-    targetPosition,
-    curvature: 0.25,
-  });
+  // Build path + label position
+  let path: string;
+  let lx: number;
+  let ly: number;
+
+  if (isSelfLoop) {
+    // Draw a circular arc above the node
+    const r = 40;
+    const sx = sourceX;
+    const sy = sourceY - 4; // top handle
+    path = `M ${sx} ${sy} C ${sx - r * 2} ${sy - r * 3}, ${sx + r * 2} ${sy - r * 3}, ${sx} ${sy}`;
+    lx = sx;
+    ly = sy - r * 2.8;
+  } else {
+    const dx = targetX - sourceX;
+    const dy = targetY - sourceY;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const ox = (-dy / len) * offset;
+    const oy = (dx / len) * offset;
+
+    [path, lx, ly] = getBezierPath({
+      sourceX: sourceX + ox,
+      sourceY: sourceY + oy,
+      targetX: targetX + ox,
+      targetY: targetY + oy,
+      sourcePosition,
+      targetPosition,
+      curvature: 0.25,
+    });
+  }
 
   return (
     <>
@@ -293,7 +311,7 @@ function FlowEdge({
       <BaseEdge
         id={id}
         path={path}
-        markerEnd={markerEnd}
+        markerEnd={isSelfLoop ? undefined : markerEnd}
         style={{
           stroke: color,
           strokeWidth: selected ? 2.5 : isWild ? 1.5 : 2,
@@ -302,6 +320,17 @@ function FlowEdge({
           transition: "stroke .2s, stroke-width .2s",
         }}
       />
+      {/* Manual arrowhead for self-loops */}
+      {isSelfLoop && (
+        <path
+          d={`M ${sourceX - 6} ${sourceY - 8} L ${sourceX} ${sourceY - 2} L ${sourceX + 6} ${sourceY - 8}`}
+          fill="none"
+          stroke={color}
+          strokeWidth={selected ? 2.5 : 2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
       <EdgeLabelRenderer>
         <div
           className="absolute pointer-events-auto cursor-pointer transition-all duration-200"

@@ -99,12 +99,12 @@ export const ACTION_LABELS: Record<string, string> = {
 };
 
 export const ACTION_COLORS: Record<string, string> = {
-  faq: "#34C759",           // Apple green
-  recommend: "#FF9500",     // Apple orange
-  handoff: "#FF9500",       // Apple orange
-  nps: "#007AFF",           // Apple blue
-  complaint: "#FF3B30",     // Apple red
-  static_reply: "#8E8E93",  // Apple systemGray
-  discovery: "#AF52DE",     // Apple purple
-  conversational: "#FF2D55",// Apple pink
+  faq: "#3b82f6",           // blue
+  recommend: "#10b981",     // emerald
+  handoff: "#f59e0b",       // amber
+  nps: "#06b6d4",           // cyan
+  complaint: "#ef4444",     // red
+  static_reply: "#6b7280",  // gray
+  discovery: "#8b5cf6",     // violet
+  conversational: "#6366f1",// indigo
 };

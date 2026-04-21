@@ -146,73 +146,97 @@ function actColor(action: string): string {
 const DOT: React.CSSProperties = {
   width: 8,
   height: 8,
-  border: "2px solid #fff",
   borderRadius: "50%",
+  border: "none",
   opacity: 0,
-  transition: "opacity .2s",
+  transition: "opacity .15s",
 };
 
 function StateNode({ data, selected }: { data: any; selected: boolean }) {
   const { isGhost, isAny } = data;
-  const dotBg = isAny ? "#f59e0b" : "#007AFF";
-  const tgtBg = "#34C759";
+  const accentColor = isAny ? "#f59e0b" : isGhost ? "#4b5563" : "#6366f1";
+  const dotBg = accentColor;
+  const tgtBg = "#10b981";
 
   return (
     <div
-      className={cn(
-        "group/node relative rounded-2xl px-5 py-3.5 min-w-[160px] text-center transition-all duration-200",
-        "border-[1.5px] [&_.react-flow__handle]:hover:opacity-100",
-        isAny
-          ? "bg-amber-50 border-amber-300 shadow-sm"
-          : isGhost
-          ? "bg-slate-50 border-dashed border-slate-300"
-          : selected
-          ? "bg-white border-primary shadow-[0_0_0_3px_rgba(0,122,255,.12),0_4px_12px_rgba(0,0,0,.08)]"
-          : "bg-white border-slate-200 shadow-sm hover:shadow-md hover:border-slate-300",
-      )}
+      className="group/node relative [&_.react-flow__handle]:hover:opacity-100"
+      style={{
+        minWidth: 164,
+        borderRadius: 10,
+        overflow: "hidden",
+        border: `1px solid ${selected ? accentColor : "rgba(255,255,255,0.08)"}`,
+        background: isGhost ? "rgba(255,255,255,0.02)" : "#111118",
+        boxShadow: selected
+          ? `0 0 0 2px ${accentColor}33, 0 4px 16px rgba(0,0,0,.4)`
+          : "0 2px 8px rgba(0,0,0,0.3)",
+        transition: "border .15s, box-shadow .15s",
+        cursor: "pointer",
+      }}
     >
-      <Handle type="source" position={Position.Top} id="top"
-        style={{ ...DOT, background: dotBg, boxShadow: `0 0 0 1px ${dotBg}`, top: -4 }} />
-      <Handle type="source" position={Position.Bottom} id="bottom"
-        style={{ ...DOT, background: dotBg, boxShadow: `0 0 0 1px ${dotBg}`, bottom: -4 }} />
-      <Handle type="source" position={Position.Left} id="left"
-        style={{ ...DOT, background: dotBg, boxShadow: `0 0 0 1px ${dotBg}`, left: -4 }} />
-      <Handle type="source" position={Position.Right} id="right"
-        style={{ ...DOT, background: dotBg, boxShadow: `0 0 0 1px ${dotBg}`, right: -4 }} />
-
-      <Handle type="target" position={Position.Top} id="t-top"
-        style={{ ...DOT, background: tgtBg, boxShadow: `0 0 0 1px ${tgtBg}`, top: -4 }} />
-      <Handle type="target" position={Position.Bottom} id="t-bottom"
-        style={{ ...DOT, background: tgtBg, boxShadow: `0 0 0 1px ${tgtBg}`, bottom: -4 }} />
-      <Handle type="target" position={Position.Left} id="t-left"
-        style={{ ...DOT, background: tgtBg, boxShadow: `0 0 0 1px ${tgtBg}`, left: -4 }} />
-      <Handle type="target" position={Position.Right} id="t-right"
-        style={{ ...DOT, background: tgtBg, boxShadow: `0 0 0 1px ${tgtBg}`, right: -4 }} />
-
-      {isAny && <div className="text-amber-500 text-lg mb-1">★</div>}
-
+      {/* Left accent bar */}
       <div
-        className={cn(
-          "font-semibold text-[13px] tracking-tight",
-          isAny ? "text-amber-700" : isGhost ? "text-slate-400" : "text-slate-800",
+        style={{
+          position: "absolute", left: 0, top: 0, bottom: 0, width: 3,
+          background: isGhost
+            ? "rgba(255,255,255,0.06)"
+            : `linear-gradient(180deg, ${accentColor}, ${accentColor}99)`,
+        }}
+      />
+
+      <div style={{ padding: "10px 14px 10px 17px" }}>
+        {isAny && (
+          <div style={{ fontSize: 11, color: "#f59e0b", marginBottom: 2 }}>★ Wildcard</div>
         )}
-      >
-        {data.label}
+        <div
+          style={{
+            fontSize: 13, fontWeight: 600, lineHeight: 1.3,
+            color: isGhost ? "#555" : isAny ? "#f59e0b" : "#e2e2f0",
+          }}
+        >
+          {data.label}
+        </div>
+        {isGhost ? (
+          <div style={{ fontSize: 10, color: "#444", marginTop: 2, fontStyle: "italic" }}>
+            ghost — not created
+          </div>
+        ) : data.key && data.key !== data.label ? (
+          <div
+            style={{
+              fontSize: 10, color: "#555", marginTop: 2,
+              fontFamily: "'IBM Plex Mono', monospace",
+            }}
+          >
+            {data.key}
+          </div>
+        ) : data.transitionCount > 0 ? (
+          <div style={{ fontSize: 10, color: "#444", marginTop: 2 }}>
+            {data.transitionCount} transition{data.transitionCount !== 1 ? "s" : ""}
+          </div>
+        ) : null}
       </div>
 
-      {isAny ? (
-        <div className="text-[10px] text-amber-500 mt-0.5">Any state (wildcard)</div>
-      ) : isGhost ? (
-        <div className="text-[10px] text-slate-400 mt-0.5 italic">Referenced but not created</div>
-      ) : data.transitionCount > 0 ? (
-        <div className="text-[10px] text-slate-400 mt-0.5">
-          {data.transitionCount} transition{data.transitionCount !== 1 ? "s" : ""}
-        </div>
-      ) : null}
-
       {data.isActive && (
-        <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-[#34C759] animate-pulse ring-2 ring-white" />
+        <div
+          style={{
+            position: "absolute", top: 8, right: 8,
+            width: 7, height: 7, borderRadius: "50%",
+            background: "#10b981",
+            boxShadow: "0 0 6px #10b981",
+          }}
+          className="animate-pulse"
+        />
       )}
+
+      {/* Handles */}
+      <Handle type="source" position={Position.Top}    id="top"    style={{ ...DOT, background: dotBg, top: -4 }} />
+      <Handle type="source" position={Position.Bottom} id="bottom" style={{ ...DOT, background: dotBg, bottom: -4 }} />
+      <Handle type="source" position={Position.Left}   id="left"   style={{ ...DOT, background: dotBg, left: -4 }} />
+      <Handle type="source" position={Position.Right}  id="right"  style={{ ...DOT, background: dotBg, right: -4 }} />
+      <Handle type="target" position={Position.Top}    id="t-top"    style={{ ...DOT, background: tgtBg, top: -4 }} />
+      <Handle type="target" position={Position.Bottom} id="t-bottom" style={{ ...DOT, background: tgtBg, bottom: -4 }} />
+      <Handle type="target" position={Position.Left}   id="t-left"   style={{ ...DOT, background: tgtBg, left: -4 }} />
+      <Handle type="target" position={Position.Right}  id="t-right"  style={{ ...DOT, background: tgtBg, right: -4 }} />
     </div>
   );
 }
@@ -266,22 +290,23 @@ function FlowEdge({
       />
       <EdgeLabelRenderer>
         <div
-          className={cn(
-            "absolute pointer-events-auto cursor-pointer transition-all duration-200",
-            "rounded-lg px-2.5 py-1.5 text-[10px] font-medium leading-tight",
-            "border shadow-sm",
-            selected
-              ? "bg-white border-slate-300 shadow-md scale-105"
-              : "bg-white/95 border-slate-200 hover:border-slate-300 hover:shadow",
-          )}
+          className="absolute pointer-events-auto cursor-pointer transition-all duration-200"
           style={{
             transform: `translate(-50%, -50%) translate(${lx}px,${ly}px)`,
-            borderLeftColor: color,
-            borderLeftWidth: 3,
+            borderRadius: 6,
+            padding: "4px 10px",
+            fontSize: 10,
+            fontWeight: 500,
+            lineHeight: 1.4,
+            background: "#111118",
+            border: `1px solid rgba(255,255,255,0.08)`,
+            borderLeft: `3px solid ${color}`,
+            boxShadow: selected ? `0 0 0 1px ${color}44, 0 4px 12px rgba(0,0,0,.5)` : "0 2px 8px rgba(0,0,0,.4)",
+            whiteSpace: "nowrap",
           }}
         >
-          <div className="text-slate-500">{data?.intentLabel || "Any intent"}</div>
-          <div className="font-semibold" style={{ color }}>{data?.actionLabel || "Action"}</div>
+          <div style={{ color: "#555" }}>{data?.intentLabel || "Any intent"}</div>
+          <div style={{ color, fontWeight: 600 }}>{data?.actionLabel || "Action"}</div>
         </div>
       </EdgeLabelRenderer>
     </>
@@ -643,7 +668,7 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
   const panelOpen = panel !== "none";
 
   return (
-    <div className="relative h-[calc(100vh-4rem)] flex overflow-hidden bg-slate-50">
+    <div className="relative h-[calc(100vh-4rem)] flex overflow-hidden" style={{ background: "#09090f" }}>
       <div className={cn("flex-1 transition-all duration-300 ease-out", panelOpen && "mr-[380px]")}>
         <ReactFlow
           nodes={nodes} edges={edges}
@@ -665,56 +690,88 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
           }}
           proOptions={{ hideAttribution: true }}
         >
-          <Background gap={20} size={1} color="#e2e8f0" />
+          <Background gap={24} size={1} color="rgba(255,255,255,0.04)" />
           <Controls position="bottom-left" showInteractive={false}
-            className="!bg-white !border-slate-200 !shadow-sm !rounded-xl overflow-hidden [&>button]:!border-slate-100 [&>button]:!bg-white [&>button:hover]:!bg-slate-50" />
+            className="!rounded-xl overflow-hidden"
+            style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.08)" } as React.CSSProperties} />
           <MiniMap
-            nodeColor={(n) => n.data?.isAny ? "#fbbf24" : n.data?.isGhost ? "#e2e8f0" : "#93c5fd"}
-            maskColor="rgba(0,0,0,.05)" position="bottom-right"
-            className="!bg-white !border-slate-200 !shadow-sm !rounded-xl" />
+            nodeColor={(n) => n.data?.isAny ? "#f59e0b" : n.data?.isGhost ? "#2a2a3a" : "#6366f1"}
+            maskColor="rgba(0,0,0,.4)"
+            style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10 } as React.CSSProperties}
+            position="bottom-right" />
         </ReactFlow>
 
-        <div className="absolute top-4 left-4 flex items-center gap-3 z-10">
-          <div className="flex items-center gap-2 bg-white/95 backdrop-blur-sm rounded-xl border border-slate-200 shadow-sm px-4 py-2">
-            <Workflow className="h-4 w-4 text-primary" />
-            <span className="text-sm font-semibold text-slate-800">Conversation Flow</span>
+        {/* Top-left toolbar */}
+        <div className="absolute top-4 left-4 flex items-center gap-2.5 z-10">
+          <div
+            className="flex items-center gap-2 px-4 py-2 rounded-xl"
+            style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.08)" }}
+          >
+            <Workflow className="h-4 w-4" style={{ color: "#818cf8" }} />
+            <span style={{ fontSize: 13, fontWeight: 600, color: "#e2e2f0" }}>Conversation Flow</span>
           </div>
-          <Button size="sm" variant={isDirty ? "default" : "outline"}
-            className={cn("shadow-sm h-9 rounded-xl transition-all", isDirty && "animate-pulse")}
-            onClick={saveAll} disabled={!isDirty || replaceTransitions.isPending}>
-            <Save className="h-3.5 w-3.5 mr-1.5" />
-            {replaceTransitions.isPending ? "Saving\u2026" : isDirty ? "Save Changes" : "Saved"}
-          </Button>
+          <button
+            onClick={saveAll}
+            disabled={!isDirty || replaceTransitions.isPending}
+            className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 transition-all"
+            style={{
+              fontSize: 13, fontWeight: 500,
+              background: isDirty ? "linear-gradient(135deg,#6366f1,#8b5cf6)" : "#111118",
+              border: isDirty ? "none" : "1px solid rgba(255,255,255,0.08)",
+              color: isDirty ? "#fff" : "#555",
+              cursor: isDirty ? "pointer" : "not-allowed",
+              opacity: replaceTransitions.isPending ? 0.7 : 1,
+            }}
+          >
+            <Save className="h-3.5 w-3.5" />
+            {replaceTransitions.isPending ? "Saving…" : isDirty ? "Save Changes" : "Saved"}
+          </button>
           {isDirty && (
-            <Badge variant="secondary" className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]">
+            <span
+              style={{
+                fontSize: 10, borderRadius: 4, padding: "2px 8px",
+                background: "rgba(245,158,11,0.12)", color: "#f59e0b",
+                border: "1px solid rgba(245,158,11,0.2)",
+              }}
+            >
               Unsaved changes
-            </Badge>
+            </span>
           )}
         </div>
 
+        {/* Top-right toolbar */}
         <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={createNew}
-            className={cn("shadow-sm h-9 rounded-xl bg-white/95 backdrop-blur-sm", panel === "transition" && !selEdgeId && "ring-2 ring-primary/20 border-primary")}>
-            <Plus className="h-3.5 w-3.5 mr-1.5" />Transition
-          </Button>
-          <Button size="sm" variant="outline"
-            className={cn("shadow-sm h-9 rounded-xl bg-white/95 backdrop-blur-sm", panel === "intents" && "ring-2 ring-primary/20 border-primary")}
-            onClick={() => setPanel((p) => p === "intents" ? "none" : "intents")}>
-            <Brain className="h-3.5 w-3.5 mr-1.5" />Intents
-          </Button>
-          <Button size="sm" variant="outline"
-            className={cn("shadow-sm h-9 rounded-xl bg-white/95 backdrop-blur-sm", panel === "states" && "ring-2 ring-primary/20 border-primary")}
-            onClick={() => setPanel((p) => p === "states" ? "none" : "states")}>
-            <Layers className="h-3.5 w-3.5 mr-1.5" />States
-          </Button>
+          {[
+            { label: "Transition", icon: Plus, key: "transition" as const, onClick: createNew },
+            { label: "Intents",    icon: Brain, key: "intents" as const,    onClick: () => setPanel((p) => p === "intents" ? "none" : "intents") },
+            { label: "States",     icon: Layers, key: "states" as const,   onClick: () => setPanel((p) => p === "states" ? "none" : "states") },
+          ].map(({ label, icon: Icon, key, onClick }) => (
+            <button
+              key={key}
+              onClick={onClick}
+              className="flex items-center gap-1.5 rounded-xl px-3.5 py-2 transition-all"
+              style={{
+                fontSize: 13, fontWeight: 500,
+                background: panel === key ? "rgba(99,102,241,0.15)" : "#111118",
+                border: `1px solid ${panel === key ? "rgba(99,102,241,0.4)" : "rgba(255,255,255,0.08)"}`,
+                color: panel === key ? "#818cf8" : "#888",
+                cursor: "pointer",
+              }}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
       <div className={cn(
-        "absolute top-0 right-0 h-full w-[380px] bg-white border-l border-slate-200 shadow-lg z-20",
+        "absolute top-0 right-0 h-full w-[380px] z-20",
         "transform transition-transform duration-300 ease-out",
         panelOpen ? "translate-x-0" : "translate-x-full",
-      )}>
+      )}
+        style={{ background: "#0e0e17", borderLeft: "1px solid rgba(255,255,255,0.08)" }}
+      >
         {panel === "transition" && editing && (
           <TransPanel t={editing} isNew={!selEdgeId} intents={intents} actions={actions}
             customSkills={customSkills} allStates={fsmStates} onChange={applyEdit}
@@ -1051,10 +1108,16 @@ function StatesPanel({ tenantId, states, onClose }: { tenantId: string; states: 
 function Section({ title, children, initClosed }: { title: string; children: ReactNode; initClosed?: boolean }) {
   const [closed, setClosed] = useState(initClosed ?? false);
   return (
-    <div className="rounded-xl border border-slate-100 overflow-hidden">
-      <button onClick={() => setClosed((v) => !v)} className="w-full flex items-center justify-between px-4 py-2.5 text-xs font-semibold text-slate-500 uppercase tracking-wider hover:bg-slate-50 transition-colors">
+    <div className="rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.06)" }}>
+      <button
+        onClick={() => setClosed((v) => !v)}
+        className="w-full flex items-center justify-between px-4 py-2.5 transition-colors"
+        style={{ fontSize: 10, fontWeight: 600, color: "#555", letterSpacing: ".08em", textTransform: "uppercase" }}
+        onMouseOver={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
+        onMouseOut={e => (e.currentTarget.style.background = "transparent")}
+      >
         {title}
-        <ChevronDown className={cn("h-3.5 w-3.5 text-slate-400 transition-transform duration-200", closed && "-rotate-90")} />
+        <ChevronDown className={cn("h-3.5 w-3.5 transition-transform duration-200", closed && "-rotate-90")} style={{ color: "#444" }} />
       </button>
       {!closed && <div className="px-4 pb-4 space-y-3">{children}</div>}
     </div>
@@ -1064,7 +1127,9 @@ function Section({ title, children, initClosed }: { title: string; children: Rea
 function FG({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-slate-700">{label}{hint && <span className="ml-1.5 text-slate-400 font-normal">{hint}</span>}</Label>
+      <Label className="text-xs font-medium" style={{ color: "#888" }}>
+        {label}{hint && <span className="ml-1.5 font-normal" style={{ color: "#555" }}>{hint}</span>}
+      </Label>
       {children}
     </div>
   );

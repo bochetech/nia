@@ -38,10 +38,10 @@ export default function DashboardPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
-            { label: "Total Tenants", value: total, icon: Users, bg: "bg-[#007AFF]/8", fg: "text-[#007AFF]" },
-            { label: "Active", value: active, icon: Activity, bg: "bg-[#34C759]/8", fg: "text-[#34C759]" },
-            { label: "Professional+", value: tenants.filter((t) => t.plan !== "starter").length, icon: TrendingUp, bg: "bg-[#AF52DE]/8", fg: "text-[#AF52DE]" },
-            { label: "Skills Running", value: active * 7, icon: Zap, bg: "bg-[#FF9500]/8", fg: "text-[#FF9500]" },
+            { label: "Total Tenants",   value: total,  icon: Users,      bg: "bg-[#6366f1]/10", fg: "text-[#818cf8]" },
+            { label: "Active",           value: active, icon: Activity,   bg: "bg-[#10b981]/10", fg: "text-[#10b981]" },
+            { label: "Professional+",    value: tenants.filter((t) => t.plan !== "starter").length, icon: TrendingUp, bg: "bg-[#8b5cf6]/10", fg: "text-[#8b5cf6]" },
+            { label: "Skills Running",   value: active * 7, icon: Zap,    bg: "bg-[#f59e0b]/10", fg: "text-[#f59e0b]" },
           ].map(({ label, value, icon: Icon, bg, fg }) => (
             <div key={label} className="rounded-xl border border-border bg-card p-4 transition-shadow hover:shadow-sm">
               <div className="flex items-center gap-3">

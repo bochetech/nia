@@ -67,7 +67,7 @@ export default function AnalyticsPage({
                 onClick={() => { setDays(d); setPage(1); }}
                 className={`px-3 py-1.5 rounded-[10px] text-[12px] font-medium transition-all duration-150 ${
                   days === d
-                    ? "bg-white shadow-apple-sm text-foreground"
+                    ? "bg-card text-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -352,7 +352,7 @@ function KpiCard({
   fg: string;
 }) {
   return (
-    <div className="rounded-xl border border-black/[0.04] bg-white p-4 shadow-apple transition-shadow hover:shadow-apple-md">
+    <div className="rounded-xl border border-border bg-card p-4 transition-shadow hover:border-primary/20">
       <div className="flex items-center gap-3">
         <div className={`rounded-xl p-2.5 ${bg}`}>
           <span className={fg}>{icon}</span>

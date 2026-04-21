@@ -342,7 +342,7 @@ export default function DebugConsolePage({
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
       {/* ── Left: Chat (widget-styled) ──────────────────── */}
-      <div className="w-[380px] flex flex-col border-r bg-white shadow-sm">
+      <div className="w-[380px] flex flex-col border-r bg-card">
         {/* Widget header */}
         <div
           className="px-4 py-3 flex items-center justify-between"
@@ -384,7 +384,7 @@ export default function DebugConsolePage({
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-slate-50">
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3 bg-background">
           {/* Welcome bubble (always shown) */}
           <div className="flex gap-2.5">
             <div
@@ -397,7 +397,7 @@ export default function DebugConsolePage({
                 <Bot className="h-3.5 w-3.5" style={{ color: primaryColor }} />
               )}
             </div>
-            <div className="max-w-[80%] rounded-xl rounded-bl-sm px-3 py-2 text-[13px] leading-relaxed bg-white border border-slate-100 shadow-sm text-slate-800">
+            <div className="max-w-[80%] rounded-xl rounded-bl-sm px-3 py-2 text-[13px] leading-relaxed bg-card border border-white/[0.06] shadow-sm text-foreground/80">
               {welcomeMessage}
             </div>
           </div>
@@ -433,7 +433,7 @@ export default function DebugConsolePage({
                   msg.role === "user"
                     ? "rounded-br-sm text-white shadow-sm"
                     : msg.role === "assistant"
-                    ? "bg-white border border-slate-100 shadow-sm rounded-bl-sm text-slate-800"
+                    ? "bg-white border border-white/[0.06] shadow-sm rounded-bl-sm text-foreground/80"
                     : "bg-transparent text-muted-foreground text-[11px] italic text-center w-full"
                 )}
                 style={msg.role === "user" ? { backgroundColor: primaryColor } : undefined}
@@ -485,7 +485,7 @@ export default function DebugConsolePage({
         </div>
 
         {/* Input */}
-        <div className="px-4 py-3 border-t bg-white">
+        <div className="px-4 py-3 border-t bg-card">
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -525,9 +525,9 @@ export default function DebugConsolePage({
       </div>
 
       {/* ── Right: Trace & Metrics ──────────────────────── */}
-      <div className="flex-1 flex flex-col bg-slate-50/50 overflow-hidden">
+      <div className="flex-1 flex flex-col bg-background/50 overflow-hidden">
         {/* Metrics bar */}
-        <div className="grid grid-cols-6 gap-2 px-4 py-3 border-b bg-white">
+        <div className="grid grid-cols-6 gap-2 px-4 py-3 border-b bg-card">
           <MetricCard
             icon={<GitBranch className="h-3.5 w-3.5 text-violet-500" />}
             label="FSM State"
@@ -566,7 +566,7 @@ export default function DebugConsolePage({
         <div className="flex-1 flex overflow-hidden">
           {/* Trace log */}
           <div className="flex-1 flex flex-col overflow-hidden">
-            <div className="px-4 py-2 border-b bg-white flex items-center justify-between">
+            <div className="px-4 py-2 border-b bg-card flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Activity className="h-3.5 w-3.5 text-slate-400" />
                 <span className="text-[12px] font-semibold text-slate-600">Event Trace</span>
@@ -598,7 +598,7 @@ export default function DebugConsolePage({
           </div>
 
           {/* Side panel: intents + transitions */}
-          <div className="w-56 border-l bg-white overflow-y-auto">
+          <div className="w-56 border-l bg-card overflow-y-auto">
             {/* Intents detected */}
             <div className="p-3 border-b">
               <div className="flex items-center gap-1.5 mb-2">
@@ -679,7 +679,7 @@ function MetricCard({
   subtitle?: string;
 }) {
   return (
-    <div className="rounded-lg border bg-white px-3 py-2">
+    <div className="rounded-lg border bg-card px-3 py-2">
       <div className="flex items-center gap-1.5 mb-1">
         {icon}
         <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
@@ -688,7 +688,7 @@ function MetricCard({
       </div>
       <div
         className={cn(
-          "text-[13px] font-semibold text-slate-800 truncate",
+          "text-[13px] font-semibold text-foreground/80 truncate",
           className && `rounded px-1.5 py-0.5 text-[11px] ${className}`
         )}
       >
@@ -741,7 +741,7 @@ function TraceEventRow({ event }: { event: TraceEvent }) {
   return (
     <button
       onClick={() => setExpanded(!expanded)}
-      className="w-full text-left rounded-md border bg-white hover:bg-slate-50 transition-colors px-2.5 py-1.5 group"
+      className="w-full text-left rounded-md border bg-card hover:bg-background transition-colors px-2.5 py-1.5 group"
     >
       <div className="flex items-center gap-2">
         {traceIcon(event.type)}
@@ -762,7 +762,7 @@ function TraceEventRow({ event }: { event: TraceEvent }) {
         <div className="text-[10px] text-slate-500 mt-0.5 pl-5 truncate">{summary}</div>
       )}
       {expanded && extraKeys.length > 0 && (
-        <div className="mt-1.5 pl-5 pt-1.5 border-t border-slate-100 space-y-0.5">
+        <div className="mt-1.5 pl-5 pt-1.5 border-t border-white/[0.06] space-y-0.5">
           {extraKeys.map((k) => (
             <div key={k} className="flex items-start gap-2 text-[10px]">
               <span className="font-mono text-slate-400 shrink-0">{k}:</span>

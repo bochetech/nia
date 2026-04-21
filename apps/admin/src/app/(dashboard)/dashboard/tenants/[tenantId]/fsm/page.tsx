@@ -513,6 +513,17 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initEdges);
 
+  // Wrap onEdgesChange so deletions also mark the canvas as dirty
+  const onEdgesChangeTracked = useCallback(
+    (changes: Parameters<typeof onEdgesChange>[0]) => {
+      onEdgesChange(changes);
+      if (changes.some((c) => c.type === "remove")) {
+        setIsDirty(true);
+      }
+    },
+    [onEdgesChange],
+  );
+
   const loadedTRef = useRef("");
   const loadedNRef = useRef("");
 
@@ -700,7 +711,7 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
       <div className={cn("flex-1 transition-all duration-300 ease-out", panelOpen && "mr-[380px]")}>
         <ReactFlow
           nodes={nodes} edges={edges}
-          onNodesChange={onNC} onEdgesChange={onEdgesChange}
+          onNodesChange={onNC} onEdgesChange={onEdgesChangeTracked}
           onConnect={onConnect} onEdgeClick={onEdgeClick}
           nodeTypes={nodeTypes} edgeTypes={edgeTypes}
           connectionMode={ConnectionMode.Loose}

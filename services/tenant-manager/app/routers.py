@@ -825,12 +825,15 @@ async def list_transitions(
         require_same_tenant_admin(admin, tenant_id)
 
     _, fsm = await _get_fsm_config(tenant_id, db)
-    raw_transitions = fsm.get("transitions", [])
-    if raw_transitions:
-        transitions = [FlowTransition(**t) if isinstance(t, dict) else t for t in raw_transitions]
-    else:
+    # Use sentinel None to distinguish "never configured" from "intentionally empty []"
+    raw_transitions = fsm.get("transitions", None)
+    if raw_transitions is None:
+        # Tenant has never saved transitions → return NIA defaults
         from shared.models.flow_defaults import DEFAULT_TRANSITIONS
         transitions = DEFAULT_TRANSITIONS
+    else:
+        # Tenant has explicitly saved transitions (even if empty list)
+        transitions = [FlowTransition(**t) if isinstance(t, dict) else t for t in raw_transitions]
 
     return APIResponse(data=transitions)
 

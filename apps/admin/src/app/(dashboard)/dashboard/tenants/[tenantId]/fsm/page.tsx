@@ -850,12 +850,12 @@ function TransPanel({ t, isNew, intents, actions, customSkills, allStates, onCha
               </SelectContent>
             </Select>
           </FG>
-          <div className="flex items-center justify-center text-slate-300"><ChevronDown className="h-4 w-4" /></div>
+          <div className="flex items-center justify-center text-muted-foreground/50"><ChevronDown className="h-4 w-4" /></div>
           <FG label="To State">
             <Select value={t.to_state || ""} onValueChange={(v) => onChange({ ...t, to_state: v })}>
-              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select target\u2026" /></SelectTrigger>
+              <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Select target…" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__same__"><div className="flex items-center gap-2"><Undo2 className="h-3 w-3 text-slate-400" /><span className="text-slate-500">Same State</span></div></SelectItem>
+                <SelectItem value="__same__"><div className="flex items-center gap-2"><Undo2 className="h-3 w-3 text-muted-foreground" /><span className="text-muted-foreground">Same State</span></div></SelectItem>
                 {allStates.map((s) => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -867,7 +867,7 @@ function TransPanel({ t, isNew, intents, actions, customSkills, allStates, onCha
             <Select value={t.intent || INTENT_WILDCARD} onValueChange={(v) => onChange({ ...t, intent: v === INTENT_WILDCARD ? "" : v })}>
               <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value={INTENT_WILDCARD}><span className="text-slate-400">Any intent (wildcard)</span></SelectItem>
+                <SelectItem value={INTENT_WILDCARD}><span className="text-muted-foreground">Any intent (wildcard)</span></SelectItem>
                 {intents.map((i) => <SelectItem key={i.key} value={i.key}>{i.name ?? i.key}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -889,7 +889,7 @@ function TransPanel({ t, isNew, intents, actions, customSkills, allStates, onCha
                 ))}
                 {customSkills.length > 0 && (
                   <>
-                    <div className="px-3 pt-3 pb-1 text-[10px] font-semibold text-slate-400 uppercase tracking-widest border-t mt-1">Custom Personas</div>
+                    <div className="px-3 pt-3 pb-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-widest border-t mt-1">Custom Personas</div>
                     {customSkills.map((sk) => (
                       <SelectItem key={sk.action} value={sk.action}>
                         <div className="flex items-center gap-2">

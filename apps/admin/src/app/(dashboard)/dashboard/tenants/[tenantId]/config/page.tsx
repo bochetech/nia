@@ -178,9 +178,9 @@ function ConnectionBlock({
   const defaults = PROVIDER_DEFAULTS[providerValue] ?? { url: "", keyRequired: false };
 
   return (
-    <div className="rounded-xl border border-slate-200 overflow-hidden">
+    <div className="rounded-xl border border-border overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+      <div className="flex items-center justify-between px-4 py-3 bg-muted border-b border-border">
         <div className="flex items-center gap-2">
           <span className="text-slate-500">{icon}</span>
           <span className="font-semibold text-sm text-slate-800">{title}</span>
@@ -334,8 +334,8 @@ function AIConfigForm({ tenantId, config }: { tenantId: string; config: AIConfig
       />
 
       {/* ── Generation parameters ──────────────────── */}
-      <div className="rounded-xl border border-slate-200 overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
+      <div className="rounded-xl border border-border overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 bg-muted border-b border-border">
           <SlidersHorizontal className="h-4 w-4 text-slate-500" />
           <span className="font-semibold text-sm text-slate-800">Generation Parameters</span>
         </div>
@@ -408,8 +408,8 @@ function AIConfigForm({ tenantId, config }: { tenantId: string; config: AIConfig
       </div>
 
       {/* ── System prompt ──────────────────────────── */}
-      <div className="rounded-xl border border-slate-200 overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-3 bg-slate-50 border-b border-slate-200">
+      <div className="rounded-xl border border-border overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 bg-muted border-b border-border">
           <Cpu className="h-4 w-4 text-slate-500" />
           <span className="font-semibold text-sm text-slate-800">System Prompt Override</span>
           <span className="text-xs text-slate-400 ml-1">optional</span>
@@ -422,7 +422,7 @@ function AIConfigForm({ tenantId, config }: { tenantId: string; config: AIConfig
             className="text-sm resize-none"
           />
           <p className="text-[11px] text-slate-400 mt-2">
-            When set, this replaces the built-in NIA prompt entirely. Use <code className="bg-slate-100 px-1 rounded">{"{{tenant_name}}"}</code> as a variable.
+            When set, this replaces the built-in NIA prompt entirely. Use <code className="bg-muted px-1 rounded">{"{{tenant_name}}"}</code> as a variable.
           </p>
         </div>
       </div>

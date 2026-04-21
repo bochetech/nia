@@ -171,7 +171,7 @@ function ChatwootTab({ tenantId, config }: { tenantId: string; config: ChatwootC
     <form onSubmit={handleSubmit((d) => update.mutateAsync(d))} className="mt-4 space-y-4">
 
       {/* ── Webhook URL card (read-only, prominent) ── */}
-      <Card className="border-violet-200 bg-violet-50/40">
+      <Card className="border-primary/30 bg-violet-50/40">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2 text-violet-800">
             <Webhook className="h-4 w-4" />
@@ -185,14 +185,14 @@ function ChatwootTab({ tenantId, config }: { tenantId: string; config: ChatwootC
         </CardHeader>
         <CardContent>
           {webhookUrl ? (
-            <div className="flex items-center gap-2 rounded-lg border border-violet-200 bg-white px-3 py-2">
+            <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-white px-3 py-2">
               <code className="text-xs font-mono text-slate-700 flex-1 break-all">{webhookUrl}</code>
               <CopyButton value={webhookUrl} />
             </div>
           ) : (
-            <div className="rounded-lg border border-dashed border-violet-200 bg-white px-3 py-2.5 text-xs text-slate-500">
-              Set <code className="font-mono bg-slate-100 px-1 rounded">NEXT_PUBLIC_HANDOFF_URL</code> in your{" "}
-              <code className="font-mono bg-slate-100 px-1 rounded">.env.local</code> to generate this URL.
+            <div className="rounded-lg border border-dashed border-primary/30 bg-white px-3 py-2.5 text-xs text-muted-foreground">
+              Set <code className="font-mono bg-muted px-1 rounded">NEXT_PUBLIC_HANDOFF_URL</code> in your{" "}
+              <code className="font-mono bg-muted px-1 rounded">.env.local</code> to generate this URL.
               <div className="mt-1 font-mono text-[11px] text-slate-400">
                 Example: NEXT_PUBLIC_HANDOFF_URL=https://handoff.yourcompany.com
               </div>
@@ -370,7 +370,7 @@ function ChatwootTab({ tenantId, config }: { tenantId: string; config: ChatwootC
               </div>
 
               {handoffAgents.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-slate-200 py-6 text-center">
+                <div className="rounded-lg border border-dashed border-border py-6 text-center">
                   <Users className="h-6 w-6 text-slate-300 mx-auto mb-2" />
                   <p className="text-xs text-muted-foreground">
                     No agent groups yet — add one to enable routing.
@@ -379,7 +379,7 @@ function ChatwootTab({ tenantId, config }: { tenantId: string; config: ChatwootC
               ) : (
                 <div className="space-y-3">
                   {handoffAgents.map((agent, idx) => (
-                    <div key={idx} className="rounded-xl border border-slate-200 p-4 space-y-3 bg-slate-50/50 relative">
+                    <div key={idx} className="rounded-xl border border-border p-4 space-y-3 bg-muted/50 relative">
                       <div className="flex items-center justify-between">
                         <Badge variant="secondary" className="text-[10px]">Group {idx + 1}</Badge>
                         <button
@@ -512,7 +512,7 @@ function WidgetTab({ tenantId, uiConfig }: { tenantId: string; uiConfig: UIConfi
               </div>
             </div>
             <div className="border-t px-3 py-2 flex items-center gap-2 bg-white">
-              <div className="flex-1 h-6 rounded-full bg-gray-100 text-xs px-3 text-gray-400 flex items-center">
+              <div className="flex-1 h-6 rounded-full bg-gray-100 text-xs px-3 text-muted-foreground flex items-center">
                 {uiConfig.input_placeholder ?? "Type a message…"}
               </div>
               <div className="h-6 w-6 rounded-full flex items-center justify-center" style={{ backgroundColor: primaryColor }}>

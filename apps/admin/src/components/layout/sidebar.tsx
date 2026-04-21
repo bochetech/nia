@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
+import { useTheme } from "next-themes";
 import { useTenant } from "@/hooks/use-api";
 import {
   LayoutDashboard,
@@ -16,6 +17,8 @@ import {
   Bot,
   Bug,
   Users,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +35,7 @@ const TENANT_NAV = (id: string) => [
 export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const tenantIdMatch = pathname.match(/\/dashboard\/tenants\/([^/]+)/);
   const tenantId = tenantIdProp ?? tenantIdMatch?.[1];
@@ -39,75 +43,51 @@ export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
   const { data: tenantData } = useTenant(tenantId ?? "");
   const tenantName = tenantData?.data?.name;
   const isInsideTenant = !!tenantId;
+  const isDark = resolvedTheme === "dark";
 
   return (
-    <aside
-      className="flex h-screen flex-col shrink-0 select-none"
-      style={{ width: 214, background: "#0a0a10", borderRight: "1px solid rgba(255,255,255,0.06)" }}
-    >
-      {/* ── Logo ───────────────────────────────────────────── */}
-      <div
-        className="flex items-center gap-3 px-[18px] py-5"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}
-      >
+    <aside className="flex h-screen flex-col shrink-0 select-none bg-sidebar border-r border-sidebar-border" style={{ width: 214 }}>
+
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-[18px] py-5 border-b border-sidebar-border">
         <Link href="/dashboard" className="flex items-center gap-3">
           <div
-            className="flex items-center justify-center rounded-lg shrink-0"
-            style={{
-              width: 30, height: 30,
-              background: "linear-gradient(135deg,#6366f1,#8b5cf6)",
-              fontSize: 14, fontWeight: 700, color: "#fff",
-            }}
+            className="flex items-center justify-center rounded-lg shrink-0 text-white font-bold text-sm"
+            style={{ width: 30, height: 30, background: "linear-gradient(135deg,#6366f1,#8b5cf6)" }}
           >
             N
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#e2e2f0", lineHeight: 1.2 }}>NIA</div>
-            <div style={{ fontSize: 9, color: "#444", letterSpacing: ".1em" }}>ADMIN CONSOLE</div>
+            <div className="text-[14px] font-semibold text-sidebar-foreground leading-tight">NIA</div>
+            <div className="text-[9px] text-sidebar-muted tracking-[.1em]">ADMIN CONSOLE</div>
           </div>
         </Link>
       </div>
 
-      {/* ── Navigation ────────────────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto px-2 py-3" style={{ paddingTop: 10, paddingBottom: 10 }}>
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto px-2 py-2.5">
         {isInsideTenant ? (
           <>
-            {/* Back */}
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 mb-3 transition-colors"
-              style={{ fontSize: 12, fontWeight: 500, color: "#555" }}
-              onMouseOver={e => (e.currentTarget.style.color = "#818cf8")}
-              onMouseOut={e => (e.currentTarget.style.color = "#555")}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 mb-2.5 text-[12px] font-medium text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
             >
               <ChevronLeft className="h-3.5 w-3.5" />
               All Tenants
             </Link>
 
-            {/* Tenant identity card */}
-            <div
-              className="rounded-lg px-3 py-2.5 mb-3"
-              style={{ background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.15)" }}
-            >
+            <div className="rounded-lg px-3 py-2.5 mb-2.5 bg-primary/[0.08] border border-primary/[0.15]">
               <div className="flex items-center gap-2.5">
-                <div
-                  className="flex items-center justify-center rounded-lg shrink-0"
-                  style={{ width: 28, height: 28, background: "rgba(99,102,241,0.25)", fontSize: 12, fontWeight: 700, color: "#818cf8" }}
-                >
+                <div className="flex items-center justify-center rounded-lg shrink-0 text-primary text-xs font-bold bg-primary/20" style={{ width: 28, height: 28 }}>
                   {(tenantName ?? tenantId ?? "T")[0].toUpperCase()}
                 </div>
                 <div className="min-w-0">
-                  <p style={{ fontSize: 12, fontWeight: 500, color: "#818cf8" }} className="truncate">
-                    {tenantName ?? "Loading…"}
-                  </p>
-                  <p style={{ fontSize: 10, color: "#444", fontFamily: "'IBM Plex Mono',monospace" }} className="truncate">
-                    {tenantId}
-                  </p>
+                  <p className="text-[12px] font-medium text-primary truncate">{tenantName ?? "Loading…"}</p>
+                  <p className="text-[10px] text-muted-foreground truncate font-mono">{tenantId}</p>
                 </div>
               </div>
             </div>
 
-            {/* Tenant nav links */}
             <div className="space-y-0.5">
               {TENANT_NAV(tenantId).map(({ href, icon: Icon, label }) => {
                 const active = pathname.startsWith(href);
@@ -115,17 +95,14 @@ export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
                   <Link
                     key={href}
                     href={href}
-                    className="flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors"
-                    style={{
-                      fontSize: 13,
-                      fontWeight: active ? 500 : 400,
-                      color: active ? "#818cf8" : "#666",
-                      background: active ? "rgba(99,102,241,0.15)" : "transparent",
-                    }}
-                    onMouseOver={e => { if (!active) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "#ccc"; } }}
-                    onMouseOut={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#666"; } }}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition-colors",
+                      active
+                        ? "bg-primary/[0.12] text-primary font-medium"
+                        : "text-muted-foreground hover:bg-primary/[0.06] hover:text-foreground",
+                    )}
                   >
-                    <Icon className="shrink-0" style={{ width: 15, height: 15 }} strokeWidth={active ? 2 : 1.5} />
+                    <Icon className="shrink-0 h-[15px] w-[15px]" strokeWidth={active ? 2 : 1.5} />
                     <span className="flex-1">{label}</span>
                   </Link>
                 );
@@ -133,28 +110,24 @@ export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
             </div>
           </>
         ) : (
-          /* Overview */
           <div className="space-y-0.5">
             {[
-              { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-              { href: "/dashboard/tenants", icon: Users, label: "Tenants" },
+              { href: "/dashboard",         icon: LayoutDashboard, label: "Dashboard" },
+              { href: "/dashboard/tenants", icon: Users,           label: "Tenants" },
             ].map(({ href, icon: Icon, label }) => {
               const active = pathname === href;
               return (
                 <Link
                   key={href}
                   href={href}
-                  className="flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors"
-                  style={{
-                    fontSize: 13,
-                    fontWeight: active ? 500 : 400,
-                    color: active ? "#818cf8" : "#666",
-                    background: active ? "rgba(99,102,241,0.15)" : "transparent",
-                  }}
-                  onMouseOver={e => { if (!active) { e.currentTarget.style.background = "rgba(255,255,255,0.04)"; e.currentTarget.style.color = "#ccc"; } }}
-                  onMouseOut={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#666"; } }}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] transition-colors",
+                    active
+                      ? "bg-primary/[0.12] text-primary font-medium"
+                      : "text-muted-foreground hover:bg-primary/[0.06] hover:text-foreground",
+                  )}
                 >
-                  <Icon className="shrink-0" style={{ width: 15, height: 15 }} strokeWidth={active ? 2 : 1.5} />
+                  <Icon className="shrink-0 h-[15px] w-[15px]" strokeWidth={active ? 2 : 1.5} />
                   {label}
                 </Link>
               );
@@ -163,31 +136,28 @@ export function Sidebar({ tenantId: tenantIdProp }: { tenantId?: string }) {
         )}
       </nav>
 
-      {/* ── User footer ───────────────────────────────────── */}
-      <div
-        className="flex items-center gap-2.5 px-[18px] py-3"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
-      >
-        <div
-          className="flex items-center justify-center rounded-full shrink-0"
-          style={{ width: 26, height: 26, background: "rgba(99,102,241,0.3)", fontSize: 10, fontWeight: 600, color: "#818cf8" }}
-        >
+      {/* Footer */}
+      <div className="flex items-center gap-2 px-3 py-3 border-t border-sidebar-border">
+        <div className="flex items-center justify-center rounded-full shrink-0 bg-primary/20 text-primary text-[10px] font-semibold" style={{ width: 26, height: 26 }}>
           {(session?.user?.email ?? "A")[0].toUpperCase()}
         </div>
         <div className="flex-1 min-w-0">
-          <p style={{ fontSize: 12, color: "#ccc" }} className="truncate">
-            {session?.user?.email ?? "admin"}
-          </p>
-          <p style={{ fontSize: 9, color: "#444" }}>Super Admin</p>
+          <p className="text-[12px] text-foreground truncate">{session?.user?.email ?? "admin"}</p>
+          <p className="text-[9px] text-muted-foreground">Super Admin</p>
         </div>
+        <button
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+          title={isDark ? "Switch to light" : "Switch to dark"}
+          className="rounded-lg p-1.5 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+        >
+          {isDark ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+        </button>
         <button
           onClick={() => signOut({ callbackUrl: "/login" })}
           title="Sign out"
-          style={{ color: "#444", background: "none", border: "none", cursor: "pointer", padding: 4 }}
-          onMouseOver={e => (e.currentTarget.style.color = "#818cf8")}
-          onMouseOut={e => (e.currentTarget.style.color = "#444")}
+          className="rounded-lg p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
         >
-          <LogOut style={{ width: 14, height: 14 }} />
+          <LogOut className="h-3.5 w-3.5" />
         </button>
       </div>
     </aside>

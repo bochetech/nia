@@ -61,7 +61,7 @@ function LoginForm() {
         {/* Form */}
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="space-y-4 rounded-2xl border border-black/[0.04] bg-white p-7 shadow-apple-md"
+          className="space-y-4 rounded-2xl border border-border bg-card p-7 shadow-xl"
         >
           {error && (
             <div className="rounded-md bg-destructive/10 border border-destructive/20 px-3 py-2 text-sm text-destructive">

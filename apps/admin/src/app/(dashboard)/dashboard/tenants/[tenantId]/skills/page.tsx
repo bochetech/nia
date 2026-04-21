@@ -165,8 +165,8 @@ export default function SkillsPage({
                     onClick={() => setSelectedAction(action)}
                     className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] transition-all duration-150 ${
                       selectedAction === action
-                        ? "bg-white border border-black/[0.04] shadow-apple-sm font-medium"
-                        : "hover:bg-white/60"
+                        ? "bg-white border border-border font-medium"
+                        : "hover:bg-muted"
                     }`}
                   >
                     <div
@@ -217,8 +217,8 @@ export default function SkillsPage({
                     onClick={() => setSelectedAction(skill.action)}
                     className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-[13px] transition-all duration-150 group ${
                       selectedAction === skill.action
-                        ? "bg-white border border-black/[0.04] shadow-apple-sm font-medium"
-                        : "hover:bg-white/60"
+                        ? "bg-white border border-border font-medium"
+                        : "hover:bg-muted"
                     }`}
                   >
                     <MessageSquare

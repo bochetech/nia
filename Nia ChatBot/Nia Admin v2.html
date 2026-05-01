@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>NIA — Admin Console</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body,#root{height:100%;overflow:hidden}
+body{background:#09090f;color:#e2e2f0;font-family:'IBM Plex Sans',system-ui,sans-serif;font-size:14px}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+input,textarea,select{color-scheme:dark;font-family:inherit}
+input[type=range]{-webkit-appearance:none;height:4px;background:rgba(255,255,255,0.12);border-radius:2px;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#6366f1;cursor:pointer}
+.tweaks-panel{position:fixed;bottom:16px;right:16px;width:210px;background:rgba(15,15,22,0.97);border:1px solid rgba(99,102,241,0.3);border-radius:10px;padding:16px;z-index:9999;display:none;backdrop-filter:blur(20px);box-shadow:0 16px 48px rgba(0,0,0,.5)}
+.tweaks-panel.on{display:block}
+.tw-title{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#818cf8;margin-bottom:12px;font-weight:600}
+.tw-label{display:block;font-size:11px;color:#666;margin-bottom:4px}
+.tw-sel{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:6px 10px;color:#ccc;font-size:12px;width:100%;margin-bottom:12px}
+.tw-sel option{background:#111118}
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+<div class="tweaks-panel" id="tweaksPanel">
+  <p class="tw-title">Tweaks</p>
+  <label class="tw-label">Vista inicial</label>
+  <select class="tw-sel" onchange="dispTweak('screen',this.value)">
+    <option value="dashboard">Dashboard</option>
+    <option value="tenants">Tenants</option>
+    <option value="fsm">Tenant → FSM</option>
+    <option value="skills">Tenant → Skills</option>
+    <option value="debug">Tenant → Debug</option>
+    <option value="analytics">Tenant → Analítica</option>
+  </select>
+  <label class="tw-label">Tenant</label>
+  <select class="tw-sel" onchange="dispTweak('tenant',this.value)">
+    <option value="demo_turismo">demo_turismo</option>
+    <option value="moda_imagen">moda_imagen</option>
+  </select>
+</div>
+
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback}=React;
+
+/* ── DATA ─────────────────────────────────────────────────── */
+const TENANTS=[
+  {id:"demo_turismo",name:"Centro del Vino · Concha y Toro",plan:"professional",status:"active",email:"admin@conchaytoro.com",cv:14,created:"2024-11-10",channels:["widget","telegram"],
+   ui:{primaryColor:"#7a2020",chatTitle:"Asistente Enoturismo",welcomeMessage:"¡Hola! Soy NIA 🍷 ¿En qué te puedo ayudar?",inputPlaceholder:"Ej: ¿Qué tours tienen?",position:"bottom-right",showWelcome:true},
+   ai:{provider:"vertex_ai",model:"gemini-2.0-flash",temp:0.3,maxTokens:800,prompt:"Eres NIA, asistente del Centro del Vino Concha y Toro. Ayudas con tours, horarios, precios y reservas. Responde en español, tono amable y profesional.",cache:true,costOpt:true,inCost:0.075,outCost:0.30,fallback:"openai",fallbackModel:"gpt-4o-mini"},
+   limits:{maxTok:8000,maxConvs:5000,maxCost:150,maxDocs:200,handoff:true,timeout:15},
+   analytics:{convs:2847,msgs:18432,nps:4.3,npsN:412,tokens:4820000,cost:0.72,
+    daily:[120,98,145,167,203,189,211,178,224,198,215,230,245,189,167,201,234,267,289,312,298,276,301,323,298,312,287,334,310,298],
+    intents:[{k:"faq_query",n:6821},{k:"booking_intent",n:4203},{k:"product_inquiry",n:2918},{k:"human_request",n:1247},{k:"complaint",n:654}]},
+   intents:[
+    {key:"faq_query",name:"Consulta FAQ",desc:"El usuario pregunta sobre horarios, precios, políticas o información general del centro del vino.",examples:["¿Qué incluye el tour?","¿Tienen estacionamiento?","¿Cuánto dura la visita?"],enabled:true,priority:1},
+    {key:"booking_intent",name:"Intención de reserva",desc:"El usuario quiere reservar una experiencia, menciona fecha, grupo o disponibilidad.",examples:["Quiero reservar para el sábado","¿Tienen disponibilidad para 4 personas?"],enabled:true,priority:2},
+    {key:"product_inquiry",name:"Consulta de experiencia",desc:"El usuario pregunta por una experiencia específica: precio, duración, qué incluye.",examples:["¿Cuánto cuesta la nocturna?","¿Qué incluye el tasting?"],enabled:true,priority:1},
+    {key:"human_request",name:"Solicitud de asesor",desc:"El usuario pide hablar con una persona.",examples:["Quiero hablar con alguien","¿Me pueden llamar?"],enabled:true,priority:3},
+    {key:"complaint",name:"Queja o problema",desc:"El usuario expresa insatisfacción o reclama.",examples:["Tuve un problema con mi reserva","Quiero reclamar"],enabled:true,priority:3},
+    {key:"out_of_scope",name:"Fuera de alcance",desc:"Pregunta ajena al negocio.",examples:["¿Cómo se hace el vino?"],enabled:true,priority:0},
+    {key:"nps_response",name:"Respuesta NPS",desc:"Responde la encuesta de satisfacción (1-5).",examples:["5","Le doy un 4","Muy bueno"],enabled:true,priority:0},
+    {key:"unclear",name:"Mensaje ambiguo",desc:"Intención no determinable.",examples:["Hola","Mm"],enabled:true,priority:0},
+   ],
+   transitions:[
+    {intent:"faq_query",from:[],to:"faq_answer",action:"faq",enabled:true,prompt:""},
+    {intent:"product_inquiry",from:[],to:"faq_answer",action:"faq",enabled:true,prompt:""},
+    {intent:"booking_intent",from:["discovery","faq_answer","greeting"],to:"recommending",action:"recommend",enabled:true,prompt:"Déjame buscar las mejores opciones..."},
+    {intent:"booking_intent",from:["idle","pre_chat"],to:"discovery",action:"discovery",enabled:true,prompt:"¡Perfecto! Para encontrar la experiencia ideal, cuéntame:"},
+    {intent:"human_request",from:[],to:"handoff_active",action:"handoff",enabled:true,prompt:""},
+    {intent:"complaint",from:[],to:"handoff_active",action:"handoff",enabled:true,prompt:"Lamentamos el problema. Te conecto con un asesor."},
+    {intent:"out_of_scope",from:[],to:"discovery",action:"static_reply",enabled:true,prompt:"",staticMsg:"Solo puedo ayudarte con el Centro del Vino. ¿Te cuento sobre nuestras experiencias?"},
+    {intent:"nps_response",from:["post_chat"],to:"closed",action:"nps",enabled:true,prompt:""},
+   ],
+   skills:[
+    {action:"faq",name:"Base de Conocimiento RAG",desc:"Responde usando documentos indexados sobre tours y políticas.",entities:[],prepPrompt:"Busca en la base de conocimiento y proporciona respuesta precisa.",templates:{success:"Aquí tienes la info:",empty:"No tengo info precisa. ¿Hablo con un asesor?",error:"En este momento no puedo responder."},enabled:true},
+    {action:"recommend",name:"Recomendador de Experiencias",desc:"Recomienda tours basándose en preferencias del usuario.",entities:[{name:"activity_type",type:"string",desc:"Tipo de experiencia"},{name:"date",type:"date",desc:"Fecha deseada"},{name:"pax_count",type:"integer",desc:"Número de personas"}],prepPrompt:"Extrae preferencias del usuario: tipo de experiencia, fecha y número de personas.",templates:{success:"Te recomiendo estas experiencias:",empty:"No encontré opciones. ¿Ajusto la búsqueda?",error:"Dificultades buscando disponibilidad."},enabled:true},
+    {action:"handoff",name:"Escalación a Asesor",desc:"Transfiere la conversación a un asesor humano.",entities:[],prepPrompt:"",templates:{success:"Te conecto con un asesor.",error:"No hay asesores disponibles. ¿Te contactamos?"},enabled:true},
+    {action:"discovery",name:"Descubrimiento",desc:"Hace preguntas para entender necesidades del usuario.",entities:[{name:"group_size",type:"integer",desc:"Número de personas"},{name:"occasion",type:"string",desc:"Motivo de la visita"}],prepPrompt:"Haz 1-2 preguntas concretas sobre su visita.",templates:{followup:"Para ayudarte mejor, ¿me cuentas más?"},enabled:true},
+   ]
+  },
+  {id:"moda_imagen",name:"StyleSense Fashion Advisor",plan:"starter",status:"active",email:"tech@stylesense.cl",cv:7,created:"2025-01-15",channels:["widget"],
+   ui:{primaryColor:"#1a1a5c",chatTitle:"StyleSense AI",welcomeMessage:"¡Hola! Soy tu asesor de moda 👗",inputPlaceholder:"¿Qué estilo buscas?",position:"bottom-right",showWelcome:true},
+   ai:{provider:"openai",model:"gpt-4o-mini",temp:0.5,maxTokens:600,prompt:"Eres StyleSense, asesor de moda virtual.",cache:true,costOpt:true,inCost:0.15,outCost:0.60,fallback:"lmstudio",fallbackModel:""},
+   limits:{maxTok:5000,maxConvs:1000,maxCost:50,maxDocs:100,handoff:false,timeout:10},
+   analytics:{convs:654,msgs:3210,nps:4.7,npsN:89,tokens:980000,cost:0.15,
+    daily:[18,22,31,27,19,34,41,38,29,44,52,47,39,55,62,58,43,67,71,65,59,74,82,78,68,85,91,87,79,93],
+    intents:[{k:"product_inquiry",n:1823},{k:"faq_query",n:892},{k:"booking_intent",n:312},{k:"complaint",n:89}]},
+   intents:[],transitions:[],skills:[]}
+];
+
+/* ── FSM DIAGRAM CONSTANTS ─── */
+const NW=152,NH=50,NR=8;
+const POS={
+  idle:{x:80,y:290},greeting:{x:278,y:290},discovery:{x:476,y:290},
+  faq_answer:{x:674,y:162},recommending:{x:674,y:290},handoff_active:{x:674,y:418},
+  checkout_init:{x:872,y:290},confirmed:{x:1070,y:162},
+  post_chat:{x:872,y:418},closed:{x:1070,y:418}
+};
+const SSTYLE={
+  idle:{c:"#9ca3af",bg:"#0f172a",b:"#374151",lbl:"Idle"},
+  greeting:{c:"#818cf8",bg:"#1e1b4b",b:"#6366f1",lbl:"Greeting"},
+  discovery:{c:"#818cf8",bg:"#1a1740",b:"#6366f1",lbl:"Discovery"},
+  faq_answer:{c:"#60a5fa",bg:"#0c1a38",b:"#3b82f6",lbl:"FAQ Answer"},
+  recommending:{c:"#34d399",bg:"#0a1e14",b:"#10b981",lbl:"Recommending"},
+  handoff_active:{c:"#fbbf24",bg:"#1c0a00",b:"#f59e0b",lbl:"Handoff Active"},
+  checkout_init:{c:"#34d399",bg:"#0a1e14",b:"#10b981",lbl:"Checkout Init"},
+  confirmed:{c:"#4ade80",bg:"#052e16",b:"#22c55e",lbl:"Confirmed"},
+  post_chat:{c:"#c084fc",bg:"#180d2e",b:"#9333ea",lbl:"Post Chat"},
+  closed:{c:"#6b7280",bg:"#0a0a0a",b:"#374151",lbl:"Closed"},
+};
+const ACOLOR={faq:"#3b82f6",recommend:"#10b981",handoff:"#f59e0b",discovery:"#8b5cf6",static_reply:"#6b7280",nps:"#c084fc",complaint:"#f87171",conversational:"#38bdf8"};
+const FLOW_EDGES=[
+  {f:"idle",t:"greeting",c:"#4b5563"},{f:"greeting",t:"discovery",c:"#4b5563"},
+  {f:"checkout_init",t:"confirmed",c:"#22c55e"},{f:"confirmed",t:"post_chat",c:"#6b7280"},
+  {f:"handoff_active",t:"post_chat",c:"#6b7280"},{f:"post_chat",t:"closed",c:"#6b7280"},
+  {f:"faq_answer",t:"recommending",c:"#3b82f680"}
+];
+
+function bezierPath(fk,tk,off=0){
+  const f=POS[fk],t=POS[tk];if(!f||!t)return"";
+  const hw=NW/2,hh=NH/2,dx=t.x-f.x,dy=t.y-f.y,adx=Math.abs(dx),ady=Math.abs(dy);
+  let x1,y1,x2,y2,c1x,c1y,c2x,c2y;
+  if(adx>=ady){
+    if(dx>0){x1=f.x+hw;y1=f.y+off*14;x2=t.x-hw;y2=t.y+off*14;c1x=x1+adx*.42;c1y=y1;c2x=x2-adx*.42;c2y=y2;}
+    else{x1=f.x;y1=f.y-hh;x2=t.x;y2=t.y-hh;const up=Math.min(f.y,t.y)-85+off*22;c1x=f.x;c1y=up;c2x=t.x;c2y=up;}
+  }else{
+    if(dy>0){x1=f.x+off*14;y1=f.y+hh;x2=t.x+off*14;y2=t.y-hh;c1x=x1;c1y=y1+ady*.42;c2x=x2;c2y=y2-ady*.42;}
+    else{x1=f.x+off*14;y1=f.y-hh;x2=t.x+off*14;y2=t.y+hh;c1x=x1;c1y=y1-ady*.42;c2x=x2;c2y=y2+ady*.42;}
+  }
+  return `M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`;
+}
+function midPt(fk,tk){const f=POS[fk],t=POS[tk];if(!f||!t)return{x:0,y:0};return{x:(f.x+t.x)/2,y:(f.y+t.y)/2};}
+
+/* ── SHARED COMPONENTS ──────────────────────────────────────── */
+const Badge=({children,color="default"})=>{
+  const C={default:"rgba(255,255,255,.08) #aaa",active:"rgba(16,185,129,.15) #10b981",suspended:"rgba(239,68,68,.15) #ef4444",provisioning:"rgba(245,158,11,.15) #f59e0b",professional:"rgba(99,102,241,.15) #818cf8",enterprise:"rgba(168,85,247,.15) #c084fc",starter:"rgba(255,255,255,.08) #666",widget:"rgba(99,102,241,.12) #818cf8",telegram:"rgba(14,165,233,.12) #38bdf8"};
+  const [bg,fg]=(C[color]||C.default).split(" ");
+  return <span style={{background:bg,color:fg,padding:"2px 9px",borderRadius:20,fontSize:11,fontWeight:600,letterSpacing:".03em",whiteSpace:"nowrap"}}>{children}</span>;
+};
+const Toggle=({value,onChange})=>(
+  <button onClick={()=>onChange(!value)} style={{width:36,height:20,borderRadius:10,border:"none",cursor:"pointer",background:value?"#6366f1":"rgba(255,255,255,.12)",position:"relative",transition:"background .2s",flexShrink:0}}>
+    <span style={{position:"absolute",top:3,left:value?19:3,width:14,height:14,borderRadius:"50%",background:"#fff",transition:"left .2s",display:"block"}}/>
+  </button>
+);
+const Btn=({children,variant="secondary",onClick,small,disabled})=>{
+  const S={primary:{background:"#6366f1",color:"#fff",border:"none"},secondary:{background:"rgba(255,255,255,.07)",color:"#ccc",border:"1px solid rgba(255,255,255,.1)"},ghost:{background:"transparent",color:"#777",border:"1px solid rgba(255,255,255,.07)"},danger:{background:"rgba(239,68,68,.12)",color:"#ef4444",border:"1px solid rgba(239,68,68,.25)"}};
+  return <button onClick={onClick} disabled={disabled} style={{...S[variant],padding:small?"5px 11px":"7px 15px",borderRadius:7,fontSize:small?11:13,fontWeight:500,cursor:disabled?"not-allowed":"pointer",opacity:disabled?.5:1,display:"inline-flex",alignItems:"center",gap:5,whiteSpace:"nowrap",fontFamily:"inherit"}}>{children}</button>;
+};
+const Field=({label,children,hint})=>(
+  <div style={{marginBottom:15}}>
+    <label style={{display:"block",fontSize:11,color:"#777",marginBottom:5,letterSpacing:".04em"}}>{label}</label>
+    {children}
+    {hint&&<p style={{fontSize:11,color:"#444",marginTop:3}}>{hint}</p>}
+  </div>
+);
+const Inp=({value,onChange,placeholder,mono,type="text"})=>(
+  <input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder}
+    style={{width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.1)",borderRadius:7,padding:"8px 12px",color:"#e2e2f0",fontSize:13,fontFamily:mono?"'IBM Plex Mono',monospace":"inherit",outline:"none",boxSizing:"border-box"}}/>
+);
+const Txa=({value,onChange,rows=3,placeholder,mono})=>(
+  <textarea value={value} onChange={e=>onChange(e.target.value)} rows={rows} placeholder={placeholder}
+    style={{width:"100%",background:"rgba(255,255,255,.05)",border:"1px solid rgba(255,255,255,.1)",borderRadius:7,padding:"8px 12px",color:"#e2e2f0",fontSize:13,fontFamily:mono?"'IBM Plex Mono',monospace":"inherit",outline:"none",resize:"vertical",boxSizing:"border-box"}}/>
+);
+const Sparkline=({data,color="#6366f1",h=40})=>{
+  if(!data||data.length<2)return<div style={{height:h}}/>;
+  const max=Math.max(...data),min=Math.min(...data),w=200,rng=max-min||1;
+  const pts=data.map((v,i)=>`${(i/(data.length-1))*w},${h-((v-min)/rng)*(h-4)-2}`).join(" ");
+  return(<svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+    <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round"/>
+    <polyline points={`0,${h} ${pts} ${w},${h}`} fill={`${color}18`} strokeWidth="0"/>
+  </svg>);
+};
+const StatCard=({label,value,sub,color="#6366f1",spark})=>(
+  <div style={{background:"#111118",border:"1px solid rgba(255,255,255,.06)",borderRadius:10,padding:"16px 18px",flex:1,minWidth:150}}>
+    <p style={{fontSize:10,color:"#555",letterSpacing:".08em",textTransform:"uppercase",marginBottom:7}}>{label}</p>
+    <p style={{fontSize:24,fontWeight:600,color,marginBottom:2}}>{value}</p>
+    {sub&&<p style={{fontSize:11,color:"#444"}}>{sub}</p>}
+    {spark&&<div style={{marginTop:10}}><Sparkline data={spark} color={color} h={28}/></div>}
+  </div>
+);
+
+/* ── FSM DIAGRAM ─────────────────────────────────────────────── */
+const FSMDiagram=({tenant})=>{
+  const [sel,setSel]=useState(null);
+  const [pan,setPan]=useState({x:30,y:40});
+  const [zoom,setZoom]=useState(0.82);
+  const [drag,setDrag]=useState(null);
+  const svgRef=useRef();
+
+  const trEdges=[];
+  const pairCount={};
+  (tenant.transitions||[]).forEach((tr,i)=>{
+    const froms=tr.from.length?tr.from:["discovery"];
+    froms.forEach(fs=>{
+      if(POS[fs]&&POS[tr.to]){
+        const k=`${fs}→${tr.to}`;
+        pairCount[k]=(pairCount[k]||0);
+        trEdges.push({from:fs,to:tr.to,tr,idx:i,off:pairCount[k]-0.5});
+        pairCount[k]++;
+      }
+    });
+  });
+
+  const onSvgDown=e=>{
+    if(e.target===svgRef.current||e.target.dataset.bg){
+      setDrag({sx:e.clientX-pan.x,sy:e.clientY-pan.y});
+      setSel(null);
+    }
+  };
+  const onMove=e=>{if(drag)setPan({x:e.clientX-drag.sx,y:e.clientY-drag.sy});};
+  const onUp=()=>setDrag(null);
+  const onWheel=e=>{e.preventDefault();setZoom(z=>Math.max(.35,Math.min(1.6,z-e.deltaY*.001)));};
+
+  const panelW=sel?290:0;
+
+  return(
+    <div style={{display:"flex",height:"100%",overflow:"hidden"}}>
+      {/* SVG canvas */}
+      <div style={{flex:1,position:"relative",background:"#07070c",overflow:"hidden"}}
+        onMouseMove={onMove} onMouseUp={onUp} onWheel={onWheel}>
+
+        {/* Top toolbar */}
+        <div style={{position:"absolute",top:12,left:12,zIndex:10,display:"flex",gap:6,background:"rgba(15,15,22,.92)",border:"1px solid rgba(255,255,255,.08)",borderRadius:8,padding:"6px 8px",backdropFilter:"blur(12px)",alignItems:"center"}}>
+          <Btn small variant="ghost" onClick={()=>{setPan({x:30,y:40});setZoom(.82);}}>⊞ Fit</Btn>
+          <div style={{width:1,background:"rgba(255,255,255,.08)",height:20}}/>
+          <Btn small variant="ghost" onClick={()=>setZoom(z=>Math.min(1.6,z+.1))}>＋</Btn>
+          <span style={{fontSize:11,color:"#555",minWidth:38,textAlign:"center"}}>{Math.round(zoom*100)}%</span>
+          <Btn small variant="ghost" onClick={()=>setZoom(z=>Math.max(.35,z-.1))}>－</Btn>
+          <div style={{width:1,background:"rgba(255,255,255,.08)",height:20}}/>
+          <Btn small variant="primary">＋ Estado</Btn>
+          <Btn small variant="secondary">＋ Transición</Btn>
+        </div>
+
+        {/* Legend */}
+        <div style={{position:"absolute",bottom:12,left:12,zIndex:10,display:"flex",gap:14,background:"rgba(15,15,22,.88)",border:"1px solid rgba(255,255,255,.07)",borderRadius:8,padding:"8px 14px",backdropFilter:"blur(10px)",alignItems:"center"}}>
+          {Object.entries(ACOLOR).slice(0,6).map(([a,c])=>(
+            <div key={a} style={{display:"flex",alignItems:"center",gap:5}}>
+              <svg width="18" height="6"><line x1="0" y1="3" x2="14" y2="3" stroke={c} strokeWidth="2" strokeLinecap="round"/><polygon points="14,0 18,3 14,6" fill={c}/></svg>
+              <span style={{fontSize:10,color:"#555"}}>{a}</span>
+            </div>
+          ))}
+          <div style={{width:1,background:"rgba(255,255,255,.07)",height:16}}/>
+          <div style={{display:"flex",alignItems:"center",gap:5}}>
+            <svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="#4b5563" strokeWidth="1.5" strokeDasharray="4,3"/></svg>
+            <span style={{fontSize:10,color:"#444"}}>flujo base</span>
+          </div>
+        </div>
+
+        <svg ref={svgRef} width="100%" height="100%" style={{cursor:drag?"grabbing":"grab"}} onMouseDown={onSvgDown}>
+          <defs>
+            <pattern id="grid" x="0" y="0" width="22" height="22" patternUnits="userSpaceOnUse">
+              <circle cx="11" cy="11" r=".7" fill="rgba(255,255,255,.07)"/>
+            </pattern>
+            {Object.entries(ACOLOR).map(([a,c])=>(
+              <marker key={a} id={`ah-${a}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M0,1 L9,5 L0,9Z" fill={c}/>
+              </marker>
+            ))}
+            <marker id="ah-def" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+              <path d="M0,1 L9,5 L0,9Z" fill="#4b5563"/>
+            </marker>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" data-bg="1"/>
+
+          <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
+            {/* Default flow edges (dashed) */}
+            {FLOW_EDGES.map((e,i)=>{
+              const p=bezierPath(e.f,e.t);if(!p)return null;
+              return <path key={i} d={p} fill="none" stroke={e.c} strokeWidth="1.4" strokeDasharray="5,4" opacity=".5" markerEnd="url(#ah-def)"/>;
+            })}
+
+            {/* Transition edges */}
+            {trEdges.map((e,i)=>{
+              const p=bezierPath(e.from,e.to,e.off);if(!p)return null;
+              const c=ACOLOR[e.tr.action]||"#888";
+              const isSel=sel?.type==="edge"&&sel.idx===e.idx;
+              const mp=midPt(e.from,e.to);
+              return(
+                <g key={i} onClick={ev=>{ev.stopPropagation();setSel({type:"edge",idx:e.idx,data:e.tr});}}>
+                  <path d={p} fill="none" stroke="transparent" strokeWidth="16" style={{cursor:"pointer"}}/>
+                  <path d={p} fill="none" stroke={c} strokeWidth={isSel?2.8:1.9}
+                    opacity={isSel?1:.8} markerEnd={`url(#ah-${e.tr.action})`}
+                    style={{filter:isSel?`drop-shadow(0 0 5px ${c})`:"none",transition:"stroke-width .15s"}}/>
+                  {/* Label pill */}
+                  <foreignObject x={mp.x-50} y={mp.y-12} width="100" height="22" style={{overflow:"visible",pointerEvents:"none"}}>
+                    <div xmlns="http://www.w3.org/1999/xhtml"
+                      style={{background:`${c}20`,border:`1px solid ${c}50`,borderRadius:4,padding:"1px 7px",fontSize:9,color:c,textAlign:"center",fontFamily:"'IBM Plex Mono',monospace",backdropFilter:"blur(6px)",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>
+                      {e.tr.intent}
+                    </div>
+                  </foreignObject>
+                </g>
+              );
+            })}
+
+            {/* State nodes */}
+            {Object.entries(POS).map(([sk,pos])=>{
+              const st=SSTYLE[sk]||{c:"#888",bg:"#111",b:"#333",lbl:sk};
+              const isSel=sel?.type==="state"&&sel.data===sk;
+              const outN=trEdges.filter(e=>e.from===sk).length;
+              const inN=trEdges.filter(e=>e.to===sk).length;
+              return(
+                <g key={sk} style={{cursor:"pointer"}} onClick={ev=>{ev.stopPropagation();setSel({type:"state",data:sk});}}>
+                  {isSel&&<rect x={pos.x-NW/2-5} y={pos.y-NH/2-5} width={NW+10} height={NH+10} rx={NR+5} fill={st.b} opacity=".18"/>}
+                  <rect x={pos.x-NW/2} y={pos.y-NH/2} width={NW} height={NH} rx={NR}
+                    fill={st.bg} stroke={st.b} strokeWidth={isSel?2.2:1.5}
+                    style={{filter:isSel?`drop-shadow(0 0 8px ${st.b}60)`:"none",transition:"all .15s"}}/>
+                  {/* Left accent */}
+                  <rect x={pos.x-NW/2} y={pos.y-NH/2+5} width={3} height={NH-10} rx={1.5} fill={st.b}/>
+                  {/* Labels */}
+                  <text x={pos.x-NW/2+13} y={pos.y-5} fill={st.c} fontSize="12" fontWeight="600" fontFamily="'IBM Plex Sans',sans-serif">{st.lbl}</text>
+                  <text x={pos.x-NW/2+13} y={pos.y+11} fill={st.c} fontSize="9" opacity=".45" fontFamily="'IBM Plex Mono',monospace">{sk}</text>
+                  {/* In/Out counts */}
+                  <text x={pos.x+NW/2-9} y={pos.y-12} fill={st.c} fontSize="9" opacity=".55" textAnchor="middle" fontFamily="'IBM Plex Sans',sans-serif">{inN>0?`↓${inN}`:""}</text>
+                  <text x={pos.x+NW/2-9} y={pos.y+20} fill={st.c} fontSize="9" opacity=".55" textAnchor="middle" fontFamily="'IBM Plex Sans',sans-serif">{outN>0?`↑${outN}`:""}</text>
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+      </div>
+
+      {/* Side panel */}
+      {sel&&(
+        <div style={{width:290,borderLeft:"1px solid rgba(255,255,255,.06)",background:"#0f0f18",overflowY:"auto",flexShrink:0,display:"flex",flexDirection:"column"}}>
+          <div style={{padding:"16px 18px",borderBottom:"1px solid rgba(255,255,255,.06)",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+            <p style={{fontSize:12,fontWeight:600,color:"#888",letterSpacing:".06em",textTransform:"uppercase"}}>{sel.type==="state"?"Estado":"Transición"}</p>
+            <button onClick={()=>setSel(null)} style={{background:"none",border:"none",color:"#555",cursor:"pointer",fontSize:18}}>×</button>
+          </div>
+
+          {sel.type==="state"&&(()=>{
+            const st=SSTYLE[sel.data]||{c:"#888",bg:"#111",b:"#333",lbl:sel.data};
+            const ins=trEdges.filter(e=>e.to===sel.data);
+            const outs=trEdges.filter(e=>e.from===sel.data);
+            return(<div style={{padding:18,flex:1}}>
+              <div style={{display:"flex",alignItems:"center",gap:10,padding:"12px 14px",background:st.bg,border:`1px solid ${st.b}`,borderRadius:8,marginBottom:18}}>
+                <div style={{width:10,height:10,borderRadius:"50%",background:st.b,flexShrink:0}}/>
+                <div><p style={{fontSize:14,fontWeight:600,color:st.c}}>{st.lbl}</p><p style={{fontSize:10,color:st.c,opacity:.5,fontFamily:"'IBM Plex Mono',monospace"}}>{sel.data}</p></div>
+              </div>
+              <p style={{fontSize:10,color:"#555",letterSpacing:".08em",textTransform:"uppercase",marginBottom:8}}>Entradas ({ins.length})</p>
+              {ins.length===0&&<p style={{fontSize:12,color:"#444",marginBottom:14,fontStyle:"italic"}}>Estado inicial o raíz</p>}
+              {ins.map((e,i)=><div key={i} style={{background:"rgba(255,255,255,.04)",borderRadius:6,padding:"7px 10px",marginBottom:5,fontSize:12,display:"flex",gap:6,alignItems:"center"}}>
+                <span style={{color:"#666",fontFamily:"'IBM Plex Mono',monospace",fontSize:11}}>{e.from}</span>
+                <span style={{color:ACOLOR[e.tr.action],fontSize:11,fontWeight:600}}>→ {e.tr.action}</span>
+              </div>)}
+              <p style={{fontSize:10,color:"#555",letterSpacing:".08em",textTransform:"uppercase",marginBottom:8,marginTop:14}}>Salidas ({outs.length})</p>
+              {outs.length===0&&<p style={{fontSize:12,color:"#444",marginBottom:14,fontStyle:"italic"}}>Estado terminal</p>}
+              {outs.map((e,i)=><div key={i} style={{background:"rgba(255,255,255,.04)",borderRadius:6,padding:"7px 10px",marginBottom:5,fontSize:12}}>
+                <div style={{display:"flex",gap:5,alignItems:"center",marginBottom:3}}>
+                  <span style={{fontSize:10,background:`${ACOLOR[e.tr.action]}20`,color:ACOLOR[e.tr.action],padding:"1px 7px",borderRadius:3,fontFamily:"'IBM Plex Mono',monospace"}}>{e.tr.intent}</span>
+                </div>
+                <span style={{color:ACOLOR[e.tr.action],fontWeight:600}}>{e.tr.action}</span>
+                <span style={{color:"#444",margin:"0 5px"}}>→</span>
+                <span style={{color:"#777",fontFamily:"'IBM Plex Mono',monospace"}}>{e.to}</span>
+              </div>)}
+              <div style={{marginTop:18,display:"flex",gap:8}}>
+                <Btn small variant="primary">＋ Transición</Btn>
+                <Btn small variant="secondary">✎ Editar</Btn>
+              </div>
+            </div>);
+          })()}
+
+          {sel.type==="edge"&&sel.data&&(
+            <div style={{padding:18}}>
+              <Field label="Intent">
+                <div style={{background:"rgba(99,102,241,.1)",border:"1px solid rgba(99,102,241,.3)",borderRadius:6,padding:"8px 12px",fontSize:13,color:"#818cf8",fontFamily:"'IBM Plex Mono',monospace"}}>{sel.data.intent}</div>
+              </Field>
+              <Field label="Desde estados">
+                {sel.data.from.length===0
+                  ?<p style={{fontSize:12,color:"#666",fontStyle:"italic"}}>Cualquier estado (wildcard)</p>
+                  :<div style={{display:"flex",gap:4,flexWrap:"wrap"}}>{sel.data.from.map(s=><span key={s} style={{fontSize:11,background:"rgba(255,255,255,.07)",color:"#888",padding:"2px 8px",borderRadius:4,fontFamily:"'IBM Plex Mono',monospace"}}>{s}</span>)}</div>}
+              </Field>
+              <Field label="Acción">
+                <div style={{background:`${ACOLOR[sel.data.action]||"#888"}22`,border:`1px solid ${ACOLOR[sel.data.action]||"#888"}55`,borderRadius:6,padding:"8px 12px",color:ACOLOR[sel.data.action]||"#888",fontWeight:700,fontSize:13}}>{sel.data.action}</div>
+              </Field>
+              <Field label="Estado destino">
+                <p style={{fontSize:13,color:"#ccc",fontFamily:"'IBM Plex Mono',monospace"}}>→ {sel.data.to}</p>
+              </Field>
+              {sel.data.prompt&&<Field label="Bot prompt"><Txa value={sel.data.prompt} onChange={()=>{}} rows={2}/></Field>}
+              {sel.data.staticMsg&&<Field label="Mensaje estático"><Txa value={sel.data.staticMsg} onChange={()=>{}} rows={2}/></Field>}
+              <div style={{display:"flex",alignItems:"center",gap:8,marginTop:4,marginBottom:16}}>
+                <Toggle value={sel.data.enabled} onChange={()=>{}}/><span style={{fontSize:12,color:"#888"}}>{sel.data.enabled?"Activa":"Inactiva"}</span>
+              </div>
+              <div style={{display:"flex",gap:7}}>
+                <Btn small variant="secondary">✎ Editar</Btn>
+                <Btn small variant="danger">Eliminar</Btn>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ── SKILLS SCREEN ───────────────────────────────────────────── */
+const SkillsScreen=({tenant})=>{
+  const [tab,setTab]=useState("service");
+  const [showNew,setShowNew]=useState(false);
+  const [newName,setNewName]=useState("");
+  const [newPrompt,setNewPrompt]=useState("");
+  return(
+    <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div style={{padding:"14px 24px",borderBottom:"1px solid rgba(255,255,255,.06)",display:"flex",gap:4,alignItems:"center"}}>
+        {["service","conversational"].map(t=><button key={t} onClick={()=>setTab(t)} style={{padding:"6px 14px",borderRadius:6,border:"none",background:tab===t?"rgba(99,102,241,.18)":"transparent",color:tab===t?"#818cf8":"#555",fontSize:12,fontWeight:tab===t?600:400,cursor:"pointer",fontFamily:"inherit"}}>{t==="service"?"Skills de Servicio":"Skills Conversacionales"}</button>)}
+        <div style={{flex:1}}/>
+        {tab==="conversational"&&<Btn small variant="primary" onClick={()=>setShowNew(true)}>＋ Nuevo skill</Btn>}
+      </div>
+      <div style={{flex:1,overflowY:"auto",padding:22}}>
+        {tab==="service"&&(
+          <div>
+            <p style={{fontSize:12,color:"#555",marginBottom:18,lineHeight:1.6}}>Los skills de servicio invocan microservicios externos del stack NIA. Puedes configurar el schema de entidades a extraer y las plantillas de respuesta.</p>
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {(tenant.skills||[]).map(sk=>(
+                <div key={sk.action} style={{background:"#111118",border:"1px solid rgba(255,255,255,.07)",borderRadius:10,padding:"16px 20px"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                    <div style={{width:8,height:8,borderRadius:"50%",background:ACOLOR[sk.action]||"#888"}}/>
+                    <span style={{fontSize:13,fontWeight:600,color:ACOLOR[sk.action]||"#888",fontFamily:"'IBM Plex Mono',monospace"}}>{sk.action}</span>
+                    <span style={{fontSize:13,color:"#ccc",fontWeight:500}}>{sk.name}</span>
+                    <div style={{flex:1}}/><Toggle value={sk.enabled} onChange={()=>{}}/><Btn small variant="ghost">✎</Btn>
+                  </div>
+                  <p style={{fontSize:12,color:"#666",marginBottom:sk.entities.length?10:0}}>{sk.desc}</p>
+                  {sk.entities.length>0&&(
+                    <div>
+                      <p style={{fontSize:10,color:"#555",letterSpacing:".06em",textTransform:"uppercase",marginBottom:6}}>Entidades a extraer</p>
+                      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                        {sk.entities.map(f=>(
+                          <div key={f.name} title={f.desc} style={{display:"flex",alignItems:"center",gap:5,background:"rgba(99,102,241,.1)",border:"1px solid rgba(99,102,241,.2)",borderRadius:5,padding:"3px 10px"}}>
+                            <span style={{fontSize:11,color:"#818cf8",fontFamily:"'IBM Plex Mono',monospace"}}>{f.name}</span>
+                            <span style={{fontSize:10,color:"#555"}}>:{f.type}</span>
+                          </div>
+                        ))}
+                        <Btn small variant="ghost">＋</Btn>
+                      </div>
+                    </div>
+                  )}
+                  {Object.entries(sk.templates).length>0&&(
+                    <div style={{marginTop:10,display:"flex",gap:6,flexWrap:"wrap"}}>
+                      {Object.entries(sk.templates).map(([k,v])=>(
+                        <div key={k} style={{background:"rgba(255,255,255,.04)",borderRadius:5,padding:"3px 9px",fontSize:11}}>
+                          <span style={{color:"#555"}}>{k}: </span>
+                          <span style={{color:"#888"}}>{v.slice(0,30)}{v.length>30?"…":""}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {tab==="conversational"&&(
+          <div>
+            <p style={{fontSize:12,color:"#555",marginBottom:18,lineHeight:1.6}}>Los skills conversacionales (<code style={{fontFamily:"'IBM Plex Mono',monospace",background:"rgba(255,255,255,.07)",padding:"1px 6px",borderRadius:3}}>conversational__slug</code>) permiten crear personas LLM personalizadas con su propio system prompt, sin invocar servicios externos.</p>
+            {showNew&&(
+              <div style={{background:"rgba(99,102,241,.08)",border:"1px solid rgba(99,102,241,.25)",borderRadius:10,padding:"18px 20px",marginBottom:16}}>
+                <p style={{fontSize:13,fontWeight:600,color:"#818cf8",marginBottom:14}}>Nuevo skill conversacional</p>
+                <Field label="Nombre del skill"><Inp value={newName} onChange={setNewName} placeholder="Ej: Bienvenida turismo"/></Field>
+                <Field label="System prompt personalizado" hint="Este prompt define la personalidad y conocimiento de este rol específico."><Txa value={newPrompt} onChange={setNewPrompt} rows={4} placeholder="Eres un asistente experto en..."/></Field>
+                <div style={{display:"flex",gap:8}}><Btn variant="primary" small>Crear skill</Btn><Btn variant="ghost" small onClick={()=>setShowNew(false)}>Cancelar</Btn></div>
+              </div>
+            )}
+            <div style={{background:"rgba(255,255,255,.03)",border:"1px dashed rgba(255,255,255,.1)",borderRadius:10,padding:28,textAlign:"center"}}>
+              <p style={{fontSize:13,color:"#555",marginBottom:8}}>No hay skills conversacionales configurados</p>
+              <p style={{fontSize:12,color:"#444",marginBottom:16}}>Crea un skill para tener un agente LLM con personalidad propia en un estado específico del flujo.</p>
+              <Btn variant="secondary" onClick={()=>setShowNew(true)}>＋ Crear primer skill</Btn>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ── DEBUG SIMULATOR ─────────────────────────────────────────── */
+const DEBUG_CONV=[
+  {role:"user",msg:"Hola, quiero reservar la nocturna para 4 personas el próximo sábado",events:[
+    {t:108,icon:"🎯",label:"Intent",val:"booking_intent",score:.94,c:"#818cf8"},
+    {t:112,icon:"📦",label:"Entities",val:'{ date: "2025-04-26", pax_count: 4, activity_type: "nocturna" }',c:"#38bdf8"},
+    {t:114,icon:"🔄",label:"State",val:"greeting → recommending",c:"#10b981"},
+    {t:116,icon:"⚡",label:"Skill",val:"recommend → Recommender service",c:"#10b981"},
+    {t:892,icon:"✅",label:"Results",val:"3 experiencias encontradas",c:"#4ade80"},
+    {t:894,icon:"💬",label:"Tokens",val:"+234 tokens  ·  0.78s",c:"#f59e0b"},
+    {t:895,icon:"💰",label:"Cost",val:"$0.000035  (acum: $0.000035)",c:"#f59e0b"},
+  ],reply:"¡Excelente! Encontré 3 opciones para 4 personas el sábado 26 de abril:\n\n🌙 **Nocturna Casillero del Diablo + Cena** — 18:30h ($85.000/pp)\n🌙 **Nocturna + Maridaje** — 19:50h ($72.000/pp)\n🌙 **Nocturna Clásica** — 21:00h ($55.000/pp)\n\n¿Cuál prefieres?"},
+  {role:"user",msg:"¿Cuánto cuesta en total la primera?",events:[
+    {t:89,icon:"🎯",label:"Intent",val:"faq_query",score:.91,c:"#818cf8"},
+    {t:91,icon:"🔄",label:"State",val:"recommending → faq_answer",c:"#10b981"},
+    {t:92,icon:"⚡",label:"Skill",val:"faq → RAG query",c:"#3b82f6"},
+    {t:620,icon:"📚",label:"RAG",val:"2 chunks · score 0.84",c:"#3b82f6"},
+    {t:622,icon:"💬",label:"Tokens",val:"+312 tokens  ·  0.53s",c:"#f59e0b"},
+    {t:623,icon:"💰",label:"Cost",val:"$0.000047  (acum: $0.000082)",c:"#f59e0b"},
+  ],reply:"La **Nocturna Casillero del Diablo + Cena** a las 18:30h tiene un precio de $85.000 por persona. Para 4 personas el total sería $340.000. ¿Quieres reservar?"},
+  {role:"user",msg:"Quiero hablar con alguien, tengo una duda específica",events:[
+    {t:76,icon:"🎯",label:"Intent",val:"human_request",score:.97,c:"#818cf8"},
+    {t:78,icon:"🔄",label:"State",val:"faq_answer → handoff_active",c:"#f59e0b"},
+    {t:80,icon:"⚡",label:"Skill",val:"handoff → Teams notification",c:"#f59e0b"},
+    {t:340,icon:"📨",label:"Teams",val:"Caso #1247 creado · @asesor notificado",c:"#38bdf8"},
+    {t:342,icon:"💬",label:"Tokens",val:"+89 tokens  ·  0.34s",c:"#f59e0b"},
+    {t:343,icon:"💰",label:"Cost",val:"$0.000013  (acum: $0.000095)",c:"#f59e0b"},
+  ],reply:"Por supuesto, te conecto con uno de nuestros asesores ahora mismo. Un momento por favor..."},
+];
+
+const DebugSimulator=({tenant})=>{
+  const [msgs,setMsgs]=useState([]);
+  const [input,setInput]=useState("");
+  const [events,setEvents]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [convIdx,setConvIdx]=useState(0);
+  const bodyRef=useRef();
+  const logRef=useRef();
+
+  const send=()=>{
+    if(!input.trim())return;
+    const userMsg=input;setInput("");
+    const newMsgs=[...msgs,{role:"user",content:userMsg}];
+    setMsgs(newMsgs);setLoading(true);
+    const demo=DEBUG_CONV[convIdx%DEBUG_CONV.length];
+    let delay=200;
+    demo.events.forEach((ev,i)=>{
+      setTimeout(()=>setEvents(e=>[...e,{...ev,ts:Date.now()}]),delay);
+      delay+=Math.min(ev.t,400);
+    });
+    setTimeout(()=>{
+      setMsgs(m=>[...m,{role:"bot",content:demo.reply}]);
+      setLoading(false);setConvIdx(c=>c+1);
+    },delay+300);
+  };
+
+  useEffect(()=>{if(bodyRef.current)bodyRef.current.scrollTop=bodyRef.current.scrollHeight;},[msgs,loading]);
+  useEffect(()=>{if(logRef.current)logRef.current.scrollTop=logRef.current.scrollHeight;},[events]);
+
+  return(
+    <div style={{display:"flex",height:"100%",overflow:"hidden"}}>
+      {/* Chat */}
+      <div style={{width:380,borderRight:"1px solid rgba(255,255,255,.06)",display:"flex",flexDirection:"column",flexShrink:0}}>
+        <div style={{padding:"12px 16px",borderBottom:"1px solid rgba(255,255,255,.06)",display:"flex",alignItems:"center",gap:10}}>
+          <div style={{width:8,height:8,borderRadius:"50%",background:"#10b981"}}/>
+          <span style={{fontSize:12,fontWeight:600,color:"#888",letterSpacing:".06em",textTransform:"uppercase"}}>Simulador — {tenant.ui?.chatTitle||"Asistente"}</span>
+          <div style={{flex:1}}/>
+          <Btn small variant="ghost" onClick={()=>{setMsgs([]);setEvents([]);setConvIdx(0);}}>↺ Reset</Btn>
+        </div>
+        <div ref={bodyRef} style={{flex:1,overflowY:"auto",padding:16,display:"flex",flexDirection:"column",gap:10,background:"rgba(0,0,0,.2)"}}>
+          {msgs.length===0&&<div style={{textAlign:"center",padding:"40px 20px"}}>
+            <p style={{fontSize:24,marginBottom:8}}>💬</p>
+            <p style={{fontSize:13,color:"#555"}}>Escribe un mensaje para simular la conversación</p>
+            <p style={{fontSize:11,color:"#444",marginTop:6}}>Prueba: "Quiero reservar una nocturna para 4 personas"</p>
+          </div>}
+          {msgs.map((m,i)=>(
+            <div key={i} style={{display:"flex",gap:8,alignItems:"flex-end",flexDirection:m.role==="bot"?"row":"row-reverse"}}>
+              {m.role==="bot"&&<div style={{width:26,height:26,borderRadius:"50%",background:tenant.ui?.primaryColor||"#6366f1",flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>🤖</div>}
+              <div style={{maxWidth:"82%",padding:"9px 13px",borderRadius:m.role==="bot"?"12px 12px 12px 3px":"12px 12px 3px 12px",background:m.role==="bot"?"rgba(255,255,255,.06)":tenant.ui?.primaryColor||"#6366f1",fontSize:12,lineHeight:1.6,color:"#e2e2f0",whiteSpace:"pre-wrap"}}>
+                {m.content.replace(/\*\*(.*?)\*\*/g,"$1")}
+              </div>
+            </div>
+          ))}
+          {loading&&<div style={{display:"flex",gap:8,alignItems:"flex-end"}}>
+            <div style={{width:26,height:26,borderRadius:"50%",background:tenant.ui?.primaryColor||"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:13}}>🤖</div>
+            <div style={{background:"rgba(255,255,255,.06)",borderRadius:"12px 12px 12px 3px",padding:"12px 16px",display:"flex",gap:5}}>
+              {[0,1,2].map(i=><span key={i} style={{width:7,height:7,borderRadius:"50%",background:"rgba(255,255,255,.3)",display:"inline-block",animation:`bounce .9s ${i*.18}s infinite`}}/>)}
+            </div>
+          </div>}
+        </div>
+        <div style={{padding:"12px 14px",borderTop:"1px solid rgba(255,255,255,.06)",display:"flex",gap:8,background:"rgba(0,0,0,.2)"}}>
+          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
+            placeholder="Escribe un mensaje…"
+            style={{flex:1,background:"rgba(255,255,255,.06)",border:"1px solid rgba(255,255,255,.1)",borderRadius:9,padding:"9px 13px",color:"#e2e2f0",fontSize:13,outline:"none"}}/>
+          <button onClick={send} style={{width:38,height:38,background:tenant.ui?.primaryColor||"#6366f1",border:"none",borderRadius:9,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+
+      {/* Event log */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        <div style={{padding:"12px 20px",borderBottom:"1px solid rgba(255,255,255,.06)",display:"flex",alignItems:"center",gap:8}}>
+          <span style={{fontSize:12,fontWeight:600,color:"#888",letterSpacing:".06em",textTransform:"uppercase"}}>Event Log</span>
+          <div style={{flex:1}}/>
+          <div style={{fontSize:11,color:"#555"}}>
+            Total acumulado: <span style={{color:"#f59e0b",fontFamily:"'IBM Plex Mono',monospace"}}>${events.filter(e=>e.label==="Cost").reduce((a,e)=>{const m=e.val.match(/\$([\d.]+)/);return a+(m?parseFloat(m[1]):0);},0).toFixed(6)}</span>
+          </div>
+          <Btn small variant="ghost" onClick={()=>setEvents([])}>Limpiar</Btn>
+        </div>
+        <div ref={logRef} style={{flex:1,overflowY:"auto",padding:"10px 16px",fontFamily:"'IBM Plex Mono',monospace",fontSize:12}}>
+          {events.length===0&&<div style={{padding:"40px 20px",textAlign:"center"}}>
+            <p style={{fontSize:12,color:"#444"}}>Los eventos del FSM aparecerán aquí al enviar mensajes.</p>
+          </div>}
+          {events.map((ev,i)=>(
+            <div key={i} style={{display:"flex",gap:10,padding:"5px 0",borderBottom:"1px solid rgba(255,255,255,.04)",alignItems:"flex-start"}}>
+              <span style={{color:"#555",minWidth:52,fontSize:11}}>{`+${Math.floor(Math.random()*200+50)}ms`}</span>
+              <span style={{fontSize:14,flexShrink:0}}>{ev.icon}</span>
+              <span style={{color:"#555",minWidth:70,fontSize:11,paddingTop:1}}>{ev.label}</span>
+              <span style={{color:ev.c,flex:1,lineHeight:1.5,wordBreak:"break-all"}}>{ev.val}</span>
+              {ev.score&&<span style={{color:"#555",fontSize:10,flexShrink:0}}>conf: {ev.score}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+      <style>{`@keyframes bounce{0%,80%,100%{transform:scale(.7);opacity:.35}40%{transform:scale(1.1);opacity:1}}`}</style>
+    </div>
+  );
+};
+
+/* ── OTHER TABS (compact) ──────────────────────────────────── */
+const WidgetTab=({t})=>{
+  const [c,setC]=useState({...t.ui});const u=k=>v=>setC(p=>({...p,[k]:v}));
+  return(<div style={{display:"flex",height:"100%",overflow:"hidden"}}>
+    <div style={{width:320,borderRight:"1px solid rgba(255,255,255,.06)",overflowY:"auto",padding:22}}>
+      <Field label="Título del chat"><Inp value={c.chatTitle||""} onChange={u("chatTitle")}/></Field>
+      <Field label="Mensaje de bienvenida"><Txa value={c.welcomeMessage||""} onChange={u("welcomeMessage")} rows={2}/></Field>
+      <Field label="Color primario"><div style={{display:"flex",gap:8,alignItems:"center"}}><input type="color" value={c.primaryColor||"#6366f1"} onChange={e=>u("primaryColor")(e.target.value)} style={{width:36,height:36,border:"none",borderRadius:6,cursor:"pointer"}}/><Inp value={c.primaryColor||""} onChange={u("primaryColor")} mono/></div></Field>
+      <Field label="Mostrar bienvenida"><div style={{display:"flex",alignItems:"center",gap:8}}><Toggle value={c.showWelcome} onChange={u("showWelcome")}/><span style={{fontSize:12,color:"#777"}}>{c.showWelcome?"Sí":"No"}</span></div></Field>
+      <Btn variant="primary">Guardar</Btn>
+    </div>
+    <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",background:"repeating-linear-gradient(45deg,rgba(255,255,255,.01) 0,rgba(255,255,255,.01) 1px,transparent 1px,transparent 10px)"}}>
+      <div style={{width:320,background:"#fff",borderRadius:14,overflow:"hidden",boxShadow:"0 24px 60px rgba(0,0,0,.5)",fontFamily:"sans-serif"}}>
+        <div style={{background:c.primaryColor||"#6366f1",padding:"13px 15px",display:"flex",alignItems:"center",gap:9}}>
+          <div style={{width:30,height:30,borderRadius:"50%",background:"rgba(255,255,255,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15}}>🤖</div>
+          <div style={{flex:1}}><p style={{fontSize:13,fontWeight:600,color:"#fff"}}>{c.chatTitle||"Asistente"}</p><p style={{fontSize:10,color:"rgba(255,255,255,.65)"}}>● En línea</p></div>
+          <span style={{color:"rgba(255,255,255,.7)",fontSize:18}}>×</span>
+        </div>
+        <div style={{background:"#f8f9fb",padding:13,minHeight:160,display:"flex",flexDirection:"column",gap:9}}>
+          {c.showWelcome&&c.welcomeMessage&&<div style={{display:"flex",gap:7,alignItems:"flex-end"}}><div style={{width:24,height:24,borderRadius:"50%",background:c.primaryColor||"#6366f1",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12}}>🤖</div><div style={{background:"#fff",border:"1px solid #e5e7eb",borderRadius:"10px 10px 10px 3px",padding:"8px 12px",fontSize:12,color:"#1f2937",maxWidth:"80%"}}>{c.welcomeMessage}</div></div>}
+          <div style={{display:"flex",flexDirection:"row-reverse"}}><div style={{background:c.primaryColor||"#6366f1",borderRadius:"10px 10px 3px 10px",padding:"8px 12px",fontSize:12,color:"#fff"}}>¿Qué tours tienen disponibles?</div></div>
+        </div>
+        <div style={{background:"#fff",borderTop:"1px solid #e5e7eb",padding:"9px 11px",display:"flex",gap:7}}>
+          <input placeholder={c.inputPlaceholder||"Escribe…"} style={{flex:1,border:"1.5px solid #e5e7eb",borderRadius:8,padding:"7px 11px",fontSize:12,outline:"none"}} readOnly/>
+          <div style={{width:32,height:32,background:c.primaryColor||"#6366f1",borderRadius:7,display:"flex",alignItems:"center",justifyContent:"center"}}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>);
+};
+
+const AnalyticsTab=({t})=>{
+  const a=t.analytics||{};
+  return(<div style={{padding:24,overflowY:"auto"}}>
+    <div style={{display:"flex",gap:12,marginBottom:22,flexWrap:"wrap"}}>
+      <StatCard label="Conversaciones" value={(a.convs||0).toLocaleString()} spark={a.daily} color="#6366f1"/>
+      <StatCard label="Mensajes" value={(a.msgs||0).toLocaleString()} sub="30 días" color="#818cf8"/>
+      <StatCard label="NPS" value={a.nps?`${a.nps}/5`:"—"} sub={`${a.npsN||0} resp.`} color="#10b981"/>
+      <StatCard label="Costo estimado" value={`$${a.cost?.toFixed(4)||"0"}`} sub={`${((a.tokens||0)/1e6).toFixed(1)}M tokens`} color="#f59e0b"/>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"2fr 1fr",gap:14}}>
+      <div style={{background:"#111118",border:"1px solid rgba(255,255,255,.06)",borderRadius:10,padding:18}}>
+        <p style={{fontSize:10,color:"#555",letterSpacing:".08em",textTransform:"uppercase",marginBottom:12}}>Mensajes / día — 30d</p>
+        <Sparkline data={a.daily} color="#6366f1" h={70}/>
+      </div>
+      <div style={{background:"#111118",border:"1px solid rgba(255,255,255,.06)",borderRadius:10,padding:18}}>
+        <p style={{fontSize:10,color:"#555",letterSpacing:".08em",textTransform:"uppercase",marginBottom:12}}>Top intents</p>
+        {(a.intents||[]).map((it,i)=>{const max=(a.intents[0]?.n)||1;return(
+          <div key={it.k} style={{marginBottom:9}}>
+            <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+              <span style={{fontSize:10,color:"#888",fontFamily:"'IBM Plex Mono',monospace"}}>{it.k}</span>
+              <span style={{fontSize:10,color:"#555"}}>{it.n.toLocaleString()}</span>
+            </div>
+            <div style={{height:4,background:"rgba(255,255,255,.06)",borderRadius:2}}>
+              <div style={{width:`${(it.n/max)*100}%`,height:"100%",background:["#6366f1","#818cf8","#10b981","#f59e0b","#f87171"][i],borderRadius:2}}/>
+            </div>
+          </div>
+        );})}
+      </div>
+    </div>
+  </div>);
+};
+
+/* ── SIDEBAR + APP ──────────────────────────────────────────── */
+const TENANT_TABS=[
+  {id:"fsm",label:"FSM Builder",icon:"◈"},
+  {id:"skills",label:"Skills",icon:"⚙"},
+  {id:"debug",label:"Debug",icon:"⬡"},
+  {id:"widget",label:"Widget",icon:"◻"},
+  {id:"analytics",label:"Analítica",icon:"▣"},
+];
+
+const TenantDetail=({tenant,onBack,initTab})=>{
+  const [tab,setTab]=useState(initTab||"fsm");
+  return(
+    <div style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+      <div style={{padding:"0 0 0 24px",borderBottom:"1px solid rgba(255,255,255,.06)",display:"flex",alignItems:"center",gap:0,flexShrink:0,height:52}}>
+        <button onClick={onBack} style={{background:"transparent",border:"none",color:"#555",cursor:"pointer",fontSize:17,padding:"0 14px 0 0",height:"100%"}}>←</button>
+        <div style={{marginRight:14}}>
+          <p style={{fontSize:14,fontWeight:600,color:"#e2e2f0",lineHeight:1.2}}>{tenant.name}</p>
+          <p style={{fontSize:10,color:"#555",fontFamily:"'IBM Plex Mono',monospace"}}>{tenant.id}</p>
+        </div>
+        <div style={{display:"flex",gap:5,marginRight:14}}>
+          <Badge color={tenant.plan}>{tenant.plan}</Badge>
+          <Badge color={tenant.status}>{tenant.status}</Badge>
+          {(tenant.channels||[]).map(c=><Badge key={c} color={c}>{c}</Badge>)}
+        </div>
+        <div style={{display:"flex",height:"100%",gap:0,marginLeft:8}}>
+          {TENANT_TABS.map(t=>(
+            <button key={t.id} onClick={()=>setTab(t.id)}
+              style={{height:"100%",padding:"0 16px",border:"none",background:"transparent",color:tab===t.id?"#818cf8":"#555",fontSize:13,fontWeight:tab===t.id?600:400,cursor:"pointer",fontFamily:"inherit",borderBottom:`2px solid ${tab===t.id?"#6366f1":"transparent"}`,transition:"color .15s",display:"flex",alignItems:"center",gap:6,whiteSpace:"nowrap"}}>
+              <span style={{fontSize:11}}>{t.icon}</span>{t.label}
+            </button>
+          ))}
+        </div>
+        <div style={{flex:1}}/>
+        <div style={{padding:"0 16px",display:"flex",gap:7}}>
+          <Btn small variant="danger">Suspender</Btn>
+          <Btn small variant="primary">Guardar</Btn>
+        </div>
+      </div>
+      <div style={{flex:1,overflow:"hidden"}}>
+        {tab==="fsm"&&<FSMDiagram tenant={tenant}/>}
+        {tab==="skills"&&<SkillsScreen tenant={tenant}/>}
+        {tab==="debug"&&<DebugSimulator tenant={tenant}/>}
+        {tab==="widget"&&<WidgetTab t={tenant}/>}
+        {tab==="analytics"&&<AnalyticsTab t={tenant}/>}
+      </div>
+    </div>
+  );
+};
+
+const Dashboard=({onSelect})=>(
+  <div style={{padding:"26px 32px",overflowY:"auto",flex:1}}>
+    <h1 style={{fontSize:21,fontWeight:600,color:"#e2e2f0",marginBottom:4}}>Dashboard</h1>
+    <p style={{fontSize:12,color:"#555",marginBottom:24}}>NIA Platform — visión general</p>
+    <div style={{display:"flex",gap:12,marginBottom:26,flexWrap:"wrap"}}>
+      <StatCard label="Tenants activos" value={TENANTS.filter(t=>t.status==="active").length} sub={`${TENANTS.length} total`} color="#10b981"/>
+      <StatCard label="Conversaciones" value={TENANTS.reduce((a,t)=>a+(t.analytics?.convs||0),0).toLocaleString()} sub="todos los tenants" color="#6366f1"/>
+      <StatCard label="Mensajes" value={TENANTS.reduce((a,t)=>a+(t.analytics?.msgs||0),0).toLocaleString()} color="#818cf8"/>
+      <StatCard label="Costo total" value={`$${TENANTS.reduce((a,t)=>a+(t.analytics?.cost||0),0).toFixed(2)}`} sub="USD este mes" color="#f59e0b"/>
+    </div>
+    <div style={{background:"#111118",border:"1px solid rgba(255,255,255,.06)",borderRadius:10,overflow:"hidden"}}>
+      <table style={{width:"100%",borderCollapse:"collapse"}}>
+        <thead><tr style={{borderBottom:"1px solid rgba(255,255,255,.06)"}}>
+          {["Tenant","Plan","Estado","Convs","NPS","Canales",""].map(h=><th key={h} style={{padding:"9px 16px",textAlign:"left",fontSize:10,color:"#444",fontWeight:600,letterSpacing:".07em",textTransform:"uppercase"}}>{h}</th>)}
+        </tr></thead>
+        <tbody>{TENANTS.map(t=>(
+          <tr key={t.id} onClick={()=>onSelect(t)} style={{borderBottom:"1px solid rgba(255,255,255,.04)",cursor:"pointer"}}
+            onMouseOver={e=>e.currentTarget.style.background="rgba(255,255,255,.025)"}
+            onMouseOut={e=>e.currentTarget.style.background="transparent"}>
+            <td style={{padding:"12px 16px"}}><p style={{fontSize:13,color:"#e2e2f0",fontWeight:500}}>{t.name}</p><p style={{fontSize:10,color:"#555",fontFamily:"'IBM Plex Mono',monospace"}}>{t.id}</p></td>
+            <td style={{padding:"12px 16px"}}><Badge color={t.plan}>{t.plan}</Badge></td>
+            <td style={{padding:"12px 16px"}}><Badge color={t.status}>{t.status}</Badge></td>
+            <td style={{padding:"12px 16px",fontSize:13,color:"#ccc"}}>{(t.analytics?.convs||0).toLocaleString()}</td>
+            <td style={{padding:"12px 16px",fontSize:13,color:t.analytics?.nps>=4?"#10b981":"#f59e0b"}}>{t.analytics?.nps?`★ ${t.analytics.nps}`:"—"}</td>
+            <td style={{padding:"12px 16px"}}><div style={{display:"flex",gap:4}}>{(t.channels||[]).map(c=><Badge key={c} color={c}>{c}</Badge>)}</div></td>
+            <td style={{padding:"12px 16px"}}><Btn small variant="ghost">Abrir →</Btn></td>
+          </tr>
+        ))}</tbody>
+      </table>
+    </div>
+  </div>
+);
+
+const Sidebar=({screen,onNav,tenant})=>(
+  <aside style={{width:214,background:"#0a0a10",borderRight:"1px solid rgba(255,255,255,.06)",display:"flex",flexDirection:"column",flexShrink:0}}>
+    <div style={{padding:"20px 18px 16px",borderBottom:"1px solid rgba(255,255,255,.06)",display:"flex",alignItems:"center",gap:10}}>
+      <div style={{width:30,height:30,background:"linear-gradient(135deg,#6366f1,#8b5cf6)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:700,color:"#fff"}}>N</div>
+      <div><div style={{fontSize:14,fontWeight:600,color:"#e2e2f0"}}>NIA</div><div style={{fontSize:9,color:"#444",letterSpacing:".1em"}}>ADMIN CONSOLE</div></div>
+    </div>
+    <nav style={{padding:"10px 8px",flex:1}}>
+      {[{id:"dashboard",icon:"▣",label:"Dashboard"},{id:"tenants",icon:"◫",label:"Tenants"}].map(n=>(
+        <button key={n.id} onClick={()=>onNav(n.id)}
+          style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"8px 11px",borderRadius:7,border:"none",cursor:"pointer",background:screen===n.id?"rgba(99,102,241,.15)":"transparent",color:screen===n.id?"#818cf8":"#666",fontSize:13,fontWeight:screen===n.id?500:400,fontFamily:"inherit",marginBottom:2,textAlign:"left",transition:"background .15s"}}>
+          <span style={{fontSize:14}}>{n.icon}</span>{n.label}
+        </button>
+      ))}
+      {tenant&&<div style={{marginTop:14,paddingTop:14,borderTop:"1px solid rgba(255,255,255,.06)"}}>
+        <p style={{fontSize:9,color:"#444",letterSpacing:".1em",padding:"0 11px",marginBottom:7}}>TENANT ACTIVO</p>
+        <div style={{padding:"9px 11px",borderRadius:7,background:"rgba(255,255,255,.04)"}}>
+          <p style={{fontSize:11,color:"#818cf8",fontWeight:500,marginBottom:2}}>{tenant.id}</p>
+          <p style={{fontSize:10,color:"#555"}}>{tenant.name.slice(0,26)}…</p>
+        </div>
+      </div>}
+    </nav>
+    <div style={{padding:"12px 18px",borderTop:"1px solid rgba(255,255,255,.06)",display:"flex",alignItems:"center",gap:8}}>
+      <div style={{width:24,height:24,borderRadius:"50%",background:"rgba(99,102,241,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:10,color:"#818cf8"}}>SA</div>
+      <div><p style={{fontSize:11,color:"#ccc"}}>Super Admin</p><p style={{fontSize:9,color:"#444"}}>v2.5.0</p></div>
+    </div>
+  </aside>
+);
+
+const App=()=>{
+  const [screen,setScreen]=useState("dashboard");
+  const [tenant,setTenant]=useState(null);
+  const [initTab,setInitTab]=useState("fsm");
+
+  useEffect(()=>{
+    const h=e=>{
+      if(e.detail?.screen){
+        const s=e.detail.screen;
+        const tabMap={fsm:"fsm",skills:"skills",debug:"debug",analytics:"analytics"};
+        if(tabMap[s]){setTenant(TENANTS[0]);setScreen("detail");setInitTab(s);}
+        else{setScreen(s);setTenant(null);}
+      }
+      if(e.detail?.tenant){const t=TENANTS.find(x=>x.id===e.detail.tenant);if(t)setTenant(t);}
+    };
+    window.addEventListener("nia-tweak",h);return()=>window.removeEventListener("nia-tweak",h);
+  },[]);
+
+  return(
+    <div style={{display:"flex",height:"100vh",background:"#09090f",color:"#e2e2f0",fontFamily:"'IBM Plex Sans',sans-serif",overflow:"hidden"}}>
+      <Sidebar screen={screen==="detail"?"tenants":screen} onNav={s=>{setScreen(s);setTenant(null);}} tenant={tenant}/>
+      <main style={{flex:1,display:"flex",flexDirection:"column",overflow:"hidden"}}>
+        {screen==="dashboard"&&<Dashboard onSelect={t=>{setTenant(t);setScreen("detail");}}/>}
+        {screen==="tenants"&&(
+          <div style={{padding:"26px 32px",overflowY:"auto"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22}}>
+              <div><h1 style={{fontSize:21,fontWeight:600,color:"#e2e2f0",marginBottom:3}}>Tenants</h1><p style={{fontSize:12,color:"#555"}}>{TENANTS.length} configurados</p></div>
+              <Btn variant="primary">＋ Nuevo tenant</Btn>
+            </div>
+            {TENANTS.map(t=>(
+              <div key={t.id} onClick={()=>{setTenant(t);setScreen("detail");}}
+                style={{background:"#111118",border:"1px solid rgba(255,255,255,.06)",borderRadius:10,padding:"14px 18px",display:"flex",alignItems:"center",gap:14,cursor:"pointer",marginBottom:9,transition:"border-color .2s"}}
+                onMouseOver={e=>e.currentTarget.style.borderColor="rgba(99,102,241,.3)"}
+                onMouseOut={e=>e.currentTarget.style.borderColor="rgba(255,255,255,.06)"}>
+                <div style={{width:36,height:36,borderRadius:8,background:"rgba(99,102,241,.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>◫</div>
+                <div style={{flex:1}}><p style={{fontSize:13,fontWeight:500,color:"#e2e2f0",marginBottom:2}}>{t.name}</p><p style={{fontSize:10,color:"#555",fontFamily:"'IBM Plex Mono',monospace"}}>{t.id} · v{t.cv}</p></div>
+                <Badge color={t.plan}>{t.plan}</Badge><Badge color={t.status}>{t.status}</Badge>
+                <div style={{display:"flex",gap:4}}>{(t.channels||[]).map(c=><Badge key={c} color={c}>{c}</Badge>)}</div>
+                <span style={{fontSize:12,color:"#555"}}>{(t.analytics?.convs||0).toLocaleString()} convs</span>
+                <Btn small variant="ghost">Abrir →</Btn>
+              </div>
+            ))}
+          </div>
+        )}
+        {screen==="detail"&&tenant&&<TenantDetail tenant={tenant} onBack={()=>{setScreen("tenants");}} initTab={initTab}/>}
+      </main>
+    </div>
+  );
+};
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+
+<script>
+window.addEventListener('message',e=>{
+  if(e.data?.type==='__activate_edit_mode')document.getElementById('tweaksPanel').classList.add('on');
+  if(e.data?.type==='__deactivate_edit_mode')document.getElementById('tweaksPanel').classList.remove('on');
+});
+window.parent.postMessage({type:'__edit_mode_available'},'*');
+function dispTweak(k,v){window.dispatchEvent(new CustomEvent('nia-tweak',{detail:{[k]:v}}));window.parent.postMessage({type:'__edit_mode_set_keys',edits:{[k]:v}},'*');}
+</script>
+</body>
+</html>

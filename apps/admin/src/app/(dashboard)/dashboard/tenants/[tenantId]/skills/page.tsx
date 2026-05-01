@@ -27,32 +27,70 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Save, ChevronRight, MessageSquare, Sparkles } from "lucide-react";
+import { Plus, Trash2, Save, ChevronRight, MessageSquare, Sparkles, Database, Users, Star, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { useForm, useFieldArray } from "react-hook-form";
 
 // ─── Constants ─────────────────────────────────────────────────
 
-const BUILTIN_ACTIONS = [
-  "faq",
-  "recommend",
-  "handoff",
-  "nps",
-  "complaint",
-  "static_reply",
-  "discovery",
-  "conversational",
-];
+// Only skills with real systemic actions. Internal FSM behaviors
+// (complaint, static_reply, discovery, conversational) are NOT shown here —
+// they run automatically and are not configurable as standalone skills.
+const BUILTIN_ACTIONS = ["faq", "recommend", "handoff", "nps"];
+
+// Rich metadata displayed in the skill editor info panel
+const SKILL_INFO: Record<string, {
+  icon: React.ReactNode;
+  badge: string;
+  badgeColor: string;
+  what: string;
+  calls: string;
+  when: string;
+  note?: string;
+}> = {
+  faq: {
+    icon: <BookOpen className="h-4 w-4" />,
+    badge: "RAG · Qdrant · LLM",
+    badgeColor: "#3b82f6",
+    what: "Busca en la base de conocimiento del tenant mediante similitud semántica y genera una respuesta fundamentada con el LLM (retrieval + reranking + generation).",
+    calls: "RAG service → Qdrant (vector search) → reranker → LLM",
+    when: "Preguntas informativas: ubicación, horarios, políticas, descripción de productos, dudas sobre qué incluye cada experiencia.",
+    note: "Si la confianza es baja devuelve el 'Fallback message' de RAG Config y suma al contador de preguntas sin respuesta (puede disparar handoff automático).",
+  },
+  recommend: {
+    icon: <Database className="h-4 w-4" />,
+    badge: "PostgreSQL · Recommender service",
+    badgeColor: "#10b981",
+    what: "Consulta el catálogo de productos del tenant en PostgreSQL y devuelve un ranking con nombre, precio, duración y disponibilidad filtrado por las entidades extraídas del mensaje.",
+    calls: "Recommender service → PostgreSQL (tabla products) → availability check",
+    when: "El usuario pide sugerencias o comparaciones ('¿qué tour recomiendas?', 'algo para parejas', 'tengo presupuesto de X').",
+    note: "Roadmap: se conectará a Bokun/Fareharbor. El cambio irá en el Recommender service, sin tocar esta configuración.",
+  },
+  handoff: {
+    icon: <Users className="h-4 w-4" />,
+    badge: "Handoff service · Chatwoot / Teams",
+    badgeColor: "#f59e0b",
+    what: "Crea un caso en el Handoff service con el contexto completo de la conversación y pausa el bot hasta que un agente humano responda.",
+    calls: "Handoff service → POST /v1/handoff/cases → notificación al canal configurado (Chatwoot, Teams, etc.)",
+    when: "El usuario pide explícitamente hablar con un asesor, o como destino de escalado automático (quejas repetidas, RAG sin respuesta).",
+    note: "Configura el canal de destino en la sección Channels del tenant.",
+  },
+  nps: {
+    icon: <Star className="h-4 w-4" />,
+    badge: "Internal · Redis session",
+    badgeColor: "#06b6d4",
+    what: "Captura una puntuación numérica (1–5) del usuario, la guarda en la sesión (session.nps_score en Redis) y cierra la conversación.",
+    calls: "Sin llamadas externas — parsea el número del mensaje y actualiza la sesión en Redis.",
+    when: "Al finalizar la conversación si 'NPS enabled' está activo en Conversation Flow. Puedes también añadir una transición FSM explícita.",
+    note: "Rodmap: convertir a componente de encuesta visual en el widget en lugar de texto libre.",
+  },
+};
 
 const ACTION_DESCRIPTIONS: Record<string, string> = {
-  faq: "Answers questions using the RAG knowledge base via semantic search.",
-  recommend: "Suggests products or services based on user needs.",
-  handoff: "Transfers the conversation to a human agent.",
-  nps: "Collects a Net Promoter Score from the user.",
-  complaint: "Handles complaints and escalation flows.",
-  static_reply: "Sends a predefined static text response.",
-  discovery: "Asks clarifying questions to understand user intent.",
-  conversational: "Pure LLM response driven by your custom system prompt — no external services required.",
+  faq: "Knowledge base search (Qdrant) + LLM answer generation.",
+  recommend: "Product catalog query (PostgreSQL) + ranked results.",
+  handoff: "Transfers conversation to a human agent via Handoff service.",
+  nps: "Captures a 1–5 score and closes the session.",
 };
 
 const CONVERSATIONAL_COLOR = "#FF2D55";
@@ -93,10 +131,11 @@ export default function SkillsPage({
     }, {});
   }, [skillsData]);
 
-  // Builtin catalog actions (from API or fallback)
+  // Builtin catalog actions — always restricted to BUILTIN_ACTIONS whitelist,
+  // regardless of what the API returns (strips complaint, static_reply, discovery, conversational, etc.)
   const catalogActions: string[] =
     (actionsData?.data?.map((a: any) => a.key ?? a.action) ?? BUILTIN_ACTIONS)
-      .filter((a: string) => !a.startsWith("conversational__"));
+      .filter((a: string) => BUILTIN_ACTIONS.includes(a));
 
   // Custom conversational sub-skills (persisted in DB with action = "conversational__slug")
   const customConversational: SkillConfig[] = useMemo(() => {
@@ -463,6 +502,41 @@ function SkillEditor({
         )}
       </div>
 
+      {/* ── Skill info panel (built-in skills only) ──── */}
+      {!isCustomConversational && SKILL_INFO[action] && (() => {
+        const info = SKILL_INFO[action];
+        return (
+          <div
+            className="rounded-xl border px-4 py-3.5 text-sm space-y-2.5"
+            style={{ borderColor: `${info.badgeColor}30`, backgroundColor: `${info.badgeColor}08` }}
+          >
+            {/* Badge row */}
+            <div className="flex items-center gap-2">
+              <span
+                className="flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+                style={{ backgroundColor: `${info.badgeColor}18`, color: info.badgeColor }}
+              >
+                {info.icon}
+                {info.badge}
+              </span>
+            </div>
+            {/* What / Calls / When rows */}
+            <div className="space-y-1.5 text-[13px] text-muted-foreground leading-relaxed">
+              <div><span className="font-semibold text-foreground">Qué hace:</span> {info.what}</div>
+              <div><span className="font-semibold text-foreground">Llama a:</span> <code className="text-xs bg-muted px-1 rounded">{info.calls}</code></div>
+              <div><span className="font-semibold text-foreground">Cuándo se usa:</span> {info.when}</div>
+              {info.note && (
+                <div className="rounded-lg border px-3 py-2 text-xs leading-relaxed"
+                  style={{ borderColor: `${info.badgeColor}20`, color: info.badgeColor }}
+                >
+                  ℹ️ {info.note}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       <form onSubmit={onSubmit} className="space-y-5">
         {/* Custom name field — only for conversational__ skills */}
         {isCustomConversational && (
@@ -538,6 +612,7 @@ function SkillEditor({
                     required: false,
                     enum_values: [],
                     examples: [],
+                    question: "",
                   })
                 }
               >
@@ -558,6 +633,7 @@ function SkillEditor({
                     key={field.id}
                     idx={idx}
                     register={form.register}
+                    watch={form.watch}
                     onRemove={() => removeEntity(idx)}
                   />
                 ))}
@@ -639,13 +715,16 @@ function SkillEditor({
 function EntityFieldRow({
   idx,
   register,
+  watch,
   onRemove,
 }: {
   idx: number;
   register: any;
+  watch: any;
   onRemove: () => void;
 }) {
   const TYPES = ["string", "number", "boolean", "enum", "date"];
+  const isRequired = watch(`entity_schema.${idx}.required`);
 
   return (
     <div className="rounded-lg border p-3 space-y-2">
@@ -690,6 +769,31 @@ function EntityFieldRow({
           <Trash2 className="h-3 w-3" />
         </Button>
       </div>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-1.5">
+          <input
+            type="checkbox"
+            id={`required-${idx}`}
+            className="h-3.5 w-3.5 accent-primary"
+            {...register(`entity_schema.${idx}.required`)}
+          />
+          <Label htmlFor={`required-${idx}`} className="text-[10px] text-muted-foreground cursor-pointer">
+            Required
+          </Label>
+        </div>
+      </div>
+      {isRequired && (
+        <div>
+          <Label className="text-[10px] text-muted-foreground">
+            Question <span className="font-normal">(bot asks when this field is missing)</span>
+          </Label>
+          <Input
+            className="h-7 text-xs"
+            placeholder="¿Cuál es tu destino?"
+            {...register(`entity_schema.${idx}.question`)}
+          />
+        </div>
+      )}
       <div>
         <Label className="text-[10px] text-muted-foreground">
           Enum values <span className="font-normal">(comma-separated, optional)</span>

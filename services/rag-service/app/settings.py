@@ -15,13 +15,13 @@ class RAGSettings(BaseServiceSettings):
     embedding_dim: int = 768
 
     # Retrieval
-    top_k_retrieval: int = 8
-    top_k_after_rerank: int = 3
+    top_k_retrieval: int = 12
+    top_k_after_rerank: int = 5
 
     # Grounding
     # Lower threshold for local embedding models (LM Studio / nomic) which
     # typically score 0.45–0.65 on cosine similarity. Vertex AI scores higher.
-    min_confidence_threshold: float = 0.40
+    min_confidence_threshold: float = 0.35
     groundedness_check_enabled: bool = True
 
     # Embed model names (for metadata/logging only)

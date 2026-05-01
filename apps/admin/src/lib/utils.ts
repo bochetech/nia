@@ -88,14 +88,15 @@ export const FSM_STATE_COLORS: Record<string, string> = {
 };
 
 export const ACTION_LABELS: Record<string, string> = {
-  faq: "FAQ (RAG)",
-  recommend: "Recommend",
-  handoff: "Handoff",
+  faq: "FAQ — Knowledge Base",
+  recommend: "Recommend Products",
+  handoff: "Handoff to Human",
   nps: "NPS Survey",
-  complaint: "Complaint",
-  static_reply: "Static Reply",
-  discovery: "Discovery",
-  conversational: "Conversational",
+  // Internal FSM behaviors — not shown as configurable skills:
+  complaint: "Complaint (internal)",
+  static_reply: "Static Reply (internal)",
+  discovery: "Discovery (internal)",
+  conversational: "Custom Persona",
 };
 
 export const ACTION_COLORS: Record<string, string> = {
@@ -103,8 +104,8 @@ export const ACTION_COLORS: Record<string, string> = {
   recommend: "#10b981",     // emerald
   handoff: "#f59e0b",       // amber
   nps: "#06b6d4",           // cyan
-  complaint: "#ef4444",     // red
-  static_reply: "#6b7280",  // gray
-  discovery: "#8b5cf6",     // violet
-  conversational: "#6366f1",// indigo
+  complaint: "#ef4444",     // red  (internal)
+  static_reply: "#6b7280",  // gray (internal)
+  discovery: "#8b5cf6",     // violet (internal)
+  conversational: "#FF2D55",// pink — custom personas
 };

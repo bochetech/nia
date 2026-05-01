@@ -30,6 +30,7 @@ logger = get_logger(__name__)
 # ── Legacy hardcoded prompt (fallback when no IntentDefinitions exist) ────────
 
 INTENT_SYSTEM_PROMPT = """Eres un clasificador de intenciones para un asistente de turismo.
+El usuario está hablando CON ESTE NEGOCIO — cualquier pronombre implícito ("¿dónde están?", "¿cuánto cuesta?", "¿tienen X?") se refiere al negocio y sus servicios turísticos.
 Analiza el mensaje del usuario y responde SOLO con un objeto JSON válido con esta estructura exacta:
 {
   "intent": "<uno de: booking_intent|faq_query|complaint|out_of_scope|unclear|product_inquiry|human_request|nps_response>",
@@ -126,6 +127,7 @@ def _build_preparation_hints(skills: list[SkillConfig]) -> str:
 def build_intent_prompt(
     intents: list[IntentDefinition],
     skills: list[SkillConfig] | None = None,
+    tenant_name: str | None = None,
 ) -> str:
     """
     Construye el system prompt para el LLM a partir de las IntentDefinitions
@@ -162,13 +164,18 @@ def build_intent_prompt(
     entity_block = _build_entity_schema_block(skill_list)
     preparation_hints = _build_preparation_hints(skill_list)
 
-    return f"""Eres un clasificador de intenciones para un asistente virtual.
+    return f"""Eres un clasificador de intenciones para el asistente virtual de {tenant_name or "un negocio"}.
+El usuario está hablando CON ESTE NEGOCIO — cualquier pronombre implícito ("¿dónde están?", "¿cuánto cuesta?", \
+"¿tienen X?") se refiere a {tenant_name or "el negocio"} y sus productos o servicios.
 Analiza el mensaje del usuario y responde SOLO con un objeto JSON válido con esta estructura exacta:
 {{
-  "intent": "<uno de: {keys_str}>",
+  "intent": "<DEBES usar EXACTAMENTE uno de estos valores: {keys_str}>",
   "confidence": <número entre 0.0 y 1.0>,
   "entities": {entity_block}
 }}
+
+REGLA CRÍTICA: El campo "intent" SOLO puede contener uno de estos valores exactos (sin variaciones):
+{chr(10).join(f'  - "{k}"' for k in keys)}
 
 Guía de clasificación (evalúa en este orden de prioridad):
 {guide_block}{preparation_hints}
@@ -243,7 +250,8 @@ async def detect_intent(
     skill_defs = _resolve_skills(tenant_config)
     valid_keys = {i.key for i in intent_defs if i.enabled}
 
-    system_prompt = build_intent_prompt(intent_defs, skill_defs)
+    tenant_name = (tenant_config or {}).get("ui_config", {}).get("chat_title") or None
+    system_prompt = build_intent_prompt(intent_defs, skill_defs, tenant_name=tenant_name)
     logger.debug(
         "intent_prompt_built",
         tenant_id=tenant_id,
@@ -260,6 +268,25 @@ async def detect_intent(
 
     messages.append({"role": "user", "content": message})
 
+    # Build a json_schema response_format to force structured output.
+    # This constrains the model to only use the valid intent keys via enum.
+    valid_keys_list = sorted(valid_keys) if valid_keys else ["unclear"]
+    response_format = {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "intent_classification",
+            "schema": {
+                "type": "object",
+                "properties": {
+                    "intent": {"type": "string", "enum": valid_keys_list},
+                    "confidence": {"type": "number"},
+                    "entities": {"type": "object"},
+                },
+                "required": ["intent", "confidence", "entities"],
+            },
+        },
+    }
+
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
@@ -269,6 +296,8 @@ async def detect_intent(
                     "temperature": settings.intent_detection_temperature,
                     "max_tokens": settings.intent_max_tokens,
                     "tenant_id": tenant_id,
+                    "enable_thinking": False,
+                    "response_format": response_format,
                 },
             )
             resp.raise_for_status()
@@ -291,15 +320,33 @@ async def detect_intent(
         confidence = float(parsed.get("confidence", 0.5))
         entities_raw = parsed.get("entities", {})
 
+        # Promote top-level language_preference into entities so it flows
+        # downstream into session.metadata via raw_entities
+        lang = parsed.get("language_preference")
+        if lang and isinstance(lang, str) and lang.lower() not in ("null", "none", ""):
+            entities_raw["language_preference"] = lang.lower()
+
         # ── Validate intent key against configured intents ────────────
         if intent_str not in valid_keys:
-            logger.warning(
-                "intent_not_in_config",
-                tenant_id=tenant_id,
-                detected=intent_str,
-                valid=sorted(valid_keys),
-            )
-            intent_str = "unclear"
+            # Try fuzzy match: look for a valid key that is a substring of
+            # the returned value, or vice versa (e.g. "location_query" → "faq_query")
+            fuzzy_match = _fuzzy_match_intent(intent_str, valid_keys)
+            if fuzzy_match:
+                logger.info(
+                    "intent_fuzzy_matched",
+                    tenant_id=tenant_id,
+                    detected=intent_str,
+                    mapped_to=fuzzy_match,
+                )
+                intent_str = fuzzy_match
+            else:
+                logger.warning(
+                    "intent_not_in_config",
+                    tenant_id=tenant_id,
+                    detected=intent_str,
+                    valid=sorted(valid_keys),
+                )
+                intent_str = "unclear"
 
         # ── Try to map to IntentType for backwards compat ─────────────
         try:
@@ -330,6 +377,65 @@ async def detect_intent(
             return IntentType.UNCLEAR, 0.0, IntentEntities(), {}, 0, 0, 0
         except Exception:
             return "unclear", 0.0, IntentEntities(), {}, 0, 0, 0  # type: ignore[return-value]
+
+
+def _fuzzy_match_intent(detected: str, valid_keys: set[str]) -> str | None:
+    """
+    Attempts to map a non-matching intent string to the closest valid key.
+    Strategy:
+      1. Exact substring match (e.g. "faq" in "location_query" → "faq_query")
+      2. Semantic keyword mapping for common LLM hallucinations
+    Returns the matched key or None.
+    """
+    detected_lower = detected.lower()
+
+    # 1. Check if any valid key is a substring of detected (or vice versa)
+    for key in valid_keys:
+        if key in detected_lower or detected_lower in key:
+            return key
+
+    # 2. Keyword-based semantic mapping
+    keyword_map: list[tuple[str, str]] = [
+        # FAQ / location / info related
+        ("location", "faq_query"),
+        ("address", "faq_query"),
+        ("hours", "faq_query"),
+        ("schedule", "faq_query"),
+        ("info", "faq_query"),
+        ("where", "faq_query"),
+        ("price", "faq_query"),
+        ("cost", "faq_query"),
+        ("include", "faq_query"),
+        ("policy", "faq_query"),
+        ("direction", "faq_query"),
+        ("contact", "faq_query"),
+        # Booking / purchase related
+        ("book", "booking_intent"),
+        ("reserv", "booking_intent"),
+        ("purchas", "booking_intent"),
+        ("buy", "booking_intent"),
+        ("ticket", "booking_intent"),
+        # Recommendation / product related
+        ("recommend", "product_inquiry"),
+        ("product", "product_inquiry"),
+        ("activit", "product_inquiry"),
+        ("tour", "product_inquiry"),
+        ("option", "product_inquiry"),
+        # Human request
+        ("human", "human_request"),
+        ("agent", "human_request"),
+        ("asesor", "human_request"),
+        # Complaint
+        ("complaint", "complaint"),
+        ("complain", "complaint"),
+        ("problem", "complaint"),
+    ]
+
+    for keyword, target_key in keyword_map:
+        if keyword in detected_lower and target_key in valid_keys:
+            return target_key
+
+    return None
 
 
 def _parse_intent_response(content: str) -> dict:

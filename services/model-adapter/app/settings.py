@@ -25,7 +25,7 @@ class ModelAdapterSettings(BaseServiceSettings):
 
     # LM Studio
     lm_studio_base_url: str = "http://localhost:1234"
-    lm_studio_chat_model: str = "google/gemma-4-e4b"
+    lm_studio_chat_model: str = "google/gemma-4-e2b"
     lm_studio_embed_model: str = "nomic-ai/nomic-embed-text-v1.5-GGUF"
     lm_studio_timeout_seconds: int = 120
 

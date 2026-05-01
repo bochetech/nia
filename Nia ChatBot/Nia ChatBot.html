@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Centro del Vino · Concha y Toro · Enoturismo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Raleway:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── Tokens ── */
+    :root {
+      --wine-black: #0c0507;
+      --wine-dark:  #160808;
+      --wine:       #5c1a1a;
+      --wine-mid:   #7a2020;
+      --gold:       #c9a84c;
+      --gold-light: #e0c272;
+      --gold-dim:   rgba(201,168,76,0.18);
+      --cream:      #f5f0e8;
+      --cream-dim:  rgba(245,240,232,0.08);
+      --text-muted: #8a7a68;
+      --ff-serif:   'Cormorant Garamond', Georgia, serif;
+      --ff-sans:    'Raleway', system-ui, sans-serif;
+      --nav-h:      76px;
+      --ease:       cubic-bezier(.4,0,.2,1);
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{background:var(--wine-black);color:var(--cream);font-family:var(--ff-sans);font-weight:300;line-height:1.7;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    img{display:block;max-width:100%}
+
+    /* ── NAV ── */
+    nav{position:fixed;top:0;left:0;right:0;z-index:100;height:var(--nav-h);display:flex;align-items:center;justify-content:space-between;padding:0 52px;background:rgba(12,5,7,0.88);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(201,168,76,0.1);transition:background .3s var(--ease)}
+    nav.scrolled{background:rgba(12,5,7,0.97)}
+    .nav-logo{display:flex;align-items:center;gap:14px}
+    .nav-wordmark{display:flex;flex-direction:column;line-height:1.1}
+    .nav-name{font-family:var(--ff-serif);font-size:1rem;font-weight:500;letter-spacing:.09em;color:#fff}
+    .nav-sub{font-size:.58rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold)}
+    .nav-links{display:flex;gap:36px;list-style:none}
+    .nav-links a{font-size:.66rem;letter-spacing:.2em;text-transform:uppercase;color:var(--cream);opacity:.7;transition:opacity .2s,color .2s;position:relative}
+    .nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:1px;background:var(--gold);transform:scaleX(0);transition:transform .25s var(--ease)}
+    .nav-links a:hover{opacity:1;color:var(--gold)}
+    .nav-links a:hover::after{transform:scaleX(1)}
+    .nav-cta{padding:9px 22px;border:1px solid var(--gold);font-family:var(--ff-sans);font-size:.62rem;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);background:transparent;cursor:pointer;transition:all .25s var(--ease)}
+    .nav-cta:hover{background:var(--gold);color:var(--wine-black)}
+
+    /* ── HERO ── */
+    .hero{position:relative;height:100vh;min-height:680px;display:flex;align-items:center;justify-content:center;text-align:center;overflow:hidden}
+    .hero-bg{position:absolute;inset:0;background-image:url('https://bokun.s3.amazonaws.com/c411f02d-f5da-49ce-befe-55f8c2a95bcd.jpg');background-size:cover;background-position:center 35%;filter:brightness(.32) saturate(.85);transform:scale(1.05);transition:transform 9s ease-out}
+    .hero-bg.loaded{transform:scale(1)}
+    .hero-overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(12,5,7,.15) 0%,rgba(12,5,7,.05) 35%,rgba(12,5,7,.72) 82%,var(--wine-black) 100%)}
+    .hero-content{position:relative;z-index:2;max-width:840px;padding:0 24px}
+    .hero-eyebrow{font-size:.6rem;letter-spacing:.34em;text-transform:uppercase;color:var(--gold);margin-bottom:26px;opacity:0;animation:fadeUp .8s .4s forwards}
+    .hero-title{font-family:var(--ff-serif);font-size:clamp(3.2rem,6.5vw,6rem);font-weight:300;line-height:1.04;letter-spacing:.015em;margin-bottom:26px;opacity:0;animation:fadeUp .8s .65s forwards}
+    .hero-title em{font-style:italic;color:var(--gold-light)}
+    .hero-sub{font-size:.95rem;font-weight:300;color:rgba(245,240,232,.6);letter-spacing:.03em;margin-bottom:52px;opacity:0;animation:fadeUp .8s .9s forwards;line-height:1.8}
+    .hero-ctas{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;opacity:0;animation:fadeUp .8s 1.1s forwards}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 36px;font-family:var(--ff-sans);font-size:.67rem;font-weight:500;letter-spacing:.2em;text-transform:uppercase;border:none;cursor:pointer;transition:all .28s var(--ease)}
+    .btn-gold{background:var(--gold);color:var(--wine-black)}
+    .btn-gold:hover{background:var(--gold-light);transform:translateY(-2px);box-shadow:0 14px 36px rgba(201,168,76,.32)}
+    .btn-ghost{background:transparent;color:var(--cream);border:1px solid rgba(245,240,232,.28)}
+    .btn-ghost:hover{border-color:var(--gold);color:var(--gold);transform:translateY(-2px)}
+    .hero-scroll{position:absolute;bottom:38px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;animation:fadeIn 1s 1.8s forwards}
+    .hero-scroll span{font-size:.56rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold)}
+    .scroll-line{width:1px;height:42px;background:linear-gradient(to bottom,var(--gold),transparent);animation:scrollPulse 2.2s 1.8s infinite}
+
+    /* ── STATS ── */
+    .stats-bar{background:var(--wine-dark);border-top:1px solid var(--gold-dim);border-bottom:1px solid var(--gold-dim)}
+    .stats-inner{display:grid;grid-template-columns:repeat(4,1fr);max-width:1280px;margin:0 auto}
+    .stat-item{display:flex;flex-direction:column;align-items:center;padding:44px 24px;border-right:1px solid rgba(255,255,255,.06);text-align:center}
+    .stat-item:last-child{border-right:none}
+    .stat-num{font-family:var(--ff-serif);font-size:3.2rem;font-weight:300;color:var(--gold);line-height:1}
+    .stat-label{margin-top:8px;font-size:.6rem;letter-spacing:.22em;text-transform:uppercase;color:var(--text-muted)}
+
+    /* ── LAYOUT UTILS ── */
+    section{padding:108px 0}
+    .container{max-width:1280px;margin:0 auto;padding:0 52px}
+    .section-header{text-align:center;margin-bottom:68px}
+    .eyebrow{font-size:.58rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:18px}
+    .section-title{font-family:var(--ff-serif);font-size:clamp(2rem,3.5vw,3.2rem);font-weight:300;line-height:1.18;color:var(--cream)}
+    .section-title em{font-style:italic;color:var(--gold-light)}
+    .section-lead{margin-top:18px;font-size:.92rem;color:var(--text-muted);max-width:540px;margin-inline:auto;line-height:1.8}
+    .gold-rule{width:40px;height:1px;background:var(--gold);margin:26px auto 0}
+
+    /* ── TOURS GRID ── */
+    .experiences{background:var(--wine-black)}
+    .tours-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+    .card-featured{grid-column:1/-1;position:relative;height:500px;overflow:hidden;cursor:pointer}
+    .card-featured .cf-img{width:100%;height:100%;object-fit:cover;transition:transform .8s var(--ease);filter:brightness(.48) saturate(.8)}
+    .card-featured:hover .cf-img{transform:scale(1.04);filter:brightness(.58)}
+    .cf-body{position:absolute;bottom:0;left:0;right:0;padding:52px 60px;background:linear-gradient(to top,rgba(12,5,7,.96) 0%,transparent 100%)}
+    .cf-tag{display:inline-block;margin-bottom:14px;font-size:.56rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(201,168,76,.4);padding:4px 14px}
+    .cf-title{font-family:var(--ff-serif);font-size:2.6rem;font-weight:300;line-height:1.12;margin-bottom:14px;max-width:640px}
+    .cf-meta{display:flex;align-items:center;gap:0;font-size:.72rem;color:rgba(245,240,232,.6);letter-spacing:.06em}
+    .cf-meta span+span::before{content:'·';margin:0 16px;color:var(--gold)}
+    .cf-cta{margin-top:26px}
+    .card{position:relative;height:390px;overflow:hidden;cursor:pointer}
+    .card .card-img{width:100%;height:100%;object-fit:cover;transition:transform .7s var(--ease),filter .5s;filter:brightness(.44) saturate(.75)}
+    .card:hover .card-img{transform:scale(1.07);filter:brightness(.58) saturate(1)}
+    .card-body{position:absolute;bottom:0;left:0;right:0;padding:28px 30px 34px;background:linear-gradient(to top,rgba(12,5,7,.96) 0%,rgba(12,5,7,.12) 75%,transparent 100%)}
+    .card-tag{display:block;font-size:.54rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+    .card-title{font-family:var(--ff-serif);font-size:1.3rem;font-weight:400;line-height:1.2;margin-bottom:6px}
+    .card-dur{font-size:.68rem;color:var(--text-muted);letter-spacing:.06em}
+    .card-link{position:absolute;inset:0}
+
+    /* ── HIGHLIGHT ── */
+    .highlight{background:var(--wine-dark)}
+    .highlight-inner{display:grid;grid-template-columns:1fr 1fr;min-height:580px}
+    .hi-img-wrap{position:relative;overflow:hidden}
+    .hi-img{width:100%;height:100%;object-fit:cover;filter:brightness(.65) saturate(.75);transition:transform .8s var(--ease)}
+    .hi-img-wrap:hover .hi-img{transform:scale(1.04)}
+    .hi-img-fade{position:absolute;inset:0;background:linear-gradient(to right,transparent 55%,var(--wine-dark) 100%)}
+    .hi-content{display:flex;flex-direction:column;justify-content:center;padding:88px 76px 88px 64px}
+    .hi-eyebrow{font-size:.58rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
+    .hi-title{font-family:var(--ff-serif);font-size:clamp(1.9rem,2.8vw,2.8rem);font-weight:300;line-height:1.18;margin-bottom:22px}
+    .hi-title em{font-style:italic;color:var(--gold-light)}
+    .hi-desc{font-size:.9rem;color:rgba(245,240,232,.55);margin-bottom:18px;line-height:1.8}
+    .hi-meta{margin:22px 0 38px;display:flex;flex-direction:column;gap:12px}
+    .hi-meta-row{display:flex;align-items:flex-start;gap:12px;font-size:.8rem;color:var(--text-muted);line-height:1.5}
+    .hi-meta-icon{color:var(--gold);flex-shrink:0;margin-top:1px}
+
+    /* ── SCHEDULE ── */
+    .schedule{background:var(--wine-black)}
+    .schedule-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:1px;background:rgba(255,255,255,.04)}
+    .sched-card{background:var(--wine-dark);padding:38px 34px;transition:background .25s}
+    .sched-card:hover{background:rgba(92,26,26,.2)}
+    .sched-title{font-family:var(--ff-serif);font-size:1.12rem;font-weight:400;margin-bottom:18px;color:var(--cream)}
+    .sched-times{display:flex;flex-wrap:wrap;gap:8px}
+    .time-badge{padding:4px 12px;border:1px solid rgba(201,168,76,.28);font-size:.68rem;letter-spacing:.06em;color:var(--gold);background:rgba(201,168,76,.04)}
+    .sched-dur{margin-top:18px;font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted)}
+
+    /* ── NIA SECTION ── */
+    .nia-section{position:relative;background:var(--wine-dark);border-top:1px solid var(--gold-dim);border-bottom:1px solid var(--gold-dim);overflow:hidden}
+    .nia-section::before{content:'';position:absolute;top:-120px;right:-80px;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(92,26,26,.3) 0%,transparent 70%);pointer-events:none}
+    .nia-inner{display:grid;grid-template-columns:1fr auto;align-items:center;gap:60px;padding:88px 0}
+    .nia-badge{display:inline-flex;align-items:center;gap:10px;margin-bottom:22px;padding:6px 18px;border:1px solid rgba(201,168,76,.36);font-size:.58rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
+    .nia-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite}
+    .nia-title{font-family:var(--ff-serif);font-size:clamp(1.9rem,3vw,3rem);font-weight:300;line-height:1.15;margin-bottom:18px}
+    .nia-title em{font-style:italic;color:var(--gold-light)}
+    .nia-desc{font-size:.9rem;color:rgba(245,240,232,.55);max-width:500px;line-height:1.8}
+    .nia-features{display:flex;flex-direction:column;gap:12px;margin-top:28px}
+    .nia-feat{display:flex;align-items:center;gap:10px;font-size:.8rem;color:rgba(245,240,232,.55)}
+    .nia-feat-dot{width:4px;height:4px;border-radius:50%;background:var(--gold);flex-shrink:0}
+    .nia-preview-wrap{flex-shrink:0}
+    .nia-preview{width:284px;background:rgba(255,255,255,.03);border:1px solid rgba(201,168,76,.18);border-radius:6px;overflow:hidden}
+    .nia-preview-head{padding:16px 20px;background:rgba(92,26,26,.35);border-bottom:1px solid rgba(201,168,76,.15);display:flex;align-items:center;gap:10px}
+    .nia-preview-dot-live{width:7px;height:7px;border-radius:50%;background:var(--gold);animation:pulse 2s infinite}
+    .nia-preview-name{font-size:.72rem;font-weight:500;letter-spacing:.1em;color:var(--gold)}
+    .nia-preview-msgs{padding:18px 16px;display:flex;flex-direction:column;gap:10px}
+    .chat-b{padding:10px 14px;border-radius:3px;max-width:88%;font-size:.8rem;line-height:1.5}
+    .chat-b.nia{background:rgba(92,26,26,.5);border-left:2px solid var(--gold);align-self:flex-start;color:var(--cream)}
+    .chat-b.user{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.25);align-self:flex-end;color:var(--cream)}
+    .nia-open-btn{display:block;width:100%;padding:13px;background:var(--gold);color:var(--wine-black);font-family:var(--ff-sans);font-size:.66rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;border:none;cursor:pointer;transition:background .2s,transform .2s;text-align:center}
+    .nia-open-btn:hover{background:var(--gold-light);transform:translateY(-1px)}
+
+    /* ── LOCATION ── */
+    .location{background:var(--wine-dark)}
+    .location-inner{display:grid;grid-template-columns:1fr 1fr;gap:88px;align-items:center}
+    .loc-detail{display:flex;align-items:flex-start;gap:16px;padding:20px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+    .loc-detail:last-child{border-bottom:none}
+    .loc-icon{color:var(--gold);font-size:1rem;flex-shrink:0;margin-top:2px}
+    .loc-label{font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:5px}
+    .loc-val{font-size:.86rem;color:rgba(245,240,232,.55);line-height:1.6}
+    .loc-map{height:400px;overflow:hidden;background:rgba(255,255,255,.03)}
+    .loc-map iframe{width:100%;height:100%;border:none;filter:grayscale(.75) contrast(1.1);opacity:.7}
+
+    /* ── FOOTER ── */
+    footer{background:var(--wine-black);border-top:1px solid var(--gold-dim);padding:68px 0 36px}
+    .footer-inner{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:52px;margin-bottom:52px}
+    .footer-brand-text{font-family:var(--ff-serif);font-size:.9rem;color:var(--text-muted);line-height:1.7;margin-top:16px}
+    .footer-tagline{margin-top:12px;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold)}
+    .footer-col-title{font-size:.58rem;letter-spacing:.26em;text-transform:uppercase;color:var(--gold);margin-bottom:20px}
+    .footer-links{list-style:none;display:flex;flex-direction:column;gap:11px}
+    .footer-links a{font-size:.8rem;color:var(--text-muted);transition:color .2s}
+    .footer-links a:hover{color:var(--cream)}
+    .footer-bottom{padding-top:32px;border-top:1px solid rgba(255,255,255,.05);display:flex;justify-content:space-between;align-items:center;font-size:.68rem;color:var(--text-muted)}
+
+    /* ── REVEAL ── */
+    .reveal{opacity:0;transform:translateY(22px);transition:opacity .6s var(--ease),transform .6s var(--ease)}
+    .reveal.visible{opacity:1;transform:none}
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes scrollPulse{0%,100%{opacity:1}50%{opacity:.25}}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.4)}}
+
+    /* ══════════════════════════════════════════════════════
+       NIA WIDGET — dark wine theme
+    ══════════════════════════════════════════════════════ */
+    .nia-widget-root{position:fixed;bottom:28px;right:28px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:16px}
+
+    /* Launcher */
+    .nia-launcher-btn{width:62px;height:62px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--wine-mid),var(--wine-black));box-shadow:0 8px 28px rgba(0,0,0,.45),0 0 0 1px rgba(201,168,76,.25),0 0 0 4px rgba(201,168,76,.06);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .3s var(--ease);position:relative}
+    .nia-launcher-btn:hover{transform:scale(1.08) translateY(-3px);box-shadow:0 14px 38px rgba(0,0,0,.5),0 0 0 1px rgba(201,168,76,.5),0 0 0 6px rgba(201,168,76,.08)}
+    .nia-launcher-btn svg{transition:transform .35s var(--ease)}
+    .nia-launcher-btn.open svg{transform:rotate(90deg)}
+    .nia-unread{position:absolute;top:-3px;right:-3px;min-width:20px;height:20px;border-radius:10px;background:linear-gradient(135deg,#c0392b,#922b21);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid var(--wine-black);box-shadow:0 2px 8px rgba(192,57,43,.45)}
+
+    /* Panel */
+    .nia-panel{width:370px;max-height:580px;border-radius:12px;background:var(--wine-dark);border:1px solid rgba(201,168,76,.16);box-shadow:0 32px 80px rgba(0,0,0,.6),0 16px 40px rgba(0,0,0,.4);display:flex;flex-direction:column;overflow:hidden;transform-origin:bottom right;animation:panelOpen .38s var(--ease) forwards}
+    .nia-panel.closing{animation:panelClose .28s var(--ease) forwards}
+    @keyframes panelOpen{from{opacity:0;transform:scale(.9) translateY(12px)}to{opacity:1;transform:none}}
+    @keyframes panelClose{from{opacity:1;transform:none}to{opacity:0;transform:scale(.9) translateY(12px)}}
+
+    /* Header */
+    .nia-w-header{padding:18px 20px;background:rgba(92,26,26,.45);border-bottom:1px solid rgba(201,168,76,.14);display:flex;align-items:center;gap:12px;flex-shrink:0}
+    .nia-w-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--wine-mid),var(--wine));border:1px solid rgba(201,168,76,.3);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+    .nia-w-info{flex:1;min-width:0}
+    .nia-w-name{font-size:.82rem;font-weight:600;color:var(--cream);letter-spacing:.04em}
+    .nia-w-status{display:flex;align-items:center;gap:6px;margin-top:2px}
+    .nia-w-status-dot{width:6px;height:6px;border-radius:50%;background:#4ade80}
+    .nia-w-status-text{font-size:.62rem;color:rgba(245,240,232,.5);letter-spacing:.06em}
+    .nia-w-close{background:transparent;border:none;color:rgba(245,240,232,.45);cursor:pointer;padding:6px;border-radius:6px;display:flex;transition:color .2s,background .2s}
+    .nia-w-close:hover{color:var(--cream);background:rgba(255,255,255,.06)}
+
+    /* Messages */
+    .nia-w-body{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth}
+    .nia-w-body::-webkit-scrollbar{width:4px}
+    .nia-w-body::-webkit-scrollbar-track{background:transparent}
+    .nia-w-body::-webkit-scrollbar-thumb{background:rgba(201,168,76,.2);border-radius:2px}
+
+    .msg-row{display:flex;align-items:flex-end;gap:8px;animation:msgIn .35s var(--ease)}
+    .msg-row.user{flex-direction:row-reverse}
+    @keyframes msgIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+    .msg-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--wine-mid),var(--wine));border:1px solid rgba(201,168,76,.25);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+    .msg-bubble{max-width:78%;padding:11px 15px;border-radius:14px;font-size:.82rem;line-height:1.55;font-family:var(--ff-sans)}
+    .msg-row.bot .msg-bubble{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);color:var(--cream);border-bottom-left-radius:4px}
+    .msg-row.user .msg-bubble{background:linear-gradient(135deg,rgba(92,26,26,.8),rgba(122,32,32,.6));border:1px solid rgba(201,168,76,.2);color:var(--cream);border-bottom-right-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.25)}
+
+    /* Typing */
+    .typing-row{display:flex;align-items:flex-end;gap:8px}
+    .typing-bubble{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:14px;border-bottom-left-radius:4px;padding:14px 18px;display:flex;align-items:center;gap:5px}
+    .typing-dot{width:7px;height:7px;border-radius:50%;background:rgba(201,168,76,.5);animation:typeDot 1.3s infinite ease-in-out}
+    .typing-dot:nth-child(2){animation-delay:.18s}
+    .typing-dot:nth-child(3){animation-delay:.36s}
+    @keyframes typeDot{0%,80%,100%{transform:scale(.7);opacity:.35}40%{transform:scale(1.1);opacity:1}}
+
+    /* Suggested */
+    .nia-suggested{display:flex;flex-direction:column;gap:6px;margin-top:4px;animation:msgIn .4s .1s var(--ease) both}
+    .nia-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:transparent;border:1px solid rgba(201,168,76,.3);color:rgba(201,168,76,.85);border-radius:20px;font-size:.72rem;font-family:var(--ff-sans);cursor:pointer;text-align:left;line-height:1.3;transition:all .18s;max-width:fit-content}
+    .nia-pill:hover{background:rgba(201,168,76,.12);border-color:var(--gold);color:var(--gold)}
+
+    /* Footer input */
+    .nia-w-footer{flex-shrink:0;border-top:1px solid rgba(255,255,255,.07);background:rgba(22,8,8,.6);backdrop-filter:blur(10px);padding:14px 14px 10px;display:flex;flex-direction:column;gap:6px}
+    .nia-input-row{display:flex;gap:10px;align-items:flex-end}
+    .nia-w-input{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:11px 15px;color:var(--cream);font-family:var(--ff-sans);font-size:.82rem;line-height:1.4;resize:none;min-height:42px;max-height:100px;outline:none;transition:border .2s,box-shadow .2s}
+    .nia-w-input:focus{border-color:rgba(201,168,76,.4);box-shadow:0 0 0 3px rgba(201,168,76,.07)}
+    .nia-w-input::placeholder{color:rgba(245,240,232,.25)}
+    .nia-w-send{flex-shrink:0;width:42px;height:42px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--wine-mid),var(--wine));cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gold);transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+    .nia-w-send:hover:not(:disabled){transform:scale(1.06);box-shadow:0 4px 14px rgba(0,0,0,.4)}
+    .nia-w-send:disabled{opacity:.35;cursor:not-allowed}
+    .nia-branding-txt{text-align:center;font-size:.58rem;color:rgba(245,240,232,.25);letter-spacing:.08em}
+    .nia-branding-txt strong{color:rgba(201,168,76,.55)}
+
+    /* Tweaks panel */
+    .tweaks-panel{position:fixed;bottom:110px;right:28px;width:240px;background:rgba(22,8,8,.96);border:1px solid rgba(201,168,76,.25);border-radius:10px;padding:18px;z-index:10000;display:none;backdrop-filter:blur(20px);box-shadow:0 16px 48px rgba(0,0,0,.5)}
+    .tweaks-panel.visible{display:block}
+    .tweaks-title{font-size:.62rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:14px;font-family:var(--ff-sans)}
+    .tweak-row{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+    .tweak-label{font-size:.66rem;color:rgba(245,240,232,.55);font-family:var(--ff-sans);letter-spacing:.06em}
+    .tweak-select,.tweak-input{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:7px 10px;color:var(--cream);font-family:var(--ff-sans);font-size:.76rem;width:100%;outline:none}
+    .tweak-select option{background:#1a0a0a}
+    .tweak-swatch-row{display:flex;gap:6px;flex-wrap:wrap}
+    .tweak-swatch{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border .2s}
+    .tweak-swatch.active,.tweak-swatch:hover{border-color:#fff}
+
+    /* Responsive */
+    @media(max-width:1024px){.tours-grid{grid-template-columns:1fr 1fr}.card-featured{grid-column:1/-1}.footer-inner{grid-template-columns:1fr 1fr}.nia-inner{grid-template-columns:1fr}}
+    @media(max-width:768px){nav{padding:0 24px}.nav-links,.nav-cta{display:none}.container{padding:0 24px}.tours-grid{grid-template-columns:1fr}.highlight-inner,.location-inner{grid-template-columns:1fr}.stats-inner{grid-template-columns:1fr 1fr}.footer-inner{grid-template-columns:1fr}.footer-bottom{flex-direction:column;gap:10px;text-align:center}.nia-panel{width:calc(100vw - 40px)}}
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <div class="nav-logo">
+    <div class="nav-wordmark">
+      <span class="nav-name">Concha y Toro</span>
+      <span class="nav-sub">Enoturismo · Desde 1883</span>
+    </div>
+  </div>
+  <ul class="nav-links">
+    <li><a href="#tours">Tours</a></li>
+    <li><a href="#nocturna">Nocturno</a></li>
+    <li><a href="#horarios">Horarios</a></li>
+    <li><a href="#ubicacion">Ubicación</a></li>
+  </ul>
+  <button class="nav-cta" onclick="openWidget()">Consultar con NIA</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="hero-bg" id="heroBg"></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <p class="hero-eyebrow">Centro del Vino · Pirque, Chile</p>
+    <h1 class="hero-title">Descubre el vino<br><em>en su origen</em></h1>
+    <p class="hero-sub">Vive una experiencia única en el corazón de la viña más<br>reconocida de Chile. Tours, catas exclusivas y gastronomía.</p>
+    <div class="hero-ctas">
+      <a href="#tours" class="btn btn-gold">Explorar Experiencias</a>
+      <button class="btn btn-ghost" onclick="openWidget()">Consultar con NIA ✦</button>
+    </div>
+  </div>
+  <div class="hero-scroll">
+    <span>Descubrir</span>
+    <div class="scroll-line"></div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item reveal"><span class="stat-num">1883</span><span class="stat-label">Año de Fundación</span></div>
+    <div class="stat-item reveal"><span class="stat-num">28</span><span class="stat-label">Experiencias Únicas</span></div>
+    <div class="stat-item reveal"><span class="stat-num">45+</span><span class="stat-label">Horarios Disponibles</span></div>
+    <div class="stat-item reveal"><span class="stat-num">1h</span><span class="stat-label">Desde Santiago</span></div>
+  </div>
+</div>
+
+<!-- TOURS -->
+<section class="experiences" id="tours">
+  <div class="container">
+    <div class="section-header reveal">
+      <p class="eyebrow">Nuestras Experiencias</p>
+      <h2 class="section-title">Tours &amp; <em>Catas Exclusivas</em></h2>
+      <p class="section-lead">Desde visitas guiadas clásicas hasta experiencias nocturnas mágicas — cada recorrido es un viaje a través de la historia y el sabor.</p>
+      <div class="gold-rule"></div>
+    </div>
+    <div class="tours-grid">
+      <div class="card-featured reveal">
+        <img class="cf-img" src="https://bokun.s3.amazonaws.com/c411f02d-f5da-49ce-befe-55f8c2a95bcd.jpg" alt="Experiencia Nocturna" loading="lazy"/>
+        <div class="cf-body">
+          <span class="cf-tag">✦ Experiencia Destacada</span>
+          <h3 class="cf-title">Experiencia Nocturna<br>Casillero del Diablo + Cena</h3>
+          <div class="cf-meta"><span>3 horas</span><span>18:30 – 21:40 hrs</span><span>Cena incluida</span></div>
+          <div class="cf-cta"><button class="btn btn-gold" onclick="openWidget()">Consultar Disponibilidad</button></div>
+        </div>
+      </div>
+      <div class="card reveal"><img class="card-img" src="https://bokun.s3.amazonaws.com/18fe6d78-5fbb-4421-94a2-bb48738c405d.jpg" alt="Visita Guiada Premium" loading="lazy"/><div class="card-body"><span class="card-tag">Tour Principal</span><h3 class="card-title">Visita Guiada Premium</h3><p class="card-dur">2 horas · 13 horarios</p></div><a href="#" onclick="openWidget();return false;" class="card-link"></a></div>
+      <div class="card reveal"><img class="card-img" src="https://bokun.s3.amazonaws.com/cbb84b6c-50ba-4e6f-88d0-8acb7717a3b3.jpeg" alt="Terrunyo" loading="lazy"/><div class="card-body"><span class="card-tag">Maridaje</span><h3 class="card-title">Tasting y Maridaje Terrunyo</h3><p class="card-dur">2h 45min · Maridaje gourmet</p></div><a href="#" onclick="openWidget();return false;" class="card-link"></a></div>
+      <div class="card reveal"><img class="card-img" src="https://bokun.s3.amazonaws.com/62b8f79d-2753-4283-9de0-0a145a037448.jpeg" alt="Cellar Collection" loading="lazy"/><div class="card-body"><span class="card-tag">Premium</span><h3 class="card-title">Tasting Cellar Collection</h3><p class="card-dur">2h 45min · Colección de autor</p></div><a href="#" onclick="openWidget();return false;" class="card-link"></a></div>
+      <div class="card reveal"><img class="card-img" src="https://bokun.s3.amazonaws.com/cb25cfea-5197-46fa-b1be-fcddd7c9f1c1.jpeg" alt="The New Wines" loading="lazy"/><div class="card-body"><span class="card-tag">Tasting</span><h3 class="card-title">Tasting The New Wines</h3><p class="card-dur">2h 45min · Novedades</p></div><a href="#" onclick="openWidget();return false;" class="card-link"></a></div>
+      <div class="card reveal"><img class="card-img" src="https://bokun.s3.amazonaws.com/3be15561-2143-4640-a912-e5c3903e5b8f.jpeg" alt="Bodega 1883" loading="lazy"/><div class="card-body"><span class="card-tag">Gastronomía</span><h3 class="card-title">Premium + Almuerzo Bodega 1883</h3><p class="card-dur">1h 40min · Cocina de autor</p></div><a href="#" onclick="openWidget();return false;" class="card-link"></a></div>
+    </div>
+  </div>
+</section>
+
+<!-- HIGHLIGHT NOCTURNA -->
+<section class="highlight" id="nocturna">
+  <div class="highlight-inner">
+    <div class="hi-img-wrap">
+      <img class="hi-img" src="https://bokun.s3.amazonaws.com/c411f02d-f5da-49ce-befe-55f8c2a95bcd.jpg" alt="Nocturna" loading="lazy"/>
+      <div class="hi-img-fade"></div>
+    </div>
+    <div class="hi-content reveal">
+      <p class="hi-eyebrow">Experiencia Exclusiva · Nocturno</p>
+      <h2 class="hi-title">El misterio despierta<br><em>cuando cae la noche</em></h2>
+      <p class="hi-desc">Recorre los rincones más emblemáticos del parque histórico bajo las estrellas. Descubre la leyenda del Casillero del Diablo con una cena de maridaje diseñada para hacer de cada copa un momento memorable.</p>
+      <div class="hi-meta">
+        <div class="hi-meta-row"><span class="hi-meta-icon">✦</span><span>Duración: 3 horas · Horarios: 18:30 / 19:00 / 19:50 / 20:20 / 21:40</span></div>
+        <div class="hi-meta-row"><span class="hi-meta-icon">✦</span><span>Cena o maridaje incluido según experiencia elegida</span></div>
+        <div class="hi-meta-row"><span class="hi-meta-icon">✦</span><span>Centro del Vino · Pirque, Región Metropolitana</span></div>
+      </div>
+      <button class="btn btn-gold" onclick="openWidget()">Consultar con NIA</button>
+    </div>
+  </div>
+</section>
+
+<!-- HORARIOS -->
+<section class="schedule" id="horarios">
+  <div class="container">
+    <div class="section-header reveal">
+      <p class="eyebrow">Planifica tu Visita</p>
+      <h2 class="section-title">Horarios <em>Disponibles</em></h2>
+      <p class="section-lead">Múltiples salidas cada día. Consulta disponibilidad en tiempo real con NIA.</p>
+      <div class="gold-rule"></div>
+    </div>
+    <div class="schedule-grid">
+      <div class="sched-card reveal"><h3 class="sched-title">Visita Guiada Premium</h3><div class="sched-times"><span class="time-badge">09:10</span><span class="time-badge">09:40</span><span class="time-badge">10:10</span><span class="time-badge">10:50</span><span class="time-badge">11:15</span><span class="time-badge">+7 más</span></div><p class="sched-dur">Duración: 2 horas</p></div>
+      <div class="sched-card reveal"><h3 class="sched-title">Experiencia Nocturna Casillero</h3><div class="sched-times"><span class="time-badge">18:30</span><span class="time-badge">19:00</span><span class="time-badge">19:50</span><span class="time-badge">20:20</span><span class="time-badge">21:00</span><span class="time-badge">21:40</span></div><p class="sched-dur">Duración: 3 horas · Cena</p></div>
+      <div class="sched-card reveal"><h3 class="sched-title">Visita Guiada Standard</h3><div class="sched-times"><span class="time-badge">08:40</span><span class="time-badge">08:50</span><span class="time-badge">09:05</span><span class="time-badge">09:20</span><span class="time-badge">+15 más</span></div><p class="sched-dur">Duración: 1h 10min</p></div>
+      <div class="sched-card reveal"><h3 class="sched-title">Tasting Cellar Collection</h3><div class="sched-times"><span class="time-badge">10:00</span><span class="time-badge">13:10</span><span class="time-badge">14:50</span><span class="time-badge">21:00</span></div><p class="sched-dur">Duración: 2h 45min</p></div>
+      <div class="sched-card reveal"><h3 class="sched-title">Tasting Terrunyo Food &amp; Wine</h3><div class="sched-times"><span class="time-badge">11:50</span><span class="time-badge">12:50</span></div><p class="sched-dur">Duración: 2h 45min · Maridaje</p></div>
+      <div class="sched-card reveal"><h3 class="sched-title">Tasting The New Wines</h3><div class="sched-times"><span class="time-badge">12:55</span><span class="time-badge">14:30</span><span class="time-badge">21:00</span></div><p class="sched-dur">Duración: 2h 45min</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- NIA SECTION -->
+<section class="nia-section" id="nia">
+  <div class="container">
+    <div class="nia-inner">
+      <div class="reveal">
+        <div class="nia-badge"><span class="nia-dot"></span>NIA · Asistente de Enoturismo</div>
+        <h2 class="nia-title">Tu concierge de vino<br><em>siempre disponible</em></h2>
+        <p class="nia-desc">Pregunta sobre horarios, precios, qué incluye cada experiencia, cómo llegar o cuál tour es ideal para tu grupo.</p>
+        <div class="nia-features">
+          <div class="nia-feat"><span class="nia-feat-dot"></span>Disponibilidad y reservas en tiempo real</div>
+          <div class="nia-feat"><span class="nia-feat-dot"></span>Recomendaciones personalizadas por grupo</div>
+          <div class="nia-feat"><span class="nia-feat-dot"></span>Información de precios y traslados</div>
+          <div class="nia-feat"><span class="nia-feat-dot"></span>Transferencia a agente humano si necesitas</div>
+        </div>
+      </div>
+      <div class="nia-preview-wrap reveal">
+        <div class="nia-preview">
+          <div class="nia-preview-head">
+            <span class="nia-preview-dot-live"></span>
+            <span class="nia-preview-name">NIA · En línea ahora</span>
+          </div>
+          <div class="nia-preview-msgs">
+            <div class="chat-b nia">¡Hola! Soy NIA 🍷 Tu asistente del Centro del Vino. ¿En qué te ayudo hoy?</div>
+            <div class="chat-b user">¿Qué experiencias nocturnas tienen?</div>
+            <div class="chat-b nia">Tenemos la <strong>Experiencia Nocturna Casillero del Diablo</strong> con cena — 3 horas desde las 18:30. ¡Muy especial! ✨</div>
+          </div>
+          <button class="nia-open-btn" onclick="openWidget()">Iniciar conversación →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- UBICACION -->
+<section class="location" id="ubicacion">
+  <div class="container">
+    <div class="location-inner">
+      <div class="reveal">
+        <p class="eyebrow">Cómo Llegar</p>
+        <h2 class="section-title" style="text-align:left;margin-bottom:36px">Centro del Vino<br><em>Concha y Toro</em></h2>
+        <div class="loc-detail"><span class="loc-icon">✦</span><div><p class="loc-label">Dirección</p><p class="loc-val">Av. Virginia Subercaseaux 210, Pirque<br>Región Metropolitana, Chile</p></div></div>
+        <div class="loc-detail"><span class="loc-icon">✦</span><div><p class="loc-label">Desde Santiago</p><p class="loc-val">Aproximadamente 1 hora · Ruta 5 Sur, desvío Pirque</p></div></div>
+        <div class="loc-detail"><span class="loc-icon">✦</span><div><p class="loc-label">Horario de Atención</p><p class="loc-val">Lunes a Domingo · Salidas desde las 08:40 hrs</p></div></div>
+        <div class="loc-detail"><span class="loc-icon">✦</span><div><p class="loc-label">Reservas con NIA</p><p class="loc-val">Chat disponible las 24 hrs para ayudarte</p></div></div>
+      </div>
+      <div class="loc-map reveal">
+        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3325.4!2d-70.5975!3d-33.6447!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x9662cff47f2a10a5%3A0x9c4a5a8a2a4c6b4!2sConcha%20y%20Toro%20Winery!5e0!3m2!1ses!2scl!4v1234567890" allowfullscreen loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa"></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <div class="footer-inner">
+      <div>
+        <p class="footer-brand-text">Viña Concha y Toro, fundada en 1883 en las faldas de la Cordillera de los Andes, es hoy una de las viñas más reconocidas del mundo.</p>
+        <p class="footer-tagline">Desde 1883 · Pirque, Chile</p>
+      </div>
+      <div><p class="footer-col-title">Experiencias</p><ul class="footer-links"><li><a href="#tours">Tours Guiados</a></li><li><a href="#nocturna">Experiencia Nocturna</a></li><li><a href="#tours">Catas &amp; Maridajes</a></li><li><a href="#horarios">Horarios</a></li></ul></div>
+      <div><p class="footer-col-title">Visita</p><ul class="footer-links"><li><a href="#ubicacion">Cómo Llegar</a></li><li><a href="#horarios">Horarios de Tours</a></li><li><a href="#nia">Reservas con NIA</a></li><li><a href="#nia">Grupos y Empresas</a></li></ul></div>
+      <div><p class="footer-col-title">Contacto</p><ul class="footer-links"><li><a href="https://www.conchaytoro.com" target="_blank" rel="noopener">Sitio Oficial</a></li><li><a href="https://enoturismo.conchaytoro.com" target="_blank" rel="noopener">Enoturismo</a></li><li><a href="#nia" onclick="openWidget();return false;">Chat con NIA</a></li></ul></div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Viña Concha y Toro S.A. · Todos los derechos reservados</span>
+      <span>Asistido por <strong style="color:var(--gold)">NIA</strong> · Plataforma Conversacional</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════ NIA WIDGET ═══════════════════ -->
+<div class="nia-widget-root" id="niaRoot">
+  <!-- Tweaks panel -->
+  <div class="tweaks-panel" id="tweaksPanel">
+    <p class="tweaks-title">Tweaks</p>
+    <div class="tweak-row">
+      <label class="tweak-label">Color primario del widget</label>
+      <div class="tweak-swatch-row">
+        <div class="tweak-swatch active" style="background:#7a2020" data-color="#7a2020" onclick="setWidgetColor(this,'#7a2020')"></div>
+        <div class="tweak-swatch" style="background:#1a4a7a" data-color="#1a4a7a" onclick="setWidgetColor(this,'#1a4a7a')"></div>
+        <div class="tweak-swatch" style="background:#1a5c36" data-color="#1a5c36" onclick="setWidgetColor(this,'#1a5c36')"></div>
+        <div class="tweak-swatch" style="background:#2d1a5c" data-color="#2d1a5c" onclick="setWidgetColor(this,'#2d1a5c')"></div>
+        <div class="tweak-swatch" style="background:#4a3010" data-color="#4a3010" onclick="setWidgetColor(this,'#4a3010')"></div>
+      </div>
+    </div>
+    <div class="tweak-row">
+      <label class="tweak-label">Posición del widget</label>
+      <select class="tweak-select" onchange="setWidgetPos(this.value)">
+        <option value="right">Derecha</option>
+        <option value="left">Izquierda</option>
+      </select>
+    </div>
+    <div class="tweak-row">
+      <label class="tweak-label">Idioma de bienvenida</label>
+      <select class="tweak-select" onchange="setWelcomeLang(this.value)">
+        <option value="es">Español</option>
+        <option value="en">English</option>
+        <option value="pt">Português</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Launcher -->
+  <button class="nia-launcher-btn" id="niaLauncher" onclick="toggleWidget()" aria-label="Abrir chat con NIA">
+    <svg id="niaIconChat" viewBox="0 0 24 24" fill="none" width="24" height="24">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" fill="var(--gold)" opacity=".9"/>
+    </svg>
+    <svg id="niaIconClose" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round" width="22" height="22" style="display:none">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+  </button>
+</div>
+
+<!-- Widget panel template (inserted by JS) -->
+<template id="niaPanelTpl">
+  <div class="nia-panel" id="niaPanel">
+    <div class="nia-w-header">
+      <div class="nia-w-avatar">🍷</div>
+      <div class="nia-w-info">
+        <div class="nia-w-name">NIA — Asistente de Enoturismo</div>
+        <div class="nia-w-status"><span class="nia-w-status-dot"></span><span class="nia-w-status-text">En línea · Responde al instante</span></div>
+      </div>
+      <button class="nia-w-close" onclick="toggleWidget()" aria-label="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="nia-w-body" id="niaMessages"></div>
+    <div class="nia-w-footer">
+      <div class="nia-input-row">
+        <textarea class="nia-w-input" id="niaInput" placeholder="Escribe un mensaje…" rows="1" onkeydown="handleKey(event)"></textarea>
+        <button class="nia-w-send" id="niaSend" onclick="sendMsg()" aria-label="Enviar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" width="18" height="18"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+      <p class="nia-branding-txt">Powered by <strong>NIA</strong> · OpenChat Platform</p>
+    </div>
+  </div>
+</template>
+
+<script>
+  // ── TWEAK DEFAULTS ──
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "widgetColor": "#7a2020",
+    "widgetPos": "right",
+    "welcomeLang": "es"
+  }/*EDITMODE-END*/;
+
+  let cfg = {...TWEAK_DEFAULTS};
+  let widgetOpen = false;
+  let unreadCount = 0;
+  let isTyping = false;
+  let welcomeLangs = {
+    es: "¡Hola! Soy **NIA** 🍷 Tu asistente del Centro del Vino Concha y Toro. Puedo ayudarte con tours, horarios, precios y reservas. ¿En qué te puedo ayudar hoy?",
+    en: "Hello! I'm **NIA** 🍷 Your assistant at Concha y Toro Wine Center. I can help you with tours, schedules, prices and bookings. How can I help you today?",
+    pt: "Olá! Sou **NIA** 🍷 Sua assistente do Centro do Vinho Concha y Toro. Posso ajudá-lo com tours, horários, preços e reservas. Como posso ajudá-lo hoje?"
+  };
+
+  const responses = [
+    {keys:['hola','buenas','hi','hello','saludos','hey'],
+     reply:"¡Bienvenido/a al Centro del Vino! 🍷 Cuéntame, ¿qué tipo de experiencia estás buscando? Tenemos desde tours clásicos hasta experiencias nocturnas exclusivas.",
+     suggest:["¿Qué tours tienen disponibles?","¿Cuánto cuesta la nocturna?","¿Cómo llegar desde Santiago?"]},
+    {keys:['tour','tours','experiencia','experiencias','visita','actividad'],
+     reply:"Tenemos estas experiencias principales:\n\n🍷 **Visita Guiada Premium** — 2h, múltiples horarios\n🌙 **Nocturna Casillero del Diablo** — 3h, cena incluida\n🥂 **Tasting Terrunyo** — 2h 45min, maridaje gourmet\n💎 **Cellar Collection** — 2h 45min, colección de autor\n🍽️ **Premium + Almuerzo Bodega 1883** — cocina de autor\n\n¿Te interesa alguna en particular?",
+     suggest:["¿Qué incluye la nocturna?","Quiero el tasting Terrunyo","¿Precios?"]},
+    {keys:['nocturna','noche','casillero','diablo','nocturno'],
+     reply:"🌙 La **Experiencia Nocturna Casillero del Diablo** es nuestra joya:\n\n✦ Duración: 3 horas\n✦ Horarios: 18:30 / 19:00 / 19:50 / 20:20 / 21:40\n✦ Incluye recorrido nocturno + cena o maridaje\n✦ Precio desde $85.000 CLP por persona\n\nEs perfecta para parejas, grupos especiales o quien quiera vivir la leyenda del Casillero del Diablo. ¿Te gustaría reservar?",
+     suggest:["Quiero reservar","¿Hay para grupos?","¿Qué más incluye?"]},
+    {keys:['precio','costo','cuanto','cuánto','vale','tarifa','precios'],
+     reply:"💰 Nuestros precios aproximados son:\n\n· Visita Guiada Standard: $25.000 CLP\n· Visita Guiada Premium: $45.000 CLP\n· Experiencia Nocturna + cena: desde $85.000 CLP\n· Tasting Terrunyo: $58.000 CLP\n· Tasting Cellar Collection: $65.000 CLP\n· Premium + Almuerzo Bodega 1883: $72.000 CLP\n\nLos precios incluyen degustación y tour guiado. ¿Quieres reservar alguna?",
+     suggest:["Reservar la nocturna","¿Hay descuentos?","¿Cómo se paga?"]},
+    {keys:['horario','hora','horarios','salida','disponible','cuando','cuándo'],
+     reply:"🕐 Tenemos múltiples salidas diarias:\n\n· **Standard**: desde 08:40 hrs (20+ horarios)\n· **Premium**: 09:10 a 17:00 (13 salidas)\n· **Nocturna**: 18:30 / 19:00 / 19:50 / 20:20 / 21:40\n· **Cellar Collection**: 10:00, 13:10, 14:50, 21:00\n· **Terrunyo**: 11:50 y 12:50\n\nOperamos de lunes a domingo. ¿Para cuándo te gustaría venir?",
+     suggest:["Voy este fin de semana","¿Hay para grupos?","¿Necesito reservar?"]},
+    {keys:['llegar','ubicacion','ubicación','donde','dónde','mapa','direccion','dirección','como llegar','transporte'],
+     reply:"📍 **Centro del Vino Concha y Toro**\nAv. Virginia Subercaseaux 210, Pirque\nRegión Metropolitana, Chile\n\n🚗 **En auto**: ~1 hora desde Santiago. Ruta 5 Sur, desvío hacia Pirque.\n🚌 **En bus**: hay servicios desde el Metro Las Mercedes o Busterminal Alameda.\n🚕 **Taxi/Uber**: ~$25.000–$35.000 desde Santiago centro.\n\n¿Vienes en auto o prefieres transporte público?",
+     suggest:["Vengo en auto","¿Tienen estacionamiento?","¿Hay bus directo?"]},
+    {keys:['grupo','grupos','empresa','corporativo','cumpleaños','aniversario','evento','celebracion','celebración'],
+     reply:"👥 ¡Perfecto para grupos! Ofrecemos:\n\n✦ Grupos privados desde 10 personas con guía exclusivo\n✦ Descuentos corporativos disponibles\n✦ Opciones de maridaje y cenas privadas\n✦ Coordinación con catering y decoración\n✦ Capacidad para eventos de hasta 200 personas\n\n¿De cuántas personas es el grupo y qué fecha tienen en mente?",
+     suggest:["Somos 15 personas","¿Cuál es el precio por grupo?","Quiero más información"]},
+    {keys:['reservar','reserva','booking','comprar','pagar','ticket','entrada'],
+     reply:"✅ Para hacer tu reserva:\n\n1️⃣ Dime qué experiencia y fecha te interesa\n2️⃣ Indícame el número de personas\n3️⃣ Te confirmo disponibilidad en segundos\n4️⃣ Recibirás el link de pago por correo\n\nAceptamos tarjetas de débito/crédito y transferencias. ¿Qué experiencia quieres reservar?",
+     suggest:["Quiero la Nocturna","Prefiero la Premium","¿Puedo cancelar?"]},
+  ];
+
+  const defaultReply = "Entiendo tu consulta. Para darte la mejor información, ¿podrías contarme un poco más? Puedo ayudarte con tours, horarios, precios, cómo llegar y reservas para el Centro del Vino Concha y Toro. 🍷";
+  const defaultSuggest = ["¿Qué tours tienen?","¿Cómo llegar?","¿Cuánto cuesta?"];
+
+  function getResponse(text) {
+    const lower = text.toLowerCase();
+    for (const r of responses) {
+      if (r.keys.some(k => lower.includes(k))) return r;
+    }
+    return {reply: defaultReply, suggest: defaultSuggest};
+  }
+
+  function formatMsg(text) {
+    return text
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function appendMsg(role, text, suggest) {
+    const body = document.getElementById('niaMessages');
+    if (!body) return;
+    const row = document.createElement('div');
+    row.className = `msg-row ${role}`;
+    if (role === 'bot') {
+      row.innerHTML = `<div class="msg-avatar">🍷</div><div class="msg-bubble">${formatMsg(text)}</div>`;
+    } else {
+      row.innerHTML = `<div class="msg-bubble">${formatMsg(text)}</div>`;
+    }
+    body.appendChild(row);
+    if (suggest && suggest.length) {
+      const sq = document.createElement('div');
+      sq.className = 'nia-suggested';
+      sq.innerHTML = suggest.map(q => `<button class="nia-pill" onclick="selectSuggest('${q.replace(/'/g,"\\'")}',this.parentElement)">${q}</button>`).join('');
+      body.appendChild(sq);
+    }
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function showTyping() {
+    const body = document.getElementById('niaMessages');
+    if (!body || isTyping) return;
+    isTyping = true;
+    const row = document.createElement('div');
+    row.className = 'typing-row';
+    row.id = 'niaTyping';
+    row.innerHTML = `<div class="msg-avatar">🍷</div><div class="typing-bubble"><span class="typing-dot"></span><span class="typing-dot"></span><span class="typing-dot"></span></div>`;
+    body.appendChild(row);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function hideTyping() {
+    const t = document.getElementById('niaTyping');
+    if (t) t.remove();
+    isTyping = false;
+  }
+
+  function sendMsg() {
+    const input = document.getElementById('niaInput');
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    input.style.height = '';
+    appendMsg('user', text, null);
+    const r = getResponse(text);
+    showTyping();
+    setTimeout(() => {
+      hideTyping();
+      appendMsg('bot', r.reply, r.suggest);
+    }, 900 + Math.random() * 600);
+  }
+
+  function selectSuggest(q, container) {
+    if (container) container.remove();
+    appendMsg('user', q, null);
+    const r = getResponse(q);
+    showTyping();
+    setTimeout(() => {
+      hideTyping();
+      appendMsg('bot', r.reply, r.suggest);
+    }, 800 + Math.random() * 500);
+  }
+
+  function handleKey(e) {
+    const input = document.getElementById('niaInput');
+    if (input) { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 100) + 'px'; }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMsg(); }
+  }
+
+  function toggleWidget() {
+    widgetOpen ? closeWidget() : openWidget();
+  }
+
+  function openWidget() {
+    if (widgetOpen) return;
+    widgetOpen = true;
+    unreadCount = 0;
+    const badge = document.querySelector('.nia-unread');
+    if (badge) badge.remove();
+    document.getElementById('niaIconChat').style.display = 'none';
+    document.getElementById('niaIconClose').style.display = '';
+    const tpl = document.getElementById('niaPanelTpl');
+    const panel = tpl.content.cloneNode(true).querySelector('.nia-panel');
+    // position
+    const root = document.getElementById('niaRoot');
+    if (cfg.widgetPos === 'left') { root.style.right = 'auto'; root.style.left = '28px'; panel.style.transformOrigin = 'bottom left'; }
+    root.insertBefore(panel, root.querySelector('.nia-launcher-btn'));
+    applyWidgetColor(cfg.widgetColor);
+    // welcome
+    setTimeout(() => {
+      const lang = cfg.welcomeLang || 'es';
+      appendMsg('bot', welcomeLangs[lang] || welcomeLangs.es,
+        ["¿Qué tours tienen?","¿Cuánto cuesta la nocturna?","¿Cómo llegar?"]);
+    }, 350);
+  }
+
+  function closeWidget() {
+    if (!widgetOpen) return;
+    const panel = document.getElementById('niaPanel');
+    if (panel) { panel.classList.add('closing'); setTimeout(() => panel.remove(), 280); }
+    widgetOpen = false;
+    document.getElementById('niaIconChat').style.display = '';
+    document.getElementById('niaIconClose').style.display = 'none';
+  }
+
+  function applyWidgetColor(color) {
+    document.documentElement.style.setProperty('--wine-mid', color);
+    document.documentElement.style.setProperty('--wine', color + 'cc');
+  }
+
+  function setWidgetColor(el, color) {
+    cfg.widgetColor = color;
+    document.querySelectorAll('.tweak-swatch').forEach(s => s.classList.remove('active'));
+    el.classList.add('active');
+    applyWidgetColor(color);
+    postTweaks();
+  }
+
+  function setWidgetPos(val) {
+    cfg.widgetPos = val;
+    postTweaks();
+  }
+
+  function setWelcomeLang(val) {
+    cfg.welcomeLang = val;
+    postTweaks();
+  }
+
+  function postTweaks() {
+    window.parent.postMessage({type:'__edit_mode_set_keys', edits: cfg}, '*');
+  }
+
+  // Nav scroll
+  const nav = document.getElementById('mainNav');
+  window.addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 60), {passive:true});
+
+  // Hero zoom
+  window.addEventListener('load', () => setTimeout(() => document.getElementById('heroBg').classList.add('loaded'), 100));
+
+  // Reveal on scroll
+  const revealObs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
+  }, {threshold:.1});
+  document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+  // Tweaks protocol
+  window.addEventListener('message', e => {
+    if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaksPanel').classList.add('visible');
+    if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaksPanel').classList.remove('visible');
+  });
+  window.parent.postMessage({type:'__edit_mode_available'}, '*');
+</script>
+</body>
+</html>

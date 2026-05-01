@@ -158,6 +158,14 @@ export interface EntityField {
   default?: unknown;
   enum_values: string[];
   examples: string[];
+  /** Question the bot asks when this field is missing during slot filling. */
+  question: string;
+}
+
+export interface SlotFillingConfig {
+  strategy: "one_by_one" | "all_at_once";
+  max_retries: number;
+  on_exhausted: "use_default" | "handoff" | "abort";
 }
 
 export interface SkillConfig {
@@ -180,6 +188,8 @@ export interface FlowTransition {
   bot_prompt?: string;
   /** Quick-reply chips shown to the user after the bot message. */
   suggested_replies?: string[];
+  /** Slot filling config: how to iteratively collect required entity fields. */
+  slot_filling?: SlotFillingConfig;
   enabled: boolean;
 }
 
@@ -817,6 +827,7 @@ export interface ChatResult {
   handoff_triggered: boolean;
   checkout_url: string | null;
   tokens_used: number;
+  suggested_replies?: string[];
 }
 
 export const debugApi = {

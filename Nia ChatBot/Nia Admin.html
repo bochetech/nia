@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>NIA — Admin Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; overflow: hidden; }
+    body { background: #09090f; color: #e2e2f0; font-family: 'IBM Plex Sans', system-ui, sans-serif; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+    input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; background: rgba(255,255,255,0.12); border-radius: 2px; outline: none; cursor: pointer; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #6366f1; cursor: pointer; }
+    input, textarea, select { color-scheme: dark; }
+    button:focus-visible { outline: 2px solid #6366f1; outline-offset: 2px; }
+    .tweaks-panel { position: fixed; bottom: 16px; right: 16px; width: 220px; background: rgba(17,17,24,0.97); border: 1px solid rgba(99,102,241,0.3); border-radius: 10px; padding: 16px; z-index: 9999; display: none; backdrop-filter: blur(20px); box-shadow: 0 16px 48px rgba(0,0,0,0.5); }
+    .tweaks-panel.visible { display: block; }
+    .tweaks-title { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: #818cf8; margin-bottom: 12px; font-weight: 600; }
+    .tweak-row { margin-bottom: 12px; }
+    .tweak-label { font-size: 11px; color: #666; margin-bottom: 5px; display: block; }
+    .tweak-select { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 6px 10px; color: #ccc; font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; width: 100%; outline: none; }
+    .tweak-select option { background: #111118; }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <div class="tweaks-panel" id="tweaksPanel">
+    <p class="tweaks-title">Tweaks</p>
+    <div class="tweak-row">
+      <label class="tweak-label">Pantalla inicial</label>
+      <select class="tweak-select" onchange="setTweakScreen(this.value)">
+        <option value="dashboard">Dashboard</option>
+        <option value="tenants">Lista de tenants</option>
+        <option value="tenant-detail">Tenant detalle</option>
+      </select>
+    </div>
+    <div class="tweak-row">
+      <label class="tweak-label">Tenant activo</label>
+      <select class="tweak-select" onchange="setTweakTenant(this.value)">
+        <option value="demo_turismo">demo_turismo</option>
+        <option value="moda_imagen">moda_imagen</option>
+      </select>
+    </div>
+  </div>
+
+  <script>
+/* ── NIA Admin Console — Sample Data ── */
+const NIA = {
+  tenants: [
+    {
+      id: "demo_turismo", name: "Centro del Vino · Concha y Toro",
+      plan: "professional", status: "active",
+      contactEmail: "admin@conchaytoro.com",
+      configVersion: 14, createdAt: "2024-11-10T09:00:00Z",
+      channels: ["widget", "telegram"],
+      ui: { primaryColor: "#7a2020", secondaryColor: "#c9a84c", chatTitle: "Asistente Enoturismo", welcomeMessage: "¡Hola! Soy NIA 🍷 ¿En qué te puedo ayudar?", inputPlaceholder: "Ej: ¿Qué tours tienen disponibles?", position: "bottom-right", showWelcome: true },
+      ai: { primaryProvider: "vertex_ai", primaryModel: "gemini-2.0-flash", temperature: 0.3, maxTokens: 800, systemPrompt: "Eres NIA, asistente virtual del Centro del Vino Concha y Toro. Ayudas a visitantes con información sobre tours, horarios, precios y reservas de enoturismo. Responde siempre en español, con tono amable y profesional.", enableCaching: true, costOptimization: true, inputCostPerM: 0.075, outputCostPerM: 0.30, fallbackProvider: "openai", fallbackModel: "gpt-4o-mini" },
+      limits: { maxTokensPerConv: 8000, maxConvsPerMonth: 5000, maxLlmCostUsd: 150, maxRagDocs: 200, handoffEnabled: true, responseTimeout: 15 },
+      rag: { confidenceThreshold: 0.68, maxTokensResponse: 500, fallbackMessage: "No tengo información precisa sobre eso. ¿Te gustaría hablar con un asesor?", topKRetrieval: 10, topKRerank: 3 },
+      analytics: {
+        totalConvs: 2847, totalMsgs: 18432, avgNps: 4.3, npsResponses: 412,
+        totalTokens: 4820000, estimatedCostUsd: 0.72,
+        daily: [120,98,145,167,203,189,211,178,224,198,215,230,245,189,167,201,234,267,289,312,298,276,301,323,298,312,287,334,310,298],
+        topIntents: [
+          { intent: "faq_query", count: 6821 },
+          { intent: "booking_intent", count: 4203 },
+          { intent: "product_inquiry", count: 2918 },
+          { intent: "human_request", count: 1247 },
+          { intent: "complaint", count: 654 },
+        ]
+      }
+    },
+    {
+      id: "moda_imagen", name: "StyleSense Fashion Advisor",
+      plan: "starter", status: "active",
+      contactEmail: "tech@stylesense.cl",
+      configVersion: 7, createdAt: "2025-01-15T14:00:00Z",
+      channels: ["widget"],
+      ui: { primaryColor: "#1a1a5c", secondaryColor: "#f59e0b", chatTitle: "StyleSense AI", welcomeMessage: "¡Hola! Soy tu asesor de moda personal 👗", inputPlaceholder: "¿Qué estilo buscas?", position: "bottom-right", showWelcome: true },
+      ai: { primaryProvider: "openai", primaryModel: "gpt-4o-mini", temperature: 0.5, maxTokens: 600, systemPrompt: "Eres StyleSense, asesor de moda virtual. Ayudas a clientes a encontrar outfits, recomendar combinaciones de ropa y acceder al catálogo de productos.", enableCaching: true, costOptimization: true, inputCostPerM: 0.15, outputCostPerM: 0.60, fallbackProvider: "lmstudio", fallbackModel: "" },
+      limits: { maxTokensPerConv: 5000, maxConvsPerMonth: 1000, maxLlmCostUsd: 50, maxRagDocs: 100, handoffEnabled: false, responseTimeout: 10 },
+      rag: { confidenceThreshold: 0.65, maxTokensResponse: 400, fallbackMessage: "No tengo ese producto en catálogo. ¿Te puedo ayudar con otra cosa?", topKRetrieval: 8, topKRerank: 3 },
+      analytics: {
+        totalConvs: 654, totalMsgs: 3210, avgNps: 4.7, npsResponses: 89,
+        totalTokens: 980000, estimatedCostUsd: 0.15,
+        daily: [18,22,31,27,19,34,41,38,29,44,52,47,39,55,62,58,43,67,71,65,59,74,82,78,68,85,91,87,79,93],
+        topIntents: [
+          { intent: "product_inquiry", count: 1823 },
+          { intent: "faq_query", count: 892 },
+          { intent: "booking_intent", count: 312 },
+          { intent: "complaint", count: 89 },
+        ]
+      }
+    },
+    {
+      id: "hotel_vista", name: "Hotel Vista Cordillera",
+      plan: "enterprise", status: "provisioning",
+      contactEmail: "tech@hotelvista.com",
+      configVersion: 1, createdAt: "2025-04-15T11:00:00Z",
+      channels: [], ui: {}, ai: {}, limits: {}, rag: {}, analytics: { totalConvs: 0, totalMsgs: 0, avgNps: null, npsResponses: 0, totalTokens: 0, estimatedCostUsd: 0, daily: [], topIntents: [] }
+    },
+    {
+      id: "spa_serenity", name: "Spa & Wellness Serenity",
+      plan: "starter", status: "suspended",
+      contactEmail: "ops@spaserenity.cl",
+      configVersion: 3, createdAt: "2024-09-20T08:00:00Z",
+      channels: ["widget"], ui: {}, ai: {}, limits: {}, rag: {}, analytics: { totalConvs: 187, totalMsgs: 892, avgNps: 3.8, npsResponses: 34, totalTokens: 210000, estimatedCostUsd: 0.03, daily: [], topIntents: [] }
+    }
+  ],
+
+  fsm: {
+    demo_turismo: {
+      intents: [
+        { key: "faq_query", name: "Consulta FAQ", description: "El usuario hace una pregunta general sobre el centro del vino, precios, horarios o servicios incluidos.", examples: ["¿Qué incluye el tour?", "¿Tienen estacionamiento?", "¿Dónde queda la viña?", "¿Qué días abren?"], enabled: true, priority: 1 },
+        { key: "booking_intent", name: "Intención de reserva", description: "El usuario quiere reservar una experiencia, indica fecha, número de personas o pregunta por disponibilidad.", examples: ["Quiero reservar para el sábado", "¿Tienen disponibilidad para 4 personas?", "Me gustaría ir la próxima semana"], enabled: true, priority: 2 },
+        { key: "product_inquiry", name: "Consulta de producto", description: "El usuario pregunta por una experiencia o tour específico: precio, duración, qué incluye.", examples: ["¿Cuánto cuesta la nocturna?", "¿Qué incluye el tasting?", "¿La visita premium incluye degustación?"], enabled: true, priority: 1 },
+        { key: "human_request", name: "Solicitud de asesor", description: "El usuario pide explícitamente hablar con una persona o asesor humano.", examples: ["Quiero hablar con alguien", "¿Me pueden llamar?", "Necesito hablar con un asesor"], enabled: true, priority: 3 },
+        { key: "complaint", name: "Queja o problema", description: "El usuario expresa insatisfacción, reclama o reporta un problema con el servicio.", examples: ["Tuve un problema con mi reserva", "El tour no fue lo que esperaba", "Quiero hacer una reclamación"], enabled: true, priority: 3 },
+        { key: "out_of_scope", name: "Fuera de alcance", description: "El usuario pregunta algo completamente ajeno al negocio del centro del vino.", examples: ["¿Cómo se hace el vino?", "¿Qué es la vendimia?"], enabled: true, priority: 0 },
+        { key: "nps_response", name: "Respuesta NPS", description: "El usuario responde a la encuesta de satisfacción post-chat con una puntuación del 1 al 5.", examples: ["5", "Le doy un 4", "Muy bueno, 5 estrellas"], enabled: true, priority: 0 },
+        { key: "unclear", name: "Mensaje ambiguo", description: "El mensaje del usuario no permite determinar claramente su intención.", examples: ["Hola", "Mm", "No sé"], enabled: true, priority: 0 },
+      ],
+      transitions: [
+        { intent: "faq_query", from_states: [], to_state: "faq_answer", action: "faq", enabled: true, botPrompt: "" },
+        { intent: "product_inquiry", from_states: [], to_state: "faq_answer", action: "faq", enabled: true, botPrompt: "" },
+        { intent: "booking_intent", from_states: ["discovery", "faq_answer", "greeting"], to_state: "recommending", action: "recommend", enabled: true, botPrompt: "Déjame buscar las mejores opciones para ti..." },
+        { intent: "booking_intent", from_states: ["idle", "pre_chat"], to_state: "discovery", action: "discovery", enabled: true, botPrompt: "¡Perfecto! Para encontrar la experiencia ideal, cuéntame:" },
+        { intent: "human_request", from_states: [], to_state: "handoff_active", action: "handoff", enabled: true, botPrompt: "" },
+        { intent: "complaint", from_states: [], to_state: "handoff_active", action: "handoff", enabled: true, botPrompt: "Lamentamos que hayas tenido un problema. Te voy a conectar con un asesor." },
+        { intent: "out_of_scope", from_states: [], to_state: "discovery", action: "static_reply", enabled: true, botPrompt: "", staticMessage: "Solo puedo ayudarte con información sobre el Centro del Vino Concha y Toro. ¿Te cuento sobre nuestras experiencias?" },
+        { intent: "nps_response", from_states: ["post_chat"], to_state: "closed", action: "nps", enabled: true, botPrompt: "" },
+      ],
+      skills: [
+        { action: "faq", name: "Base de Conocimiento RAG", description: "Responde preguntas usando documentos indexados sobre tours, precios y políticas.", entitySchema: [], preparationPrompt: "El usuario hace una consulta de información. Busca en la base de conocimiento y proporciona una respuesta precisa y concisa.", responseTemplates: { success: "Aquí tienes la información que encontré:", empty: "No tengo información precisa sobre eso. ¿Te gustaría hablar con un asesor?", error: "En este momento no puedo responder esa consulta. ¿Puedo ayudarte con otra cosa?" }, enabled: true },
+        { action: "recommend", name: "Recomendador de Experiencias", description: "Recomienda tours y experiencias basándose en preferencias del usuario.", entitySchema: [{ name: "activity_type", type: "string", description: "Tipo de experiencia (nocturna, maridaje, standard)", required: false }, { name: "date", type: "date", description: "Fecha deseada YYYY-MM-DD", required: false }, { name: "pax_count", type: "integer", description: "Número de personas", required: false }], preparationPrompt: "Extrae preferencias del usuario: tipo de experiencia, fecha deseada y número de personas.", responseTemplates: { success: "Te recomiendo estas experiencias:", empty: "No encontré experiencias disponibles para tus criterios. ¿Quieres ajustar la búsqueda?", error: "Estoy teniendo dificultades para buscar disponibilidad. ¿Puedes intentarlo en un momento?" }, enabled: true },
+        { action: "handoff", name: "Escalación a Asesor", description: "Transfiere la conversación a un asesor humano vía Teams.", entitySchema: [], preparationPrompt: "", responseTemplates: { success: "Te estoy conectando con un asesor. En breve alguien te atenderá.", error: "No hay asesores disponibles en este momento. ¿Puedo tomar tus datos para que te contacten?" }, enabled: true },
+        { action: "discovery", name: "Descubrimiento", description: "Hace preguntas para entender mejor las necesidades del usuario.", entitySchema: [{ name: "group_size", type: "integer", description: "Número de personas en el grupo", required: false }, { name: "occasion", type: "string", description: "Ocasión o motivo de la visita", required: false }], preparationPrompt: "Haz 1-2 preguntas concretas para entender qué tipo de experiencia busca el usuario.", responseTemplates: { followup: "Para ayudarte mejor, ¿me puedes contar más sobre tu visita?" }, enabled: true },
+      ],
+      states: ["idle","pre_chat","greeting","discovery","faq_answer","recommending","product_selected","checkout_init","awaiting_payment","confirmed","post_chat","handoff_active","closed"]
+    }
+  }
+};
+
+  </script>
+
+  <script type="text/babel">
+/* ── NIA Admin Console — React App ── */
+const { useState, useRef, useEffect } = React;
+
+/* ─── Shared tiny components ─── */
+const Badge = ({ children, color = "default" }) => {
+  const colors = {
+    default: "rgba(255,255,255,0.08) #aaa",
+    active: "rgba(16,185,129,0.15) #10b981",
+    suspended: "rgba(239,68,68,0.15) #ef4444",
+    provisioning: "rgba(245,158,11,0.15) #f59e0b",
+    professional: "rgba(99,102,241,0.15) #818cf8",
+    enterprise: "rgba(168,85,247,0.15) #c084fc",
+    starter: "rgba(255,255,255,0.08) #888",
+    widget: "rgba(99,102,241,0.12) #818cf8",
+    telegram: "rgba(14,165,233,0.12) #38bdf8",
+  };
+  const [bg, fg] = (colors[color] || colors.default).split(" ");
+  return <span style={{ background: bg, color: fg, padding: "2px 9px", borderRadius: 20, fontSize: 11, fontWeight: 600, letterSpacing: ".03em", whiteSpace: "nowrap" }}>{children}</span>;
+};
+
+const Toggle = ({ value, onChange }) => (
+  <button onClick={() => onChange(!value)} style={{ width: 36, height: 20, borderRadius: 10, border: "none", cursor: "pointer", background: value ? "#6366f1" : "rgba(255,255,255,0.12)", position: "relative", transition: "background .2s", flexShrink: 0 }}>
+    <span style={{ position: "absolute", top: 3, left: value ? 19 : 3, width: 14, height: 14, borderRadius: "50%", background: "#fff", transition: "left .2s", display: "block" }} />
+  </button>
+);
+
+const Btn = ({ children, variant = "secondary", onClick, small, disabled }) => {
+  const styles = {
+    primary: { background: "#6366f1", color: "#fff", border: "none" },
+    secondary: { background: "rgba(255,255,255,0.07)", color: "#ccc", border: "1px solid rgba(255,255,255,0.1)" },
+    ghost: { background: "transparent", color: "#888", border: "1px solid rgba(255,255,255,0.07)" },
+    danger: { background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" },
+  };
+  return <button onClick={onClick} disabled={disabled} style={{ ...styles[variant], padding: small ? "5px 12px" : "7px 16px", borderRadius: 7, fontSize: small ? 12 : 13, fontWeight: 500, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? .5 : 1, display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", fontFamily: "inherit" }}>{children}</button>;
+};
+
+const Field = ({ label, children, hint }) => (
+  <div style={{ marginBottom: 16 }}>
+    <label style={{ display: "block", fontSize: 12, color: "#888", marginBottom: 5, letterSpacing: ".04em" }}>{label}</label>
+    {children}
+    {hint && <p style={{ fontSize: 11, color: "#555", marginTop: 4 }}>{hint}</p>}
+  </div>
+);
+
+const Input = ({ value, onChange, placeholder, mono, type = "text" }) => (
+  <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+    style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 7, padding: "8px 12px", color: "#e2e2f0", fontSize: 13, fontFamily: mono ? "'IBM Plex Mono', monospace" : "inherit", outline: "none", boxSizing: "border-box" }} />
+);
+
+const Textarea = ({ value, onChange, rows = 4, placeholder, mono }) => (
+  <textarea value={value} onChange={e => onChange(e.target.value)} rows={rows} placeholder={placeholder}
+    style={{ width: "100%", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 7, padding: "8px 12px", color: "#e2e2f0", fontSize: 13, fontFamily: mono ? "'IBM Plex Mono', monospace" : "inherit", outline: "none", resize: "vertical", boxSizing: "border-box" }} />
+);
+
+const Sel = ({ value, onChange, options }) => (
+  <select value={value} onChange={e => onChange(e.target.value)}
+    style={{ background: "#1a1a24", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 7, padding: "8px 12px", color: "#e2e2f0", fontSize: 13, fontFamily: "inherit", outline: "none", width: "100%" }}>
+    {options.map(o => <option key={o.value || o} value={o.value || o}>{o.label || o}</option>)}
+  </select>
+);
+
+const Sparkline = ({ data, color = "#6366f1", height = 40 }) => {
+  if (!data || data.length < 2) return <div style={{ height }} />;
+  const max = Math.max(...data), min = Math.min(...data);
+  const w = 200, h = height;
+  const pts = data.map((v, i) => `${(i / (data.length - 1)) * w},${h - ((v - min) / (max - min || 1)) * (h - 4) - 2}`).join(" ");
+  return (
+    <svg width="100%" height={h} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
+      <polyline points={`0,${h} ${pts} ${w},${h}`} fill={`${color}18`} strokeWidth="0" />
+    </svg>
+  );
+};
+
+const StatCard = ({ label, value, sub, color = "#6366f1", spark }) => (
+  <div style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "18px 20px", flex: 1, minWidth: 160 }}>
+    <p style={{ fontSize: 11, color: "#666", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: 8 }}>{label}</p>
+    <p style={{ fontSize: 26, fontWeight: 600, color, marginBottom: 2 }}>{value}</p>
+    {sub && <p style={{ fontSize: 12, color: "#555" }}>{sub}</p>}
+    {spark && <div style={{ marginTop: 10 }}><Sparkline data={spark} color={color} height={32} /></div>}
+  </div>
+);
+
+/* ─── Sidebar ─── */
+const NAV = [
+  { id: "dashboard", icon: "⬡", label: "Dashboard" },
+  { id: "tenants", icon: "◫", label: "Tenants" },
+];
+
+const Sidebar = ({ screen, setScreen, tenant, setTenant }) => (
+  <aside style={{ width: 220, background: "#0a0a10", borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+    <div style={{ padding: "22px 20px 18px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ width: 30, height: 30, background: "linear-gradient(135deg,#6366f1,#8b5cf6)", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 700, color: "#fff" }}>N</div>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#e2e2f0", letterSpacing: "-.01em" }}>NIA</div>
+          <div style={{ fontSize: 10, color: "#444", letterSpacing: ".08em" }}>ADMIN CONSOLE</div>
+        </div>
+      </div>
+    </div>
+    <nav style={{ padding: "12px 10px", flex: 1 }}>
+      {NAV.map(n => (
+        <button key={n.id} onClick={() => { setScreen(n.id); setTenant(null); }}
+          style={{ width: "100%", display: "flex", alignItems: "center", gap: 10, padding: "9px 12px", borderRadius: 7, border: "none", cursor: "pointer", background: screen === n.id ? "rgba(99,102,241,0.15)" : "transparent", color: screen === n.id ? "#818cf8" : "#666", fontSize: 13, fontWeight: screen === n.id ? 500 : 400, fontFamily: "inherit", marginBottom: 2, textAlign: "left", transition: "background .15s" }}>
+          <span style={{ fontSize: 15 }}>{n.icon}</span> {n.label}
+        </button>
+      ))}
+      {tenant && (
+        <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+          <p style={{ fontSize: 10, color: "#444", letterSpacing: ".08em", padding: "0 12px", marginBottom: 8 }}>TENANT ACTIVO</p>
+          <div style={{ padding: "10px 12px", borderRadius: 7, background: "rgba(255,255,255,0.04)" }}>
+            <p style={{ fontSize: 12, color: "#818cf8", fontWeight: 500, marginBottom: 2 }}>{tenant.id}</p>
+            <p style={{ fontSize: 11, color: "#555" }}>{tenant.name.slice(0, 28)}…</p>
+          </div>
+        </div>
+      )}
+    </nav>
+    <div style={{ padding: "14px 20px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ width: 26, height: 26, borderRadius: "50%", background: "rgba(99,102,241,0.3)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#818cf8" }}>SA</div>
+        <div>
+          <p style={{ fontSize: 12, color: "#ccc" }}>Super Admin</p>
+          <p style={{ fontSize: 10, color: "#444" }}>v2.4.1</p>
+        </div>
+      </div>
+    </div>
+  </aside>
+);
+
+/* ─── Dashboard ─── */
+const Dashboard = ({ onSelectTenant }) => {
+  const active = NIA.tenants.filter(t => t.status === "active");
+  const totalConvs = NIA.tenants.reduce((a, t) => a + (t.analytics?.totalConvs || 0), 0);
+  const totalMsgs = NIA.tenants.reduce((a, t) => a + (t.analytics?.totalMsgs || 0), 0);
+  return (
+    <div style={{ padding: "28px 36px", overflowY: "auto", flex: 1 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 600, color: "#e2e2f0", marginBottom: 4 }}>Dashboard</h1>
+      <p style={{ fontSize: 13, color: "#555", marginBottom: 28 }}>Plataforma NIA — resumen general</p>
+      <div style={{ display: "flex", gap: 14, marginBottom: 28, flexWrap: "wrap" }}>
+        <StatCard label="Tenants activos" value={active.length} sub={`${NIA.tenants.length} en total`} color="#10b981" />
+        <StatCard label="Conversaciones (30d)" value={totalConvs.toLocaleString()} sub="todos los tenants" color="#6366f1" />
+        <StatCard label="Mensajes (30d)" value={totalMsgs.toLocaleString()} sub="todos los canales" color="#818cf8" />
+        <StatCard label="Costo estimado" value={`$${NIA.tenants.reduce((a, t) => a + (t.analytics?.estimatedCostUsd || 0), 0).toFixed(2)}`} sub="USD este mes" color="#f59e0b" />
+      </div>
+      <h2 style={{ fontSize: 14, fontWeight: 600, color: "#888", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: 14 }}>Tenants</h2>
+      <div style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              {["Tenant","Plan","Estado","Convs","Msgs","NPS","Canales",""].map(h => (
+                <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 11, color: "#555", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {NIA.tenants.map(t => (
+              <tr key={t.id} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer", transition: "background .15s" }}
+                onMouseOver={e => e.currentTarget.style.background = "rgba(255,255,255,0.025)"}
+                onMouseOut={e => e.currentTarget.style.background = "transparent"}
+                onClick={() => onSelectTenant(t)}>
+                <td style={{ padding: "13px 16px" }}>
+                  <p style={{ fontSize: 13, color: "#e2e2f0", fontWeight: 500 }}>{t.name}</p>
+                  <p style={{ fontSize: 11, color: "#555", fontFamily: "'IBM Plex Mono', monospace", marginTop: 2 }}>{t.id}</p>
+                </td>
+                <td style={{ padding: "13px 16px" }}><Badge color={t.plan}>{t.plan}</Badge></td>
+                <td style={{ padding: "13px 16px" }}><Badge color={t.status}>{t.status}</Badge></td>
+                <td style={{ padding: "13px 16px", fontSize: 13, color: "#ccc" }}>{(t.analytics?.totalConvs || 0).toLocaleString()}</td>
+                <td style={{ padding: "13px 16px", fontSize: 13, color: "#ccc" }}>{(t.analytics?.totalMsgs || 0).toLocaleString()}</td>
+                <td style={{ padding: "13px 16px", fontSize: 13, color: t.analytics?.avgNps >= 4 ? "#10b981" : "#f59e0b" }}>{t.analytics?.avgNps ? `★ ${t.analytics.avgNps}` : "—"}</td>
+                <td style={{ padding: "13px 16px" }}><div style={{ display: "flex", gap: 4 }}>{(t.channels || []).map(c => <Badge key={c} color={c}>{c}</Badge>)}</div></td>
+                <td style={{ padding: "13px 16px" }}><Btn small variant="ghost">Abrir →</Btn></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+/* ─── FSM Tab ─── */
+const FSMTab = ({ tenant }) => {
+  const fsm = NIA.fsm[tenant.id] || { intents: [], transitions: [], states: [], skills: [] };
+  const [selIntent, setSelIntent] = useState(null);
+  const [tab, setTab] = useState("transitions");
+  const ACTION_COLORS = { faq: "#818cf8", recommend: "#10b981", handoff: "#f87171", discovery: "#f59e0b", static_reply: "#888", nps: "#c084fc", complaint: "#fb923c", conversational: "#38bdf8" };
+
+  return (
+    <div style={{ display: "flex", gap: 0, height: "100%", overflow: "hidden" }}>
+      {/* Intents panel */}
+      <div style={{ width: 260, borderRight: "1px solid rgba(255,255,255,0.06)", display: "flex", flexDirection: "column", flexShrink: 0 }}>
+        <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "#888", letterSpacing: ".06em", textTransform: "uppercase" }}>Intents ({fsm.intents.length})</span>
+          <Btn small variant="primary">+ Añadir</Btn>
+        </div>
+        <div style={{ overflowY: "auto", flex: 1 }}>
+          {fsm.intents.map(intent => (
+            <div key={intent.key} onClick={() => setSelIntent(selIntent?.key === intent.key ? null : intent)}
+              style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)", cursor: "pointer", background: selIntent?.key === intent.key ? "rgba(99,102,241,0.1)" : "transparent", transition: "background .15s" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: intent.enabled ? "#10b981" : "#555", flexShrink: 0 }} />
+                <span style={{ fontSize: 12, fontWeight: 500, color: selIntent?.key === intent.key ? "#818cf8" : "#ccc", flex: 1 }}>{intent.name}</span>
+                <span style={{ fontSize: 10, color: "#555", fontFamily: "'IBM Plex Mono', monospace" }}>p{intent.priority}</span>
+              </div>
+              <p style={{ fontSize: 11, color: "#555", fontFamily: "'IBM Plex Mono', monospace", paddingLeft: 15 }}>{intent.key}</p>
+              {selIntent?.key === intent.key && (
+                <div style={{ marginTop: 10, paddingLeft: 15 }}>
+                  <p style={{ fontSize: 11, color: "#777", lineHeight: 1.6, marginBottom: 8 }}>{intent.description}</p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+                    {intent.examples.slice(0,3).map((ex, i) => (
+                      <span key={i} style={{ fontSize: 10, color: "#666", background: "rgba(255,255,255,0.06)", padding: "2px 7px", borderRadius: 4 }}>{ex}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Right panel: transitions / states / skills */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ padding: "12px 20px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", gap: 4, alignItems: "center" }}>
+          {["transitions","states","skills"].map(t => (
+            <button key={t} onClick={() => setTab(t)} style={{ padding: "6px 14px", borderRadius: 6, border: "none", background: tab === t ? "rgba(99,102,241,0.2)" : "transparent", color: tab === t ? "#818cf8" : "#555", fontSize: 12, fontWeight: tab === t ? 600 : 400, cursor: "pointer", fontFamily: "inherit", textTransform: "capitalize" }}>{t}</button>
+          ))}
+          <div style={{ flex: 1 }} />
+          {tab === "transitions" && <Btn small variant="primary">+ Transición</Btn>}
+        </div>
+
+        {tab === "transitions" && (
+          <div style={{ overflowY: "auto", flex: 1 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead>
+                <tr style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", position: "sticky", top: 0, background: "#111118" }}>
+                  {["Intent","Desde estados","Acción","→ Estado","",""].map(h => (
+                    <th key={h} style={{ padding: "10px 16px", textAlign: "left", fontSize: 10, color: "#555", fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {fsm.transitions.map((tr, i) => (
+                  <tr key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+                    <td style={{ padding: "11px 16px" }}>
+                      <span style={{ fontSize: 12, color: "#ccc", fontFamily: "'IBM Plex Mono', monospace", background: "rgba(255,255,255,0.06)", padding: "2px 8px", borderRadius: 4 }}>{tr.intent}</span>
+                    </td>
+                    <td style={{ padding: "11px 16px" }}>
+                      {tr.from_states.length === 0
+                        ? <span style={{ fontSize: 11, color: "#555", fontStyle: "italic" }}>cualquier estado</span>
+                        : <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>{tr.from_states.map(s => <span key={s} style={{ fontSize: 10, background: "rgba(255,255,255,0.07)", color: "#888", padding: "2px 7px", borderRadius: 4 }}>{s}</span>)}</div>
+                      }
+                    </td>
+                    <td style={{ padding: "11px 16px" }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: ACTION_COLORS[tr.action] || "#aaa", background: `${ACTION_COLORS[tr.action] || "#aaa"}18`, padding: "3px 9px", borderRadius: 5 }}>{tr.action}</span>
+                    </td>
+                    <td style={{ padding: "11px 16px" }}>
+                      <span style={{ fontSize: 12, color: "#888", fontFamily: "'IBM Plex Mono', monospace" }}>→ {tr.to_state}</span>
+                    </td>
+                    <td style={{ padding: "11px 16px" }}><Toggle value={tr.enabled} onChange={() => {}} /></td>
+                    <td style={{ padding: "11px 8px" }}><Btn small variant="ghost">✎</Btn></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {tab === "states" && (
+          <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 24 }}>
+              {fsm.states.map(s => (
+                <div key={s} style={{ padding: "8px 14px", background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, fontSize: 12, color: "#ccc", fontFamily: "'IBM Plex Mono', monospace", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: s === "idle" ? "#10b981" : s === "handoff_active" ? "#f87171" : s === "closed" ? "#555" : "#6366f1" }} />
+                  {s}
+                </div>
+              ))}
+            </div>
+            <Btn variant="secondary">+ Estado personalizado</Btn>
+          </div>
+        )}
+
+        {tab === "skills" && (
+          <div style={{ padding: 20, overflowY: "auto", flex: 1, display: "flex", flexDirection: "column", gap: 12 }}>
+            {fsm.skills.map(sk => (
+              <div key={sk.action} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 10, padding: "16px 18px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: ACTION_COLORS[sk.action] || "#aaa" }}>{sk.action}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: "#ccc" }}>{sk.name}</span>
+                  <div style={{ flex: 1 }} />
+                  <Toggle value={sk.enabled} onChange={() => {}} />
+                  <Btn small variant="ghost">✎</Btn>
+                </div>
+                <p style={{ fontSize: 12, color: "#666", marginBottom: sk.entitySchema.length ? 10 : 0 }}>{sk.description}</p>
+                {sk.entitySchema.length > 0 && (
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {sk.entitySchema.map(f => <span key={f.name} style={{ fontSize: 11, color: "#818cf8", background: "rgba(99,102,241,0.1)", padding: "2px 8px", borderRadius: 4, fontFamily: "'IBM Plex Mono', monospace" }}>{f.name}: {f.type}</span>)}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+/* ─── Widget Tab ─── */
+const WidgetTab = ({ tenant }) => {
+  const [cfg, setCfg] = useState({ ...tenant.ui });
+  const upd = k => v => setCfg(c => ({ ...c, [k]: v }));
+  return (
+    <div style={{ display: "flex", gap: 0, height: "100%", overflow: "hidden" }}>
+      <div style={{ width: 340, borderRight: "1px solid rgba(255,255,255,0.06)", overflowY: "auto", padding: 24 }}>
+        <Field label="Título del chat"><Input value={cfg.chatTitle || ""} onChange={upd("chatTitle")} /></Field>
+        <Field label="Mensaje de bienvenida"><Textarea value={cfg.welcomeMessage || ""} onChange={upd("welcomeMessage")} rows={3} /></Field>
+        <Field label="Placeholder del input"><Input value={cfg.inputPlaceholder || ""} onChange={upd("inputPlaceholder")} /></Field>
+        <Field label="Color primario"><div style={{ display: "flex", gap: 8, alignItems: "center" }}><input type="color" value={cfg.primaryColor || "#6366f1"} onChange={e => upd("primaryColor")(e.target.value)} style={{ width: 36, height: 36, border: "none", borderRadius: 6, cursor: "pointer", background: "none" }} /><Input value={cfg.primaryColor || ""} onChange={upd("primaryColor")} mono /></div></Field>
+        <Field label="Posición"><Sel value={cfg.position || "bottom-right"} onChange={upd("position")} options={[{value:"bottom-right",label:"Inferior derecha"},{value:"bottom-left",label:"Inferior izquierda"}]} /></Field>
+        <Field label="Mostrar bienvenida al abrir"><div style={{ display: "flex", alignItems: "center", gap: 10 }}><Toggle value={cfg.showWelcome} onChange={upd("showWelcome")} /><span style={{ fontSize: 12, color: "#888" }}>{cfg.showWelcome ? "Activado" : "Desactivado"}</span></div></Field>
+        <Btn variant="primary">Guardar cambios</Btn>
+      </div>
+      {/* Live preview */}
+      <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", background: "repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 1px, transparent 1px, transparent 10px)" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12 }}>
+          <div style={{ width: 340, background: "#fff", borderRadius: 14, overflow: "hidden", boxShadow: "0 24px 60px rgba(0,0,0,0.5)", fontFamily: "'IBM Plex Sans',sans-serif" }}>
+            <div style={{ background: cfg.primaryColor || "#6366f1", padding: "14px 16px", display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: "50%", background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>🤖</div>
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>{cfg.chatTitle || "Asistente"}</p>
+                <p style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>● En línea</p>
+              </div>
+              <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 18, cursor: "pointer" }}>×</span>
+            </div>
+            <div style={{ background: "#f8f9fb", padding: 14, minHeight: 200, display: "flex", flexDirection: "column", gap: 10 }}>
+              {cfg.showWelcome && cfg.welcomeMessage && (
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                  <div style={{ width: 26, height: 26, borderRadius: "50%", background: cfg.primaryColor || "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>🤖</div>
+                  <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "12px 12px 12px 3px", padding: "9px 13px", fontSize: 12, color: "#1f2937", maxWidth: "80%", lineHeight: 1.5 }}>{cfg.welcomeMessage}</div>
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, alignItems: "flex-end", flexDirection: "row-reverse" }}>
+                <div style={{ background: cfg.primaryColor || "#6366f1", borderRadius: "12px 12px 3px 12px", padding: "9px 13px", fontSize: 12, color: "#fff", maxWidth: "80%" }}>¿Qué tours tienen disponibles?</div>
+              </div>
+              <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                <div style={{ width: 26, height: 26, borderRadius: "50%", background: cfg.primaryColor || "#6366f1", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>🤖</div>
+                <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "12px 12px 12px 3px", padding: "9px 13px", fontSize: 12, color: "#1f2937", maxWidth: "80%", lineHeight: 1.5 }}>Tenemos varias experiencias: tours guiados, catas exclusivas y la experiencia nocturna Casillero del Diablo. ¿Cuál te interesa?</div>
+              </div>
+            </div>
+            <div style={{ background: "#fff", borderTop: "1px solid #e5e7eb", padding: "10px 12px", display: "flex", gap: 8 }}>
+              <input placeholder={cfg.inputPlaceholder || "Escribe un mensaje…"} style={{ flex: 1, border: "1.5px solid #e5e7eb", borderRadius: 9, padding: "8px 12px", fontSize: 12, outline: "none", fontFamily: "inherit" }} readOnly />
+              <div style={{ width: 34, height: 34, background: cfg.primaryColor || "#6366f1", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" width="16" height="16"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              </div>
+            </div>
+          </div>
+          <div style={{ width: 52, height: 52, borderRadius: "50%", background: cfg.primaryColor || "#6366f1", boxShadow: `0 8px 24px ${cfg.primaryColor || "#6366f1"}55`, display: "flex", alignItems: "center", justifyContent: "center", alignSelf: "flex-end" }}>
+            <svg viewBox="0 0 24 24" fill="#fff" width="22" height="22"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── AI Tab ─── */
+const AITab = ({ tenant }) => {
+  const [ai, setAi] = useState({ ...tenant.ai });
+  const upd = k => v => setAi(c => ({ ...c, [k]: v }));
+  const providers = [{ value: "vertex_ai", label: "Google Vertex AI" }, { value: "openai", label: "OpenAI" }, { value: "lmstudio", label: "LM Studio (local)" }, { value: "anthropic", label: "Anthropic Claude" }, { value: "openai_compat", label: "OpenAI-Compatible" }];
+  return (
+    <div style={{ padding: 28, overflowY: "auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }}>
+      <div>
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: "#888", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: 16 }}>Proveedor principal</h3>
+        <Field label="Provider"><Sel value={ai.primaryProvider || "lmstudio"} onChange={upd("primaryProvider")} options={providers} /></Field>
+        <Field label="Modelo"><Input value={ai.primaryModel || ""} onChange={upd("primaryModel")} placeholder="ej: gemini-2.0-flash" mono /></Field>
+        <Field label="Endpoint URL"><Input value={ai.primaryEndpointUrl || ""} onChange={upd("primaryEndpointUrl")} placeholder="Vacío = usa el del servidor" mono /></Field>
+        <Field label="API Key"><Input value={ai.primaryApiKey || ""} onChange={upd("primaryApiKey")} type="password" placeholder="sk-..." mono /></Field>
+      </div>
+      <div>
+        <h3 style={{ fontSize: 13, fontWeight: 600, color: "#888", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: 16 }}>Parámetros de generación</h3>
+        <Field label={`Temperature: ${ai.temperature || 0.3}`}>
+          <input type="range" min={0} max={1} step={0.05} value={ai.temperature || 0.3} onChange={e => upd("temperature")(parseFloat(e.target.value))} style={{ width: "100%", accentColor: "#6366f1" }} />
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#555", marginTop: 2 }}><span>Preciso</span><span>Creativo</span></div>
+        </Field>
+        <Field label="Max tokens por respuesta"><Input value={String(ai.maxTokens || 1000)} onChange={v => upd("maxTokens")(parseInt(v))} /></Field>
+        <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+          <div style={{ flex: 1 }}>
+            <Field label="Costo entrada ($/M tokens)"><Input value={String(ai.inputCostPerM || 0.075)} onChange={v => upd("inputCostPerM")(parseFloat(v))} /></Field>
+          </div>
+          <div style={{ flex: 1 }}>
+            <Field label="Costo salida ($/M tokens)"><Input value={String(ai.outputCostPerM || 0.30)} onChange={v => upd("outputCostPerM")(parseFloat(v))} /></Field>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#ccc", cursor: "pointer" }}><Toggle value={ai.enableCaching} onChange={upd("enableCaching")} /> Caché semántico</label>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#ccc", cursor: "pointer" }}><Toggle value={ai.costOptimization} onChange={upd("costOptimization")} /> Optimización de costo</label>
+        </div>
+      </div>
+      <div style={{ gridColumn: "1 / -1" }}>
+        <Field label="System prompt personalizado" hint="Vacío = usa el prompt estándar de NIA. Este prompt reemplaza el comportamiento base del asistente.">
+          <Textarea value={ai.systemPrompt || ""} onChange={upd("systemPrompt")} rows={6} mono placeholder="Eres [nombre], asistente de [empresa]..." />
+        </Field>
+        <Btn variant="primary">Guardar configuración IA</Btn>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Analytics Tab ─── */
+const AnalyticsTab = ({ tenant }) => {
+  const a = tenant.analytics || {};
+  return (
+    <div style={{ padding: 28, overflowY: "auto" }}>
+      <div style={{ display: "flex", gap: 14, marginBottom: 28, flexWrap: "wrap" }}>
+        <StatCard label="Conversaciones" value={(a.totalConvs || 0).toLocaleString()} spark={a.daily} color="#6366f1" />
+        <StatCard label="Mensajes" value={(a.totalMsgs || 0).toLocaleString()} sub="últimos 30 días" color="#818cf8" />
+        <StatCard label="NPS promedio" value={a.avgNps ? `${a.avgNps} / 5` : "—"} sub={`${a.npsResponses || 0} respuestas`} color="#10b981" />
+        <StatCard label="Tokens usados" value={a.totalTokens ? `${(a.totalTokens / 1e6).toFixed(1)}M` : "—"} sub={`$${a.estimatedCostUsd?.toFixed(4) || "0"} USD`} color="#f59e0b" />
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
+        <div style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
+          <p style={{ fontSize: 12, color: "#666", marginBottom: 14, letterSpacing: ".06em", textTransform: "uppercase" }}>Mensajes diarios — últimos 30 días</p>
+          <Sparkline data={a.daily} color="#6366f1" height={80} />
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "#555", marginTop: 6 }}>
+            <span>Hace 30 días</span><span>Hoy</span>
+          </div>
+        </div>
+        <div style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
+          <p style={{ fontSize: 12, color: "#666", marginBottom: 14, letterSpacing: ".06em", textTransform: "uppercase" }}>Top intents</p>
+          {(a.topIntents || []).map((item, i) => {
+            const max = a.topIntents[0]?.count || 1;
+            return (
+              <div key={item.intent} style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 3 }}>
+                  <span style={{ fontSize: 11, color: "#aaa", fontFamily: "'IBM Plex Mono', monospace" }}>{item.intent}</span>
+                  <span style={{ fontSize: 11, color: "#666" }}>{item.count.toLocaleString()}</span>
+                </div>
+                <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+                  <div style={{ width: `${(item.count / max) * 100}%`, height: "100%", background: ["#6366f1","#818cf8","#10b981","#f59e0b","#f87171"][i], borderRadius: 2 }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* ─── Channels Tab ─── */
+const ChannelsTab = ({ tenant }) => {
+  const hasWidget = (tenant.channels || []).includes("widget");
+  const hasTelegram = (tenant.channels || []).includes("telegram");
+  const Channel = ({ icon, name, desc, active, children }) => (
+    <div style={{ background: "#111118", border: `1px solid ${active ? "rgba(99,102,241,0.3)" : "rgba(255,255,255,0.06)"}`, borderRadius: 10, padding: "18px 20px", marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: children ? 16 : 0 }}>
+        <span style={{ fontSize: 22 }}>{icon}</span>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 14, fontWeight: 500, color: "#e2e2f0" }}>{name}</p>
+          <p style={{ fontSize: 12, color: "#555" }}>{desc}</p>
+        </div>
+        <Badge color={active ? "active" : "default"}>{active ? "Activo" : "Inactivo"}</Badge>
+        <Toggle value={active} onChange={() => {}} />
+      </div>
+      {active && children}
+    </div>
+  );
+  return (
+    <div style={{ padding: 24, overflowY: "auto" }}>
+      <Channel icon="💬" name="Widget JS" desc="Widget embebido en sitio web via Shadow DOM" active={hasWidget}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Script de instalación">
+            <div style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 7, padding: "10px 12px", fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: "#818cf8" }}>
+              {`<script src="https://cdn.nia.app/widget.js">\n  data-tenant="${tenant.id}"\n<\/script>`}
+            </div>
+          </Field>
+          <Field label="API Key del tenant"><Input value="nia_live_••••••••••••3f9a" onChange={() => {}} mono /></Field>
+        </div>
+      </Channel>
+      <Channel icon="✈️" name="Telegram" desc="Canal de Telegram con soporte multi-tenant" active={hasTelegram}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Field label="Bot Token"><Input value={hasTelegram ? "123456:ABC-DEF••••••" : ""} onChange={() => {}} mono /></Field>
+          <Field label="Bot Username"><Input value={hasTelegram ? "@nia_turismo_bot" : ""} onChange={() => {}} mono /></Field>
+          <Field label="Webhook URL">
+            <div style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 7, padding: "8px 12px", fontFamily: "'IBM Plex Mono',monospace", fontSize: 11, color: "#38bdf8" }}>
+              {`https://api.nia.app/webhooks/telegram/${tenant.id}`}
+            </div>
+          </Field>
+        </div>
+      </Channel>
+      <Channel icon="🟦" name="Chatwoot" desc="Integración con Chatwoot como canal y plataforma de handoff" active={false} />
+      <Channel icon="🔔" name="Microsoft Teams" desc="Notificaciones y handoff a equipos via Adaptive Cards" active={false} />
+    </div>
+  );
+};
+
+/* ─── Overview Tab ─── */
+const OverviewTab = ({ tenant }) => (
+  <div style={{ padding: 28, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, overflowY: "auto", alignItems: "start" }}>
+    <div style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
+      <h3 style={{ fontSize: 12, color: "#666", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: 16 }}>Información del tenant</h3>
+      {[["ID", tenant.id, true], ["Nombre", tenant.name], ["Email contacto", tenant.contactEmail], ["Plan", tenant.plan], ["Estado", tenant.status], ["Config versión", `v${tenant.configVersion}`], ["Creado", new Date(tenant.createdAt).toLocaleDateString("es-CL")]].map(([k, v, mono]) => (
+        <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+          <span style={{ fontSize: 12, color: "#666" }}>{k}</span>
+          <span style={{ fontSize: 12, color: "#ccc", fontFamily: mono ? "'IBM Plex Mono',monospace" : "inherit" }}>{v}</span>
+        </div>
+      ))}
+    </div>
+    <div style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: 20 }}>
+      <h3 style={{ fontSize: 12, color: "#666", letterSpacing: ".06em", textTransform: "uppercase", marginBottom: 16 }}>Límites de uso</h3>
+      {Object.entries(tenant.limits || {}).map(([k, v]) => (
+        <div key={k} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+          <span style={{ fontSize: 12, color: "#666" }}>{k.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase())}</span>
+          <span style={{ fontSize: 12, color: typeof v === "boolean" ? (v ? "#10b981" : "#ef4444") : "#ccc" }}>{typeof v === "boolean" ? (v ? "✓ sí" : "✗ no") : String(v)}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+/* ─── Tenant Detail ─── */
+const TABS = [
+  { id: "overview", label: "Overview" },
+  { id: "fsm", label: "Flujo FSM" },
+  { id: "widget", label: "Widget" },
+  { id: "ai", label: "IA Config" },
+  { id: "channels", label: "Canales" },
+  { id: "analytics", label: "Analítica" },
+];
+
+const TenantDetail = ({ tenant, onBack }) => {
+  const [tab, setTab] = useState("fsm");
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* Top bar */}
+      <div style={{ padding: "14px 28px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+        <button onClick={onBack} style={{ background: "transparent", border: "none", color: "#555", cursor: "pointer", fontSize: 18, padding: "0 4px" }}>←</button>
+        <div>
+          <p style={{ fontSize: 15, fontWeight: 600, color: "#e2e2f0" }}>{tenant.name}</p>
+          <p style={{ fontSize: 11, color: "#555", fontFamily: "'IBM Plex Mono',monospace" }}>{tenant.id}</p>
+        </div>
+        <div style={{ display: "flex", gap: 6, marginLeft: 4 }}>
+          <Badge color={tenant.plan}>{tenant.plan}</Badge>
+          <Badge color={tenant.status}>{tenant.status}</Badge>
+          {(tenant.channels || []).map(c => <Badge key={c} color={c}>{c}</Badge>)}
+        </div>
+        <div style={{ flex: 1 }} />
+        <Btn small variant="danger">Suspender tenant</Btn>
+        <Btn small variant="primary">Guardar todo</Btn>
+      </div>
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 2, padding: "0 28px", borderBottom: "1px solid rgba(255,255,255,0.06)", flexShrink: 0 }}>
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            style={{ padding: "12px 16px", border: "none", background: "transparent", color: tab === t.id ? "#818cf8" : "#555", fontSize: 13, fontWeight: tab === t.id ? 600 : 400, cursor: "pointer", fontFamily: "inherit", borderBottom: `2px solid ${tab === t.id ? "#6366f1" : "transparent"}`, transition: "color .15s", marginBottom: -1 }}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {/* Tab content */}
+      <div style={{ flex: 1, overflow: "hidden" }}>
+        {tab === "overview" && <OverviewTab tenant={tenant} />}
+        {tab === "fsm" && <FSMTab tenant={tenant} />}
+        {tab === "widget" && <WidgetTab tenant={tenant} />}
+        {tab === "ai" && <AITab tenant={tenant} />}
+        {tab === "channels" && <ChannelsTab tenant={tenant} />}
+        {tab === "analytics" && <AnalyticsTab tenant={tenant} />}
+      </div>
+    </div>
+  );
+};
+
+/* ─── App root ─── */
+const App = () => {
+  const [screen, setScreen] = useState("dashboard");
+  const [tenant, setTenant] = useState(null);
+
+  const selectTenant = (t) => { setTenant(t); setScreen("tenant-detail"); };
+  const back = () => { setTenant(null); setScreen("tenants"); };
+
+  return (
+    <div style={{ display: "flex", height: "100vh", background: "#09090f", color: "#e2e2f0", fontFamily: "'IBM Plex Sans', sans-serif", overflow: "hidden" }}>
+      <Sidebar screen={screen === "tenant-detail" ? "tenants" : screen} setScreen={setScreen} tenant={tenant} setTenant={setTenant} />
+      <main style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        {screen === "dashboard" && <Dashboard onSelectTenant={selectTenant} />}
+        {screen === "tenants" && (
+          <div style={{ padding: "28px 36px", overflowY: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+              <div>
+                <h1 style={{ fontSize: 22, fontWeight: 600, color: "#e2e2f0", marginBottom: 4 }}>Tenants</h1>
+                <p style={{ fontSize: 13, color: "#555" }}>{NIA.tenants.length} tenants configurados</p>
+              </div>
+              <Btn variant="primary">+ Nuevo tenant</Btn>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {NIA.tenants.map(t => (
+                <div key={t.id} onClick={() => selectTenant(t)} style={{ background: "#111118", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "16px 20px", display: "flex", alignItems: "center", gap: 16, cursor: "pointer", transition: "border-color .2s" }}
+                  onMouseOver={e => e.currentTarget.style.borderColor = "rgba(99,102,241,0.3)"}
+                  onMouseOut={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.06)"}>
+                  <div style={{ width: 38, height: 38, borderRadius: 9, background: "rgba(99,102,241,0.15)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>◫</div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 14, fontWeight: 500, color: "#e2e2f0", marginBottom: 3 }}>{t.name}</p>
+                    <p style={{ fontSize: 11, color: "#555", fontFamily: "'IBM Plex Mono',monospace" }}>{t.id} · v{t.configVersion}</p>
+                  </div>
+                  <Badge color={t.plan}>{t.plan}</Badge>
+                  <Badge color={t.status}>{t.status}</Badge>
+                  <div style={{ display: "flex", gap: 4 }}>{(t.channels || []).map(c => <Badge key={c} color={c}>{c}</Badge>)}</div>
+                  <span style={{ fontSize: 13, color: "#555" }}>{(t.analytics?.totalConvs || 0).toLocaleString()} convs</span>
+                  <Btn small variant="ghost">Abrir →</Btn>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {screen === "tenant-detail" && tenant && <TenantDetail tenant={tenant} onBack={back} />}
+      </main>
+    </div>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+
+  </script>
+
+  <script>
+    window.addEventListener('message', e => {
+      if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaksPanel').classList.add('visible');
+      if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaksPanel').classList.remove('visible');
+    });
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    function setTweakScreen(val) {
+      window.dispatchEvent(new CustomEvent('nia-tweak', { detail: { screen: val } }));
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { initialScreen: val } }, '*');
+    }
+    function setTweakTenant(val) {
+      window.dispatchEvent(new CustomEvent('nia-tweak', { detail: { tenant: val } }));
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { initialTenant: val } }, '*');
+    }
+  </script>
+</body>
+</html>

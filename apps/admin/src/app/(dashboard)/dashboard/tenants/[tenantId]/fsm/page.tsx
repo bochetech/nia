@@ -52,6 +52,7 @@ import type {
   IntentDefinition,
   ActionCatalogItem,
   SkillConfig,
+  SlotFillingConfig,
 } from "@/lib/api";
 import { ACTION_COLORS, ACTION_LABELS, cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -369,6 +370,7 @@ interface EditTrans {
   static_message?: string;
   bot_prompt?: string;
   suggested_replies?: string[];
+  slot_filling?: { strategy: string; max_retries: number; on_exhausted: string } | null;
   enabled: boolean;
 }
 
@@ -609,6 +611,7 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
       static_message: t.static_message,
       bot_prompt: t.bot_prompt,
       suggested_replies: t.suggested_replies ?? [],
+      slot_filling: t.slot_filling ?? null,
       enabled: t.enabled ?? true,
     });
     setPanel("transition");
@@ -648,7 +651,9 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
         intent: upd.intent, from_states: upd.fromState ? [upd.fromState] : [],
         to_state: upd.to_state || "__same__", action: upd.action,
         static_message: upd.static_message, bot_prompt: upd.bot_prompt,
-        suggested_replies: upd.suggested_replies?.filter(Boolean) ?? [], enabled: upd.enabled,
+        suggested_replies: upd.suggested_replies?.filter(Boolean) ?? [],
+        slot_filling: upd.slot_filling ? (upd.slot_filling as SlotFillingConfig) : undefined,
+        enabled: upd.enabled,
       };
       return {
         ...e,
@@ -677,7 +682,9 @@ function FlowCanvas({ tenantId }: { tenantId: string }) {
         intent: editing.intent, from_states: wild ? [] : [editing.fromState],
         to_state: editing.to_state, action: editing.action,
         static_message: editing.static_message, bot_prompt: editing.bot_prompt,
-        suggested_replies: editing.suggested_replies?.filter(Boolean) ?? [], enabled: editing.enabled,
+        suggested_replies: editing.suggested_replies?.filter(Boolean) ?? [],
+        slot_filling: editing.slot_filling ? (editing.slot_filling as SlotFillingConfig) : undefined,
+        enabled: editing.enabled,
       };
       if (wild) {
         setNodes((ns) => {
@@ -973,6 +980,67 @@ function TransPanel({ t, isNew, intents, actions, customSkills, allStates, onCha
               className="flex items-center gap-1.5 text-xs text-primary hover:text-primary/80 transition-colors">
               <Plus className="h-3 w-3" />Add reply chip
             </button>
+          </div>
+        </Section>
+
+        <Section title="Slot Filling" initClosed>
+          <div className="space-y-3">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Enable to iteratively collect required entity fields before executing the action.
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="sf-enabled"
+                className="h-3.5 w-3.5 accent-primary"
+                checked={!!t.slot_filling}
+                onChange={(e) => onChange({
+                  ...t,
+                  slot_filling: e.target.checked
+                    ? { strategy: "one_by_one", max_retries: 2, on_exhausted: "use_default" }
+                    : null,
+                })}
+              />
+              <Label htmlFor="sf-enabled" className="text-xs cursor-pointer">Enable slot filling for this transition</Label>
+            </div>
+            {t.slot_filling && (
+              <div className="space-y-2 pl-1">
+                <FG label="Strategy">
+                  <Select
+                    value={t.slot_filling.strategy}
+                    onValueChange={(v) => onChange({ ...t, slot_filling: { ...t.slot_filling!, strategy: v } })}
+                  >
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="one_by_one">One by one</SelectItem>
+                      <SelectItem value="all_at_once">All at once</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FG>
+                <FG label="Max retries per field">
+                  <Input
+                    type="number"
+                    className="h-8 text-xs"
+                    min={1} max={5}
+                    value={t.slot_filling.max_retries}
+                    onChange={(e) => onChange({ ...t, slot_filling: { ...t.slot_filling!, max_retries: parseInt(e.target.value) || 2 } })}
+                  />
+                </FG>
+                <FG label="When retries exhausted">
+                  <Select
+                    value={t.slot_filling.on_exhausted}
+                    onValueChange={(v) => onChange({ ...t, slot_filling: { ...t.slot_filling!, on_exhausted: v } })}
+                  >
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="use_default">Use default value</SelectItem>
+                      <SelectItem value="handoff">Handoff to agent</SelectItem>
+                      <SelectItem value="abort">Abort &amp; reply sorry</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FG>
+              </div>
+            )}
           </div>
         </Section>
 

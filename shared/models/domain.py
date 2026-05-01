@@ -85,6 +85,7 @@ class ActionType(str, Enum):
     STATIC_REPLY = "static_reply"        # responde con un mensaje fijo
     DISCOVERY = "discovery"              # pide más detalles al usuario
     CONVERSATIONAL = "conversational"    # LLM puro con preparation_prompt personalizado
+    BOKUN = "bokun"                      # experiencias y disponibilidad vía Bokun API
 
 
 class HandoffTrigger(str, Enum):
@@ -159,6 +160,14 @@ class UIConfig(BaseModel):
         description=(
             "Texto de ayuda (hint) dentro del textarea de escritura. "
             "Úsalo para orientar al usuario sobre qué puede preguntar, ej: 'Ej: quiero una cata para 4 personas…'"
+        ),
+    )
+    suggested_questions: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Pills de preguntas sugeridas que aparecen justo después del welcome_message. "
+            "Al hacer clic, el texto se envía automáticamente como mensaje del usuario. "
+            "Se ocultán en cuanto el usuario escribe su primer mensaje."
         ),
     )
 
@@ -744,6 +753,14 @@ class IntentDefinition(BaseModel):
             "Útil cuando un mensaje podría encajar en varios intents."
         ),
     )
+    action: str | None = Field(
+        default=None,
+        description=(
+            "ActionType que se dispara cuando este intent es detectado. "
+            "Si es None, el FSM aplica el routing por defecto. "
+            "Debe coincidir con un valor de ActionType (faq, recommend, bokun, handoff, etc.)."
+        ),
+    )
 
 
 # ──────────────────────────────────────────────────────────────────
@@ -802,6 +819,68 @@ class EntityField(BaseModel):
     examples: list[str] = Field(
         default_factory=list,
         description="Ejemplos de valores válidos para este campo. Ayudan al LLM con few-shot extraction.",
+    )
+    question: str = Field(
+        default="",
+        max_length=300,
+        description=(
+            "Pregunta que el bot hace al usuario cuando este campo es requerido pero falta. "
+            "Ej: '¿Para qué fecha te gustaría reservar?'. "
+            "Si está vacío, el LLM genera la pregunta automáticamente usando la description del campo."
+        ),
+    )
+
+
+class SlotFillingConfig(BaseModel):
+    """
+    Configura la recolección iterativa de entidades (slot filling) para una transición.
+
+    Cuando una transición A→B tiene slot_filling configurado, el FSM no ejecuta
+    la acción de inmediato si faltan campos requeridos. En su lugar, pregunta al
+    usuario turno a turno hasta tenerlos todos, y solo entonces ejecuta la acción
+    y completa la transición al estado B.
+
+    Los campos a recolectar y sus preguntas se definen en el entity_schema del skill
+    asociado a la transición (EntityField.required=True, EntityField.question).
+    Esta configuración solo controla el *cómo* y el *comportamiento ante fallos*.
+
+    Example:
+        SlotFillingConfig(
+            strategy="one_by_one",
+            max_retries=2,
+            on_exhausted="use_default",
+        )
+        # → Pide un campo por turno, reintenta 2 veces antes de usar el default.
+        # → Los campos y preguntas vienen del entity_schema del skill.
+    """
+    strategy: str = Field(
+        default="one_by_one",
+        description=(
+            "Estrategia de recolección de campos faltantes:\n"
+            "  'one_by_one'  — Un campo por turno. Más natural y conversacional. "
+            "Recomendado para flujos con 2-4 campos.\n"
+            "  'all_at_once' — Todos los campos faltantes en un solo mensaje. "
+            "Más directo, ideal para flujos transaccionales rápidos."
+        ),
+    )
+    max_retries: int = Field(
+        default=2,
+        ge=1,
+        le=5,
+        description=(
+            "Número máximo de veces que el bot reintenta obtener un campo antes de "
+            "aplicar on_exhausted. Cuenta por campo individualmente."
+        ),
+    )
+    on_exhausted: str = Field(
+        default="use_default",
+        description=(
+            "Comportamiento cuando se agota max_retries para un campo:\n"
+            "  'use_default' — Usa el valor EntityField.default y continúa con el siguiente campo. "
+            "Si no hay default, omite el campo.\n"
+            "  'handoff'     — Escala a un asesor humano.\n"
+            "  'abort'       — Cancela el flujo y responde con un mensaje de disculpa."
+        ),
     )
 
 
@@ -924,6 +1003,17 @@ class FlowTransition(BaseModel):
             "Opciones de respuesta sugeridas que se muestran al usuario como chips "
             "clickeables después del mensaje del bot. Permiten guiar la conversación "
             "hacia el siguiente intent deseado sin que el usuario tenga que escribir."
+        ),
+    )
+    slot_filling: "SlotFillingConfig | None" = Field(
+        default=None,
+        description=(
+            "Si está presente, activa la recolección iterativa de entidades antes de ejecutar "
+            "la acción. El FSM permanece en el estado actual (self-loop) hasta que todos los "
+            "campos requeridos del skill estén recolectados, o hasta que se agote max_retries. "
+            "Los campos y sus preguntas se definen en el entity_schema del skill asociado "
+            "(EntityField.required=True + EntityField.question). Esta config solo controla "
+            "la estrategia y el comportamiento ante fallos."
         ),
     )
     enabled: bool = True

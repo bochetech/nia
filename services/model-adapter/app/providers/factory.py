@@ -37,15 +37,14 @@ def create_provider(settings: ModelAdapterSettings) -> ModelProviderAdapter:
         )
 
     elif settings.model_provider == ModelProvider.OPENAI:
-        from app.providers.lmstudio import LMStudioProvider  # OpenAI es compatible
-        _provider_instance = LMStudioProvider(
-            base_url="https://api.openai.com/v1",
+        from app.providers.openai import OpenAIProvider
+        _provider_instance = OpenAIProvider(
+            base_url="https://api.openai.com",
             chat_model=settings.openai_chat_model,
             embed_model="text-embedding-3-small",
+            api_key=settings.openai_api_key,
             timeout=60,
         )
-        # Monkey-patch el API key header
-        _provider_instance._client.headers["Authorization"] = f"Bearer {settings.openai_api_key}"
 
     else:
         raise ValueError(f"Unknown model provider: {settings.model_provider}")
@@ -87,15 +86,27 @@ def create_provider_for_tenant(tenant_id: str, settings: ModelAdapterSettings) -
                 default._chat_model = model
             return default
 
-        # Build an ad-hoc LMStudio-compat provider with the tenant's connection
-        from app.providers.lmstudio import LMStudioProvider
-        provider = LMStudioProvider(
-            base_url=endpoint_url or settings.lm_studio_base_url,
-            chat_model=model or settings.lm_studio_chat_model,
-            embed_model=settings.lm_studio_embed_model,
-            timeout=settings.lm_studio_timeout_seconds,
-        )
-        if api_key:
+        # Build a provider scoped to the tenant's custom connection.
+        # Use LMStudioProvider for lmstudio (native /api/v1/chat),
+        # OpenAIProvider for everything else (openai_compat, openai, etc.).
+        if provider_type == "lmstudio":
+            from app.providers.lmstudio import LMStudioProvider
+            provider = LMStudioProvider(
+                base_url=endpoint_url or settings.lm_studio_base_url,
+                chat_model=model or settings.lm_studio_chat_model,
+                embed_model=settings.lm_studio_embed_model,
+                timeout=settings.lm_studio_timeout_seconds,
+            )
+        else:
+            from app.providers.openai import OpenAIProvider
+            provider = OpenAIProvider(
+                base_url=endpoint_url,
+                chat_model=model or settings.openai_chat_model,
+                embed_model="text-embedding-3-small",
+                api_key=api_key,
+                timeout=settings.lm_studio_timeout_seconds,
+            )
+        if api_key and provider_type == "lmstudio":
             provider._client.headers["Authorization"] = f"Bearer {api_key}"
         return provider
 

@@ -21,6 +21,12 @@ class ChatRequest(BaseModel):
     stream: bool = False
     tenant_id: str | None = None
     session_id: str | None = None
+    # Set to True only when deep reasoning is needed (slower, more tokens).
+    # False by default — disables chain-of-thought on thinking models (e.g. gemma-4-e4b).
+    enable_thinking: bool = False
+    # Optional structured output schema (forwarded to LM Studio as response_format).
+    # When set, forces the model to produce JSON matching the given schema.
+    response_format: dict | None = None
 
 
 class ChatResponse(BaseModel):

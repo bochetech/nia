@@ -39,6 +39,7 @@ interface ChatMessage {
   role: "user" | "assistant" | "system";
   text: string;
   timestamp: Date;
+  suggested_replies?: string[];
   meta?: {
     fsm_state?: string;
     tokens_used?: number;
@@ -50,6 +51,16 @@ interface TraceEvent {
   id: string;
   type: string;
   ts: number;
+  // skill_call enriched fields
+  action?: string;
+  skill_name?: string;
+  intent?: string;
+  from_state?: string;
+  to_state?: string;
+  action_taken?: "execute" | "clarification_asked" | "unavailable";
+  entities_resolved?: Record<string, string | null>;
+  missing_required?: string[];
+  latency_ms?: number;
   [key: string]: unknown;
 }
 
@@ -143,6 +154,7 @@ export default function DebugConsolePage({
   const [messageCount, setMessageCount] = useState(0);
   const [intentsDetected, setIntentsDetected] = useState<string[]>([]);
   const [stateTransitions, setStateTransitions] = useState<{ from: string; to: string; ts: number }[]>([]);
+  const [skillsFired, setSkillsFired] = useState<{ action: string; skill_name: string | null; action_taken: string; latency_ms?: number; ts: number }[]>([]);
 
   // Derived: conversation cost in USD
   // Formula: (input_tokens × input_rate) + (output_tokens × output_rate)
@@ -173,6 +185,7 @@ export default function DebugConsolePage({
       setMessageCount(0);
       setIntentsDetected([]);
       setStateTransitions([]);
+      setSkillsFired([]);
       toast.success("Debug session started");
     } catch (e: any) {
       toast.error(`Failed to start session: ${e.message}`);
@@ -211,6 +224,15 @@ export default function DebugConsolePage({
           if (event.intent) setIntentsDetected((prev) => [...prev, event.intent]);
           if (event.fsm_state) setCurrentFsmState(event.fsm_state);
         }
+        if (event.type === "skill_call") {
+          setSkillsFired((prev) => [...prev, {
+            action: event.action ?? "?",
+            skill_name: event.skill_name ?? null,
+            action_taken: event.action_taken ?? "execute",
+            latency_ms: event.latency_ms,
+            ts: event.ts,
+          }]);
+        }
         if (event.type === "llm_call") {
           const inp = (event.input_tokens as number) ?? 0;
           const out = (event.output_tokens as number) ?? 0;
@@ -228,13 +250,13 @@ export default function DebugConsolePage({
 
   // ── Send message ─────────────────────────────────────────────
 
-  const sendMessage = useCallback(async () => {
-    if (!inputText.trim() || !widgetSession?.token) return;
+  const doSend = useCallback(async (text: string) => {
+    if (!text.trim() || !widgetSession?.token) return;
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      text: inputText.trim(),
+      text: text.trim(),
       timestamp: new Date(),
     };
     setMessages((prev) => [...prev, userMsg]);
@@ -253,6 +275,7 @@ export default function DebugConsolePage({
         role: "assistant",
         text: data.response,
         timestamp: new Date(),
+        suggested_replies: data.suggested_replies?.length ? data.suggested_replies : undefined,
         meta: {
           fsm_state: data.fsm_state,
           tokens_used: data.tokens_used,
@@ -275,7 +298,9 @@ export default function DebugConsolePage({
     } finally {
       setSending(false);
     }
-  }, [inputText, widgetSession?.token]);
+  }, [widgetSession?.token]);
+
+  const sendMessage = useCallback(() => doSend(inputText), [doSend, inputText]);
 
   // ── Auto-scroll ──────────────────────────────────────────────
 
@@ -302,6 +327,7 @@ export default function DebugConsolePage({
     setMessageCount(0);
     setIntentsDetected([]);
     setStateTransitions([]);
+    setSkillsFired([]);
   }, []);
 
   // ── No session state ─────────────────────────────────────────
@@ -402,7 +428,7 @@ export default function DebugConsolePage({
             </div>
           </div>
 
-          {messages.map((msg) => (
+          {messages.map((msg, msgIdx) => (
             <div
               key={msg.id}
               className={cn(
@@ -427,47 +453,71 @@ export default function DebugConsolePage({
                   )}
                 </div>
               )}
-              <div
-                className={cn(
-                  "max-w-[80%] rounded-xl px-3 py-2 text-[13px] leading-relaxed",
-                  msg.role === "user"
-                    ? "rounded-br-sm text-white shadow-sm"
-                    : msg.role === "assistant"
-                    ? "bg-white border border-white/[0.06] shadow-sm rounded-bl-sm text-foreground/80"
-                    : "bg-transparent text-muted-foreground text-[11px] italic text-center w-full"
-                )}
-                style={msg.role === "user" ? { backgroundColor: primaryColor } : undefined}
-              >
-                {msg.text}
-                {msg.meta && (
-                  <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-white/20 text-[10px] opacity-70">
-                    {msg.meta.fsm_state && (
-                      <span className="flex items-center gap-0.5">
-                        <GitBranch className="h-2.5 w-2.5" />
-                        {msg.meta.fsm_state}
-                      </span>
-                    )}
-                    {msg.meta.tokens_used != null && (
-                      <span className="flex items-center gap-0.5">
-                        <Hash className="h-2.5 w-2.5" />
-                        {msg.meta.tokens_used} tok
-                      </span>
-                    )}
-                    {msg.meta.tokens_used != null && (
-                      <span className="flex items-center gap-0.5">
-                        <DollarSign className="h-2.5 w-2.5" />
-                        {/* Blended estimate: avg of input + output rate × total tokens */}
-                        ${(msg.meta.tokens_used * ((inputRate + outputRate) / 2)).toFixed(5)}
-                      </span>
-                    )}
-                    {msg.meta.latency_ms != null && (
-                      <span className="flex items-center gap-0.5">
-                        <Clock className="h-2.5 w-2.5" />
-                        {formatMs(msg.meta.latency_ms)}
-                      </span>
-                    )}
-                  </div>
-                )}
+              <div className="flex flex-col gap-1.5 max-w-[80%]">
+                <div
+                  className={cn(
+                    "rounded-xl px-3 py-2 text-[13px] leading-relaxed",
+                    msg.role === "user"
+                      ? "rounded-br-sm text-white shadow-sm"
+                      : msg.role === "assistant"
+                      ? "bg-white border border-white/[0.06] shadow-sm rounded-bl-sm text-foreground/80"
+                      : "bg-transparent text-muted-foreground text-[11px] italic text-center w-full"
+                  )}
+                  style={msg.role === "user" ? { backgroundColor: primaryColor } : undefined}
+                >
+                  {msg.text}
+                  {msg.meta && (
+                    <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-white/20 text-[10px] opacity-70">
+                      {msg.meta.fsm_state && (
+                        <span className="flex items-center gap-0.5">
+                          <GitBranch className="h-2.5 w-2.5" />
+                          {msg.meta.fsm_state}
+                        </span>
+                      )}
+                      {msg.meta.tokens_used != null && (
+                        <span className="flex items-center gap-0.5">
+                          <Hash className="h-2.5 w-2.5" />
+                          {msg.meta.tokens_used} tok
+                        </span>
+                      )}
+                      {msg.meta.tokens_used != null && (
+                        <span className="flex items-center gap-0.5">
+                          <DollarSign className="h-2.5 w-2.5" />
+                          {/* Blended estimate: avg of input + output rate × total tokens */}
+                          ${(msg.meta.tokens_used * ((inputRate + outputRate) / 2)).toFixed(5)}
+                        </span>
+                      )}
+                      {msg.meta.latency_ms != null && (
+                        <span className="flex items-center gap-0.5">
+                          <Clock className="h-2.5 w-2.5" />
+                          {formatMs(msg.meta.latency_ms)}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {/* Suggested reply chips — only for the last assistant message */}
+                {msg.role === "assistant" &&
+                  msg.suggested_replies &&
+                  msg.id === [...messages].reverse().find(m => m.role === "assistant")?.id &&
+                  !sending && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {msg.suggested_replies.map((reply, ri) => (
+                        <button
+                          key={ri}
+                          onClick={() => doSend(reply)}
+                          className="text-[12px] px-3 py-1 rounded-full border transition-all"
+                          style={{
+                            borderColor: `${primaryColor}50`,
+                            color: primaryColor,
+                            background: `${primaryColor}0d`,
+                          }}
+                        >
+                          {reply}
+                        </button>
+                      ))}
+                    </div>
+                  )}
               </div>
             </div>
           ))}
@@ -597,12 +647,58 @@ export default function DebugConsolePage({
             </div>
           </div>
 
-          {/* Side panel: intents + transitions */}
+          {/* Side panel: skills + intents + transitions */}
           <div className="w-56 border-l bg-card overflow-y-auto">
+
+            {/* Skills fired */}
+            <div className="p-3 border-b">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Zap className="h-3 w-3 text-amber-500" />
+                <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
+                  Skills Fired
+                </span>
+              </div>
+              {skillsFired.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground italic">No skills yet</p>
+              ) : (
+                <div className="space-y-1">
+                  {skillsFired.map((s, i) => (
+                    <div key={i} className="rounded-md px-2 py-1.5 bg-amber-500/8 border border-amber-500/15">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] text-amber-400/70 font-mono shrink-0">{i + 1}</span>
+                        <span className="text-[11px] font-medium text-amber-700 dark:text-amber-400 truncate">
+                          {s.skill_name ?? s.action}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-0.5 pl-3.5">
+                        <span
+                          className={cn(
+                            "text-[9px] rounded-full px-1.5 py-0.5 font-medium",
+                            s.action_taken === "execute"
+                              ? "bg-green-500/10 text-green-600"
+                              : s.action_taken === "clarification_asked"
+                              ? "bg-blue-500/10 text-blue-600"
+                              : "bg-red-500/10 text-red-500"
+                          )}
+                        >
+                          {s.action_taken === "execute" ? "✓ executed"
+                            : s.action_taken === "clarification_asked" ? "? clarification"
+                            : "✗ unavailable"}
+                        </span>
+                        {s.latency_ms != null && (
+                          <span className="text-[9px] text-muted-foreground">{formatMs(s.latency_ms)}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Intents detected */}
             <div className="p-3 border-b">
               <div className="flex items-center gap-1.5 mb-2">
-                <Brain className="h-3 w-3 text-amber-500" />
+                <Brain className="h-3 w-3 text-violet-500" />
                 <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                   Intents
                 </span>
@@ -614,9 +710,9 @@ export default function DebugConsolePage({
                   {intentsDetected.map((intent, i) => (
                     <div
                       key={i}
-                      className="flex items-center gap-1.5 text-[11px] bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-md px-2 py-1"
+                      className="flex items-center gap-1.5 text-[11px] bg-violet-500/10 text-violet-600 dark:text-violet-400 rounded-md px-2 py-1"
                     >
-                      <span className="text-[9px] text-amber-400/70 font-mono">{i + 1}</span>
+                      <span className="text-[9px] text-violet-400/70 font-mono">{i + 1}</span>
                       <span className="truncate">{intent}</span>
                     </div>
                   ))}
@@ -627,7 +723,7 @@ export default function DebugConsolePage({
             {/* State transitions */}
             <div className="p-3">
               <div className="flex items-center gap-1.5 mb-2">
-                <GitBranch className="h-3 w-3 text-violet-500" />
+                <GitBranch className="h-3 w-3 text-blue-500" />
                 <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">
                   State Flow
                 </span>
@@ -721,22 +817,33 @@ function TraceEventRow({ event }: { event: TraceEvent }) {
   if (event.type === "fsm_transition") {
     summary = `${event.from ?? "?"} → ${event.to ?? "?"}`;
   } else if (event.type === "intent_detected") {
-    summary = `${event.intent ?? "unknown"}${event.confidence ? ` (${(event.confidence as number * 100).toFixed(0)}%)` : ""}`;
+    summary = `${(event.intent as string) ?? "unknown"}${event.confidence ? ` (${((event.confidence as number) * 100).toFixed(0)}%)` : ""}`;
   } else if (event.type === "skill_call") {
-    summary = `${event.action ?? event.skill ?? "?"}${event.latency_ms ? ` · ${formatMs(event.latency_ms as number)}` : ""}`;
+    const name = event.skill_name ?? event.action ?? "?";
+    const latency = event.latency_ms ? ` · ${formatMs(event.latency_ms)}` : "";
+    const taken = event.action_taken === "clarification_asked" ? " · ?" : event.action_taken === "unavailable" ? " · ✗" : "";
+    summary = `${name}${latency}${taken}`;
   } else if (event.type === "llm_call") {
     const inp = (event.input_tokens as number) ?? 0;
     const out = (event.output_tokens as number) ?? 0;
     const tok = inp + out || (event.tokens as number) || 0;
-    summary = `${event.model ?? "model"}${tok ? ` · ${tok} tok` : ""}`;
+    summary = `${(event.model as string) ?? "model"}${tok ? ` · ${tok} tok` : ""}`;
   } else if (event.type === "connected") {
     summary = `session ${(event.session_id as string)?.slice(0, 8) ?? ""}…`;
   }
 
-  // Collect all extra fields for expanded view
-  const extraKeys = Object.keys(event).filter(
+  // For skill_call: use rich entity table in expanded view
+  const isSkillCall = event.type === "skill_call";
+  const hasEntities = isSkillCall && event.entities_resolved && Object.keys(event.entities_resolved).length > 0;
+
+  // For non-skill-call events: generic key/value dump
+  const genericKeys = Object.keys(event).filter(
     (k) => !["id", "type", "ts"].includes(k) && event[k] != null
   );
+  // For skill_call: exclude entities_resolved from generic dump (shown separately)
+  const skillMetaKeys = isSkillCall
+    ? genericKeys.filter((k) => !["entities_resolved", "missing_required", "skill_name", "action", "action_taken"].includes(k))
+    : genericKeys;
 
   return (
     <button
@@ -761,9 +868,65 @@ function TraceEventRow({ event }: { event: TraceEvent }) {
       {summary && (
         <div className="text-[10px] text-muted-foreground mt-0.5 pl-5 truncate">{summary}</div>
       )}
-      {expanded && extraKeys.length > 0 && (
-        <div className="mt-1.5 pl-5 pt-1.5 border-t border-border/50 space-y-0.5">
-          {extraKeys.map((k) => (
+
+      {expanded && (
+        <div className="mt-1.5 pl-5 pt-1.5 border-t border-border/50 space-y-1.5">
+
+          {/* skill_call: action_taken badge + entity schema table */}
+          {isSkillCall && (
+            <>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] font-mono text-muted-foreground">action:</span>
+                <span className="text-[10px] font-mono text-foreground/80">{event.action}</span>
+                {event.action_taken && (
+                  <span className={cn(
+                    "text-[9px] rounded-full px-1.5 py-0.5 font-medium",
+                    event.action_taken === "execute"
+                      ? "bg-green-500/10 text-green-600"
+                      : event.action_taken === "clarification_asked"
+                      ? "bg-blue-500/10 text-blue-600"
+                      : "bg-red-500/10 text-red-500"
+                  )}>
+                    {event.action_taken}
+                  </span>
+                )}
+              </div>
+
+              {hasEntities && (
+                <div className="rounded-md border border-border/60 overflow-hidden">
+                  <div className="bg-muted/50 px-2 py-1 text-[9px] font-semibold text-muted-foreground uppercase tracking-wide">
+                    Entity Schema
+                  </div>
+                  <table className="w-full text-[10px]">
+                    <tbody>
+                      {Object.entries(event.entities_resolved!).map(([field, value]) => {
+                        const isMissing = (event.missing_required ?? []).includes(field);
+                        return (
+                          <tr key={field} className="border-t border-border/40">
+                            <td className="px-2 py-1 font-mono text-muted-foreground w-1/2">{field}</td>
+                            <td className="px-2 py-1 text-foreground/80 w-5/12 break-all">
+                              {value != null ? String(value) : <span className="text-muted-foreground/50 italic">—</span>}
+                            </td>
+                            <td className="px-1 py-1 text-right w-6">
+                              {isMissing
+                                ? <span title="Required · missing" className="text-amber-500">⚠</span>
+                                : value != null
+                                ? <span title="Resolved" className="text-green-500">✓</span>
+                                : <span className="text-muted-foreground/30">·</span>
+                              }
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Generic key/value for all other fields */}
+          {(isSkillCall ? skillMetaKeys : genericKeys).map((k) => (
             <div key={k} className="flex items-start gap-2 text-[10px]">
               <span className="font-mono text-muted-foreground shrink-0">{k}:</span>
               <span className="text-foreground/80 break-all">

@@ -24,6 +24,11 @@ class OrchestratorSettings(BaseServiceSettings):
     rate_limit_per_minute: int = 60       # requests por IP por minuto
     rate_limit_chat: str = "60/minute"    # formato slowapi
 
+    # External skill URLs
+    bokun_url: str = "http://bokun:8011"
+    bokun_default_currency: str = "CLP"
+    bokun_default_lang: str = "ES"
+
 
 _settings = None
 

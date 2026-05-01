@@ -231,6 +231,8 @@ services:
         condition: service_healthy
       recommender:
         condition: service_healthy
+      bokun:
+        condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
@@ -336,6 +338,29 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.transcript.rule=PathPrefix(`/api/transcripts`)"
       - "traefik.http.services.transcript.loadbalancer.server.port=8008"
+
+  bokun:
+    build:
+      context: .
+      dockerfile: ./services/bokun/Dockerfile.dev
+    container_name: nia_bokun
+    restart: unless-stopped
+    ports:
+      - "8011:8011"
+    environment:
+      - SERVICE_NAME=bokun
+      - PORT=8011
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8011/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bokun.rule=PathPrefix(`/api/bokun`)"
+      - "traefik.http.services.bokun.loadbalancer.server.port=8011"
 
   fallback:
     build:

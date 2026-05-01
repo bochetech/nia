@@ -21,8 +21,8 @@ import { cn } from "@/lib/utils";
 // ─── Providers catalog ──────────────────────────────────────────
 
 const PROVIDERS = [
-  { key: "lmstudio",      label: "LM Studio",            hint: "Local OpenAI-compatible server" },
-  { key: "openai_compat", label: "OpenAI-compatible API", hint: "Any server with /v1/chat/completions" },
+  { key: "lmstudio",      label: "LM Studio",            hint: "API nativa LM Studio (/api/v1/chat) — soporta reasoning:off" },
+  { key: "openai_compat", label: "OpenAI-compatible API", hint: "Cualquier servidor con /v1/chat/completions" },
   { key: "openai",        label: "OpenAI",                hint: "api.openai.com" },
   { key: "anthropic",     label: "Anthropic",             hint: "api.anthropic.com" },
   { key: "vertex_ai",     label: "Google Vertex AI",      hint: "GCP Vertex AI" },

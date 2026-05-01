@@ -87,6 +87,8 @@ class QueryRequest(BaseModel):
     tenant_id: str
     collection_name: str | None = None   # defaults to "{tenant_id}_docs"
     tenant_name: str = "el asistente"
+    history: list[dict] | None = None    # últimos turnos de conversación [{role, content}]
+    user_language: str | None = None     # detected language (e.g. "english", "french")
 
     model_config = {"json_schema_extra": {"example": {
         "query": "¿Cuál es el horario de la viña?",
@@ -137,6 +139,8 @@ async def rag_query(request: QueryRequest) -> APIResponse[RAGQueryResult]:
         tenant_name=request.tenant_name,
         settings=settings,
         qdrant_client=get_qdrant(),
+        history=request.history,
+        user_language=request.user_language,
     )
     return APIResponse(data=result)
 

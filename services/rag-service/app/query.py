@@ -26,10 +26,15 @@ FALLBACK_ANSWER = (
 SYSTEM_PROMPT_TEMPLATE = """Eres NIA, el asistente virtual de {tenant_name}.
 Responde ÚNICAMENTE con la información proporcionada en el contexto de abajo.
 Si la respuesta no está en el contexto, di exactamente: "No tengo información precisa sobre eso."
-Responde en el mismo idioma que la pregunta. Sé conciso y amigable.
+Responde en el mismo idioma que la pregunta del usuario.{lang_instruction} Sé conciso y amigable.
 No inventes precios, fechas ni detalles que no estén en el contexto.
 
-CONTEXTO:
+VENTANA DE CONVERSACIÓN:
+Si la pregunta del usuario es un seguimiento (ej: "y como llego?", "cuánto cuesta?", "tienen tours?"),
+usa el historial de conversación para entender el contexto y responde directamente.
+El historial se incluye como mensajes anteriores en esta conversación.
+
+CONTEXTO RECUPERADO:
 {context}
 """
 
@@ -42,6 +47,8 @@ async def query_rag(
     tenant_name: str,
     settings: RAGSettings,
     qdrant_client: AsyncQdrantClient,
+    history: list[dict] | None = None,
+    user_language: str | None = None,
 ) -> RAGQueryResult:
     """
     Pipeline completo de query RAG:
@@ -55,9 +62,16 @@ async def query_rag(
     """
     t_start = time.perf_counter()
 
-    # 1. Semantic cache
-    query_hash = hashlib.md5(f"{tenant_id}:{query.lower().strip()}".encode()).hexdigest()
-    if settings.semantic_cache_enabled:
+    # 1. Semantic cache — sólo cuando NO hay historial de conversación.
+    # Con historial, la misma query puede necesitar una respuesta diferente según contexto.
+    # Include user_language in the cache key so the same query in different languages
+    # is cached separately.
+    cache_key = f"{tenant_id}:{query.lower().strip()}"
+    if user_language:
+        cache_key += f":{user_language}"
+    query_hash = hashlib.md5(cache_key.encode()).hexdigest()
+    use_cache = settings.semantic_cache_enabled and not history
+    if use_cache:
         cached = await _check_semantic_cache(tenant_id, query_hash)
         if cached:
             logger.info("rag_cache_hit", tenant_id=tenant_id)
@@ -122,23 +136,51 @@ async def query_rag(
 
     # 6. Generate
     t_gen_start = time.perf_counter()
-    answer, generation_model = await _generate_answer(
-        query=query,
-        context=context,
-        tenant_name=tenant_name,
-        settings=settings,
-        tenant_id=tenant_id,
-    )
+    try:
+        answer, generation_model = await _generate_answer(
+            query=query,
+            context=context,
+            tenant_name=tenant_name,
+            settings=settings,
+            tenant_id=tenant_id,
+            history=history,
+            user_language=user_language,
+        )
+    except Exception as exc:
+        logger.warning("rag_generation_failed_using_fallback", error=str(exc))
+        answer = ""
+        generation_model = "fallback"
     latency_generation_ms = (time.perf_counter() - t_gen_start) * 1000
 
     # 7. Groundedness check
     groundedness = "passed"
+    is_fallback_answer = False
     if settings.groundedness_check_enabled:
         is_grounded = _check_groundedness(answer, context)
         groundedness = "passed" if is_grounded else "failed"
         if not is_grounded:
-            logger.warning("rag_groundedness_failed", tenant_id=tenant_id)
+            # Distinguish: LLM admitted it doesn't know (expected, info) vs
+            # hallucination detected (unexpected, warning).
+            if "no tengo información" in answer.lower():
+                logger.info(
+                    "rag_out_of_scope",
+                    tenant_id=tenant_id,
+                    query_preview=query[:80],
+                    note="LLM found no answer in context — query may be out of KB scope",
+                )
+            else:
+                logger.warning(
+                    "rag_groundedness_failed",
+                    tenant_id=tenant_id,
+                    query_preview=query[:80],
+                    answer_preview=answer[:120],
+                )
             answer = FALLBACK_ANSWER
+            is_fallback_answer = True
+
+    # Also treat LLM "no tengo información" replies as fallback — never cache them
+    if "no tengo información" in answer.lower():
+        is_fallback_answer = True
 
     result = RAGQueryResult(
         query=query,
@@ -150,11 +192,12 @@ async def query_rag(
         generation_model=generation_model,
         latency_retrieval_ms=latency_retrieval_ms,
         latency_generation_ms=latency_generation_ms,
-        is_fallback=False,
+        is_fallback=is_fallback_answer,
     )
 
-    # 8. Cache resultado
-    if settings.semantic_cache_enabled:
+    # 8. Cache resultado — SOLO si: no había historial, no es fallback, y la
+    #    confianza supera el umbral mínimo. Nunca cachear respuestas de error.
+    if use_cache and not is_fallback_answer and result.confidence_score >= settings.min_confidence_threshold:
         await _store_semantic_cache(tenant_id, query_hash, result)
 
     return result
@@ -181,20 +224,34 @@ async def _generate_answer(
     tenant_name: str,
     settings: RAGSettings,
     tenant_id: str,
+    history: list[dict] | None = None,
+    user_language: str | None = None,
 ) -> tuple[str, str]:
     """Genera la respuesta final usando el model-adapter."""
+    lang_instruction = f" You MUST respond in {user_language}." if user_language else ""
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
         tenant_name=tenant_name,
         context=context,
+        lang_instruction=lang_instruction,
     )
+    messages: list[dict] = [{"role": "system", "content": system_prompt}]
+
+    # Añadir turnos previos de conversación para dar contexto (máx. 6 turnos = 3 pares)
+    if history:
+        for turn in history[-6:]:
+            role = turn.get("role", "user")
+            content = turn.get("content", "")
+            if role in ("user", "assistant") and content:
+                messages.append({"role": role, "content": content})
+
+    messages.append({"role": "user", "content": query})
+
     payload = {
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": query},
-        ],
+        "messages": messages,
         "temperature": 0.1,
         "max_tokens": 500,
         "tenant_id": tenant_id,
+        "enable_thinking": False,
     }
     async with httpx.AsyncClient(timeout=60.0) as client:
         resp = await client.post(
@@ -212,8 +269,10 @@ def _check_groundedness(answer: str, context: str) -> bool:
     Verifica que ninguna oración de la respuesta sea completamente inventada.
     En producción esto sería otro LLM call o un clasificador.
     """
+    # Si el LLM admite que no tiene información, no es un error de groundedness
+    # pero tampoco debe cachearse — se marca como fallback en el caller.
     if "no tengo información" in answer.lower():
-        return True  # La respuesta reconoce la ausencia
+        return False  # Forzar is_fallback=True via caller, nunca cachear
 
     # Si la respuesta es muy corta, probablemente es válida
     if len(answer) < 50:
